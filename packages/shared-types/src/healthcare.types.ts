@@ -12,6 +12,8 @@ export type MedicalRecordType =
 
 export type MedicalRecordSource = 'MANUAL_ENTRY' | 'ABDM_INGESTION' | 'EHR_SYNC';
 
+export type RecordVerificationStatus = 'VERIFIED' | 'PENDING' | 'SELF_SUBMITTED';
+
 export interface IMedicalRecord {
   id: string;
   patientId: string;
@@ -20,9 +22,62 @@ export interface IMedicalRecord {
   description?: string;
   source: MedicalRecordSource;
   resourceReference?: string;
+  recordDate: Date | string;
+  doctorName?: string;
+  doctorId?: string;
+  facilityName?: string;
+  facilityId?: string;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  fileData?: string;
+  verificationStatus?: RecordVerificationStatus;
   createdBy: string;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface MedicalRecordDetailDto extends IMedicalRecord {
+  fhirResource?: Record<string, unknown>;
+}
+
+export interface MedicalRecordSummaryDto {
+  totalRecords: number;
+  clinicalDocuments: number;
+  prescriptions: number;
+  labReports: number;
+  immunizations: number;
+  wellnessRecords: number;
+}
+
+export interface MedicalRecordFilterQueryDto {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: MedicalRecordType;
+  recordType?: MedicalRecordType;
+  source?: MedicalRecordSource;
+  verificationStatus?: RecordVerificationStatus;
+  startDate?: string;
+  endDate?: string;
+  sortBy?: 'recordDate' | 'createdAt' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CreateMedicalRecordDto {
+  title: string;
+  recordType: MedicalRecordType;
+  recordDate: string;
+  description?: string;
+  doctorName?: string;
+  doctorId?: string;
+  facilityName?: string;
+  facilityId?: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  fileData?: string;
 }
 
 export type EncounterType = 'AMBULATORY' | 'EMERGENCY' | 'INPATIENT' | 'HOME' | 'VIRTUAL';

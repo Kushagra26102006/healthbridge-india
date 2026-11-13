@@ -1,6 +1,10 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import { HEALTH_RECORD_TYPES } from '@healthbridge/config';
-import { MedicalRecordType, MedicalRecordSource } from '@healthbridge/shared-types';
+import {
+  MedicalRecordType,
+  MedicalRecordSource,
+  RecordVerificationStatus,
+} from '@healthbridge/shared-types';
 
 export interface IMedicalRecordDocument extends Document {
   patientId: Types.ObjectId;
@@ -9,6 +13,17 @@ export interface IMedicalRecordDocument extends Document {
   description?: string;
   source: MedicalRecordSource;
   resourceReference?: string;
+  recordDate: Date;
+  doctorName?: string;
+  doctorId?: Types.ObjectId;
+  facilityName?: string;
+  facilityId?: Types.ObjectId;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  fileData?: string;
+  verificationStatus: RecordVerificationStatus;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +67,55 @@ const MedicalRecordSchema = new Schema<IMedicalRecordDocument>(
       type: String,
       trim: true,
     },
+    recordDate: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+    doctorName: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Doctor name cannot exceed 200 characters'],
+    },
+    doctorId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    facilityName: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Facility name cannot exceed 200 characters'],
+    },
+    facilityId: {
+      type: Schema.Types.ObjectId,
+      index: true,
+    },
+    fileUrl: {
+      type: String,
+      trim: true,
+    },
+    fileName: {
+      type: String,
+      trim: true,
+      maxlength: [255, 'File name cannot exceed 255 characters'],
+    },
+    mimeType: {
+      type: String,
+      trim: true,
+    },
+    fileSize: {
+      type: Number,
+    },
+    fileData: {
+      type: String,
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['VERIFIED', 'PENDING', 'SELF_SUBMITTED'],
+      default: 'VERIFIED',
+      index: true,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -74,8 +138,12 @@ const MedicalRecordSchema = new Schema<IMedicalRecordDocument>(
   }
 );
 
-// High performance index for patient timeline lookups
-MedicalRecordSchema.index({ patientId: 1, recordType: 1, createdAt: -1 });
+// High performance compound indexes for patient timeline and filter queries
+MedicalRecordSchema.index({ patientId: 1, recordType: 1, recordDate: -1 });
+MedicalRecordSchema.index({ patientId: 1, recordDate: -1 });
+MedicalRecordSchema.index({ patientId: 1, createdAt: -1 });
+MedicalRecordSchema.index({ patientId: 1, verificationStatus: 1 });
+MedicalRecordSchema.index({ patientId: 1, source: 1 });
 
 export const MedicalRecordModel: Model<IMedicalRecordDocument> =
   (mongoose.models.MedicalRecord as Model<IMedicalRecordDocument>) ||

@@ -43,3 +43,22 @@ export const HEALTH_RECORD_TYPES = [
   'IMMUNIZATION_RECORD',
   'WELLNESS_RECORD',
 ] as const;
+
+export const RECORD_VERIFICATION_STATUSES = ['VERIFIED', 'PENDING', 'SELF_SUBMITTED'] as const;
+
+export const RECORD_SOURCES = ['MANUAL_ENTRY', 'ABDM_INGESTION', 'EHR_SYNC'] as const;
+
+export const RECORD_TYPE_LABELS: Record<string, string> = {
+  OP_CONSULTATION: 'Doctor Consultation',
+  DISCHARGE_SUMMARY: 'Discharge Summary',
+  DIAGNOSTIC_REPORT: 'Diagnostic & Lab Report',
+  PRESCRIPTION: 'Prescription',
+  IMMUNIZATION_RECORD: 'Immunization Record',
+  WELLNESS_RECORD: 'Wellness & Medical Record',
+};
+
+export const RECORD_CONFIG = {
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const,
+  allowedFileExtensions: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'] as const,
+} as const;

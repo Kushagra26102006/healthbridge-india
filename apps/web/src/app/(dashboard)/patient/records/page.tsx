@@ -1,103 +1,254 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { FileText, ArrowLeft, PlusCircle, ShieldCheck } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import {
+  RecordsHeader,
+  RecordsSummary,
+  RecordsSearch,
+  RecordsFilters,
+  RecordsList,
+  RecordUploadDialog,
+  RecordsSkeleton,
+} from '@/components/patient/records';
+import {
+  useRecords,
+  useRecordSummary,
+  useDownloadRecord,
+} from '@/features/records/hooks/use-records';
+import type {
+  MedicalRecordType,
+  MedicalRecordSource,
+  RecordVerificationStatus,
+  MedicalRecordFilterQueryDto,
+} from '@healthbridge/shared-types';
+
+function PatientRecordsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Parse filters from URL query parameters
+  const initialCategory = (searchParams.get('category') as MedicalRecordType) || '';
+  const initialSearch = searchParams.get('search') || '';
+  const initialSource = (searchParams.get('source') as MedicalRecordSource) || '';
+  const initialStatus = (searchParams.get('status') as RecordVerificationStatus) || '';
+  const initialStartDate = searchParams.get('startDate') || '';
+  const initialEndDate = searchParams.get('endDate') || '';
+  const initialSortBy =
+    (searchParams.get('sortBy') as 'recordDate' | 'createdAt' | 'title') || 'recordDate';
+  const initialSortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+  const initialLimit = parseInt(searchParams.get('limit') || '20', 10);
+
+  const [search, setSearch] = useState(initialSearch);
+  const [category, setCategory] = useState<MedicalRecordType | ''>(initialCategory);
+  const [source, setSource] = useState<MedicalRecordSource | ''>(initialSource);
+  const [verificationStatus, setVerificationStatus] = useState<RecordVerificationStatus | ''>(
+    initialStatus
+  );
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
+  const [sortBy, setSortBy] = useState<'recordDate' | 'createdAt' | 'title'>(initialSortBy);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(initialSortOrder);
+  const [page, setPage] = useState(initialPage);
+  const [limit, setLimit] = useState(initialLimit);
+
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+
+  // Sync state with URL query parameters
+  const updateQueryParams = useCallback(
+    (params: Record<string, string | number | undefined>) => {
+      const current = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== '') {
+          current.set(key, String(val));
+        } else {
+          current.delete(key);
+        }
+      });
+      const query = current.toString();
+      router.replace(`${pathname}${query ? `?${query}` : ''}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  // TanStack Query hooks
+  const queryFilters: MedicalRecordFilterQueryDto = {
+    page,
+    limit,
+    search: search || undefined,
+    category: category || undefined,
+    source: source || undefined,
+    verificationStatus: verificationStatus || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+    sortBy,
+    sortOrder,
+  };
+
+  const { records, pagination, isLoading, isFetching, refetch } = useRecords(queryFilters);
+  const { summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useRecordSummary();
+  const { download, isDownloading } = useDownloadRecord();
+
+  // Handlers
+  const handleSearchChange = (newSearch: string) => {
+    setSearch(newSearch);
+    setPage(1);
+    updateQueryParams({ search: newSearch, page: 1 });
+  };
+
+  const handleCategorySelect = (newCategory: MedicalRecordType | '') => {
+    setCategory(newCategory);
+    setPage(1);
+    updateQueryParams({ category: newCategory, page: 1 });
+  };
+
+  const handleFilterChange = (newFilters: {
+    category?: MedicalRecordType | '';
+    source?: MedicalRecordSource | '';
+    verificationStatus?: RecordVerificationStatus | '';
+    startDate?: string;
+    endDate?: string;
+    sortBy: 'recordDate' | 'createdAt' | 'title';
+    sortOrder: 'asc' | 'desc';
+  }) => {
+    setCategory(newFilters.category || '');
+    setSource(newFilters.source || '');
+    setVerificationStatus(newFilters.verificationStatus || '');
+    setStartDate(newFilters.startDate || '');
+    setEndDate(newFilters.endDate || '');
+    setSortBy(newFilters.sortBy);
+    setSortOrder(newFilters.sortOrder);
+    setPage(1);
+
+    updateQueryParams({
+      category: newFilters.category,
+      source: newFilters.source,
+      status: newFilters.verificationStatus,
+      startDate: newFilters.startDate,
+      endDate: newFilters.endDate,
+      sortBy: newFilters.sortBy,
+      sortOrder: newFilters.sortOrder,
+      page: 1,
+    });
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setCategory('');
+    setSource('');
+    setVerificationStatus('');
+    setStartDate('');
+    setEndDate('');
+    setSortBy('recordDate');
+    setSortOrder('desc');
+    setPage(1);
+
+    router.replace(pathname, { scroll: false });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    updateQueryParams({ page: newPage });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    updateQueryParams({ limit: newLimit, page: 1 });
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    refetchSummary();
+  };
+
+  const handleDownload = (recordId: string, fileName?: string) => {
+    download(recordId, fileName);
+  };
+
+  const isFiltered = Boolean(
+    search ||
+    category ||
+    source ||
+    verificationStatus ||
+    startDate ||
+    endDate ||
+    sortBy !== 'recordDate' ||
+    sortOrder !== 'desc'
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Header */}
+      <RecordsHeader
+        totalCount={pagination?.total ?? summary?.totalRecords ?? records.length}
+        onUploadClick={() => setIsUploadOpen(true)}
+        onRefreshClick={handleRefresh}
+        isRefreshing={isFetching}
+      />
+
+      {/* 2. Summary Metric Cards */}
+      <RecordsSummary
+        summary={summary}
+        isLoading={isSummaryLoading}
+        selectedCategory={category}
+        onSelectCategory={handleCategorySelect}
+      />
+
+      {/* 3. Search and Multi-Facet Filter Bar */}
+      <div className="space-y-3">
+        <RecordsSearch value={search} onChange={handleSearchChange} />
+        <RecordsFilters
+          filters={{
+            category,
+            source,
+            verificationStatus,
+            startDate,
+            endDate,
+            sortBy,
+            sortOrder,
+          }}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
+        />
+      </div>
+
+      {/* 4. Records Explorer List / Table */}
+      {isLoading ? (
+        <RecordsSkeleton />
+      ) : (
+        <RecordsList
+          records={records}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onDownload={handleDownload}
+          isDownloading={isDownloading}
+          isFiltered={isFiltered}
+          onResetFilters={handleResetFilters}
+          onUploadClick={() => setIsUploadOpen(true)}
+        />
+      )}
+
+      {/* 5. Document Upload Dialog Modal */}
+      <RecordUploadDialog
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onSuccess={() => {
+          refetch();
+          refetchSummary();
+        }}
+      />
+    </div>
+  );
+}
 
 export default function PatientRecordsPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Link href="/patient/dashboard">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Health Records Repository
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Consolidated medical records, OPD summaries, discharge cards, and diagnostic history
-            </p>
-          </div>
-        </div>
-
-        <Badge variant="abha" className="text-xs">
-          ABDM Linked
-        </Badge>
-      </div>
-
-      <Card className="border-border shadow-card bg-card">
-        <CardHeader className="pb-3 border-b border-border/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-bold text-foreground">
-                Digital Health Records Navigation Shell
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                FHIR-compliant health data repository connected via Health Information Exchange
-                (HIE-CM)
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-6 space-y-4">
-          <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-900 dark:text-teal-200 space-y-1.5 leading-relaxed">
-            <div className="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300">
-              <ShieldCheck className="h-4 w-4" />
-              <span>Patient Dashboard Architecture Initialized</span>
-            </div>
-            <p>
-              Your navigation framework and security context are active. Full interactive record
-              filters, document upload, and FHIR resource viewers will be connected in the
-              subsequent records workflow task.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1">
-              <span className="font-bold text-foreground block">OPD Consultations</span>
-              <p className="text-muted-foreground text-[11px]">
-                Doctor consultation notes and clinical observations.
-              </p>
-            </div>
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1">
-              <span className="font-bold text-foreground block">Discharge Summaries</span>
-              <p className="text-muted-foreground text-[11px]">
-                Inpatient hospital summaries and treatment plans.
-              </p>
-            </div>
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1">
-              <span className="font-bold text-foreground block">Immunization Cards</span>
-              <p className="text-muted-foreground text-[11px]">
-                Vaccination certificates and preventative logs.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex justify-between items-center border-t border-border pt-4">
-          <Link href="/patient/dashboard">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Return to Dashboard
-            </Button>
-          </Link>
-          <Button variant="teal" size="sm" className="text-xs gap-1.5">
-            <PlusCircle className="h-3.5 w-3.5" />
-            Upload New Record
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+    <Suspense fallback={<RecordsSkeleton />}>
+      <PatientRecordsContent />
+    </Suspense>
   );
 }
