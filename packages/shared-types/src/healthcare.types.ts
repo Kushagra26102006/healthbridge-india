@@ -129,3 +129,4 @@ export interface ILaboratoryReport {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+

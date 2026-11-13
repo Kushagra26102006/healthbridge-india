@@ -59,3 +59,4 @@ export const PharmacyProfileModel: Model<IPharmacyProfileDocument> =
   mongoose.model<IPharmacyProfileDocument>('PharmacyProfile', PharmacyProfileSchema);
 
 export default PharmacyProfileModel;
+

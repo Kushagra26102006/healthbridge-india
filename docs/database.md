@@ -264,3 +264,4 @@ pnpm --filter @healthbridge/api seed
 - **Patient:** `ramesh.patel@healthbridge.local` | `DemoSecure#2026`
 - **Pharmacy:** `pharmacy.demo@healthbridge.local` | `DemoSecure#2026`
 - **Laboratory:** `lab.demo@healthbridge.local` | `DemoSecure#2026`
+

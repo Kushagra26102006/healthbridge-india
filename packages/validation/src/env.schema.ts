@@ -22,6 +22,7 @@ export const backendEnvSchema = z.object({
   COOKIE_SECRET: z.string().min(16, 'COOKIE_SECRET must be at least 16 characters').default('dev_cookie_secret_hb_platform_cookie_key'),
   ABDM_CLIENT_ID: z.string().optional(),
   ABDM_CLIENT_SECRET: z.string().optional(),
+  ADMIN_REGISTRATION_KEY: z.string().optional().default('hb_dev_admin_registration_secret_key_2026'),
 });
 
 export type BackendEnv = z.infer<typeof backendEnvSchema>;

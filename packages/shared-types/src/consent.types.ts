@@ -56,3 +56,4 @@ export interface IConsentArtifact {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+

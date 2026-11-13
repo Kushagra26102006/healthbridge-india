@@ -49,3 +49,4 @@ export const AdminProfileModel: Model<IAdminProfileDocument> =
   mongoose.model<IAdminProfileDocument>('AdminProfile', AdminProfileSchema);
 
 export default AdminProfileModel;
+

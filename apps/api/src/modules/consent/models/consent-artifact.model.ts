@@ -121,3 +121,4 @@ export const ConsentArtifactModel: Model<IConsentArtifactDocument> =
   mongoose.model<IConsentArtifactDocument>('ConsentArtifact', ConsentArtifactSchema);
 
 export default ConsentArtifactModel;
+

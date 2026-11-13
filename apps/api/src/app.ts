@@ -3,14 +3,19 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
+import { correlationIdMiddleware } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
 import { notFoundHandler } from './middleware/not-found';
 import { errorHandler } from './middleware/error-handler';
 import { healthRoutes } from './modules/health/health.routes';
+import { authRoutes } from './modules/auth/routes/auth.routes';
 import { APP_CONFIG } from '@healthbridge/config';
 
 export const createApp = (): Application => {
   const app: Application = express();
+
+  // Request correlation & tracing ID
+  app.use(correlationIdMiddleware);
 
   // Security Headers
   app.use(helmet());
@@ -46,6 +51,7 @@ export const createApp = (): Application => {
 
   // API Routes
   app.use(`${APP_CONFIG.apiPrefix}/health`, healthRoutes);
+  app.use(`${APP_CONFIG.apiPrefix}/auth`, authRoutes);
 
   // 404 Route Not Found Catch-All
   app.use(notFoundHandler);

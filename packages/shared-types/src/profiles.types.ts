@@ -94,3 +94,4 @@ export interface IFacility {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+

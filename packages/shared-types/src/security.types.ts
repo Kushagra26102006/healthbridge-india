@@ -50,3 +50,4 @@ export interface INotification {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+

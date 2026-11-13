@@ -65,3 +65,4 @@ export type PatientProfileInput = z.infer<typeof patientProfileSchema>;
 export type DoctorProfileInput = z.infer<typeof doctorProfileSchema>;
 export type PharmacyProfileInput = z.infer<typeof pharmacyProfileSchema>;
 export type LaboratoryProfileInput = z.infer<typeof laboratoryProfileSchema>;
+

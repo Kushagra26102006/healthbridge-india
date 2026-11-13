@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit",
     "lint": "echo 'api lint passed'",
     "seed": "tsx src/database/seed.ts",
-    "test:db": "tsx src/database/test-db.ts"
+    "test:db": "tsx src/database/test-db.ts",
+    "test:auth": "tsx src/modules/auth/tests/auth.test.ts"
   },
   "dependencies": {
     "@healthbridge/config": "workspace:*",

@@ -86,3 +86,4 @@ export const DoctorProfileModel: Model<IDoctorProfileDocument> =
   mongoose.model<IDoctorProfileDocument>('DoctorProfile', DoctorProfileSchema);
 
 export default DoctorProfileModel;
+

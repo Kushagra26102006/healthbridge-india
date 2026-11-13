@@ -13,6 +13,7 @@
     "type-check": "pnpm --recursive run type-check",
     "seed": "pnpm --filter @healthbridge/api seed",
     "test:db": "pnpm --filter @healthbridge/api test:db",
+    "test:auth": "pnpm --filter @healthbridge/api test:auth",
     "clean": "rm -rf node_modules apps/*/.next apps/*/dist packages/*/dist"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 export * from './user';
 export * from './user.types';
+export * from './auth.types';
 export * from './profiles.types';
 export * from './healthcare.types';
 export * from './consent.types';

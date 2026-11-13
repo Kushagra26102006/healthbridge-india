@@ -51,3 +51,4 @@ export interface UserPublicDto {
   createdAt: string;
   updatedAt: string;
 }
+

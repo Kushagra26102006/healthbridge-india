@@ -83,3 +83,4 @@ export const EncounterModel: Model<IEncounterDocument> =
   mongoose.model<IEncounterDocument>('Encounter', EncounterSchema);
 
 export default EncounterModel;
+
