@@ -17,6 +17,7 @@ import {
   ChevronRight,
   X,
   HeartPulse,
+  Stethoscope,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,7 @@ export const PATIENT_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/patient/dashboard', icon: LayoutDashboard },
   { label: 'Health Records', href: '/patient/records', icon: FileText },
   { label: 'Appointments', href: '/patient/appointments', icon: Calendar },
+  { label: 'Find Doctors', href: '/patient/doctors', icon: Stethoscope },
   { label: 'Prescriptions', href: '/patient/prescriptions', icon: Pill },
   { label: 'Lab Reports', href: '/patient/lab-reports', icon: FlaskConical },
   { label: 'Consent Management', href: '/patient/consent', icon: ShieldCheck },

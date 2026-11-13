@@ -62,3 +62,26 @@ export const RECORD_CONFIG = {
   allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const,
   allowedFileExtensions: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'] as const,
 } as const;
+
+export const CONSULTATION_TYPES = ['IN_PERSON', 'TELECONSULTATION'] as const;
+
+export const APPOINTMENT_STATUSES = [
+  'REQUESTED',
+  'CONFIRMED',
+  'COMPLETED',
+  'CANCELLED',
+  'NO_SHOW',
+] as const;
+
+export const APPOINTMENT_CONFIG = {
+  slotDurationMinutes: 30,
+  cancellationDeadlineHours: 2,
+  defaultWorkingHours: {
+    start: '09:00',
+    end: '17:00',
+    lunchBreakStart: '13:00',
+    lunchBreakEnd: '14:00',
+  },
+} as const;
+
+

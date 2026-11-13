@@ -1,104 +1,187 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowLeft, Plus, Clock, ShieldCheck } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import {
+  Calendar,
+  Plus,
+  Clock,
+  History,
+  CheckCircle2,
+  Stethoscope,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  AppointmentCard,
+  AppointmentSkeleton,
+  AppointmentEmptyState,
+  CancelAppointmentDialog,
+  RescheduleAppointmentDialog,
+} from '@/components/patient/appointments';
+import { useAppointments } from '@/features/appointments/hooks/use-appointments';
+import type { AppointmentDetailDto } from '@healthbridge/shared-types';
+
+type TabStatus = 'UPCOMING' | 'CONFIRMED' | 'REQUESTED' | 'ALL';
 
 export default function PatientAppointmentsPage() {
+  const [activeTab, setActiveTab] = useState<TabStatus>('UPCOMING');
+  const [selectedAppointmentForCancel, setSelectedAppointmentForCancel] =
+    useState<AppointmentDetailDto | null>(null);
+  const [selectedAppointmentForReschedule, setSelectedAppointmentForReschedule] =
+    useState<AppointmentDetailDto | null>(null);
+
+  const { appointments, isLoading, refetch } = useAppointments({
+    status: activeTab === 'ALL' ? undefined : activeTab,
+    sortBy: 'scheduledAt',
+    sortOrder: 'asc',
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Link href="/patient/dashboard">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Clinical Appointments
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Manage doctor consultations, physical hospital visits, and teleconsultation slots
-            </p>
-          </div>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Calendar className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+            <span>Clinical Appointments</span>
+          </h1>
+          <p className="text-xs text-slate-500">
+            Manage upcoming consultations, physical hospital visits, and teleconsultations
+          </p>
         </div>
 
-        <Badge variant="secondary" className="text-xs">
-          Real-Time Scheduling
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="text-xs h-9 px-3.5 rounded-xl border-slate-200 dark:border-slate-800"
+          >
+            <Link href="/patient/doctors">
+              <Stethoscope className="h-3.5 w-3.5 mr-1" />
+              Find Specialists
+            </Link>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="text-xs h-9 px-3.5 rounded-xl border-slate-200 dark:border-slate-800"
+          >
+            <Link href="/patient/appointments/history">
+              <History className="h-3.5 w-3.5 mr-1" />
+              Past History
+            </Link>
+          </Button>
+
+          <Button
+            size="sm"
+            asChild
+            className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-9 px-4 rounded-xl font-medium shadow-sm"
+          >
+            <Link href="/patient/appointments/book">
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Book Appointment
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <Card className="border-border shadow-card bg-card">
-        <CardHeader className="pb-3 border-b border-border/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-              <Calendar className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-bold text-foreground">
-                Appointments Management Shell
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Verified healthcare practitioner calendar and slot booking
-              </p>
-            </div>
-          </div>
-        </CardHeader>
+      {/* Tabs */}
+      <div className="flex items-center space-x-1 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('UPCOMING')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5 ${
+            activeTab === 'UPCOMING'
+              ? 'bg-teal-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Clock className="h-3.5 w-3.5" />
+          <span>Upcoming Consultations</span>
+        </button>
 
-        <CardContent className="p-6 space-y-4">
-          <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-900 dark:text-teal-200 space-y-1.5 leading-relaxed">
-            <div className="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300">
-              <ShieldCheck className="h-4 w-4" />
-              <span>Appointments Architecture Active</span>
-            </div>
-            <p>
-              Your authenticated session is established. Interactive doctor search, live clinic slot
-              selection, and video teleconsultation features will be fully bound in the dedicated
-              appointment workflow task.
-            </p>
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('CONFIRMED')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5 ${
+            activeTab === 'CONFIRMED'
+              ? 'bg-teal-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <span>Confirmed</span>
+        </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1.5">
-              <div className="flex items-center gap-1.5 font-bold text-foreground">
-                <Clock className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-                <span>OPD Doctor Visits</span>
-              </div>
-              <p className="text-muted-foreground text-[11px]">
-                Pre-book consultation tokens at registered clinics and community health centers.
-              </p>
-            </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('REQUESTED')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5 ${
+            activeTab === 'REQUESTED'
+              ? 'bg-teal-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <span>Requested</span>
+        </button>
 
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1.5">
-              <div className="flex items-center gap-1.5 font-bold text-foreground">
-                <Calendar className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-                <span>Virtual Teleconsultations</span>
-              </div>
-              <p className="text-muted-foreground text-[11px]">
-                Connect with specialists from the comfort of your home using e-Sanjeevani
-                guidelines.
-              </p>
-            </div>
-          </div>
-        </CardContent>
+        <button
+          type="button"
+          onClick={() => setActiveTab('ALL')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5 ${
+            activeTab === 'ALL'
+              ? 'bg-teal-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <span>All Active</span>
+        </button>
+      </div>
 
-        <CardFooter className="flex justify-between items-center border-t border-border pt-4">
-          <Link href="/patient/dashboard">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Return to Dashboard
-            </Button>
-          </Link>
-          <Button variant="teal" size="sm" className="text-xs gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Book Consultation
-          </Button>
-        </CardFooter>
-      </Card>
+      {/* Appointment Listings */}
+      {isLoading ? (
+        <AppointmentSkeleton count={3} />
+      ) : appointments.length === 0 ? (
+        <AppointmentEmptyState
+          title={
+            activeTab === 'UPCOMING'
+              ? 'No upcoming consultations'
+              : `No ${activeTab.toLowerCase()} appointments found`
+          }
+          description="Schedule a consultation with a verified medical specialist in your preferred hospital or clinic."
+          showBookAction={true}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {appointments.map((appointment) => (
+            <AppointmentCard
+              key={appointment.id}
+              appointment={appointment}
+              onCancelClick={setSelectedAppointmentForCancel}
+              onRescheduleClick={setSelectedAppointmentForReschedule}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Cancel Dialog */}
+      <CancelAppointmentDialog
+        isOpen={Boolean(selectedAppointmentForCancel)}
+        appointment={selectedAppointmentForCancel}
+        onClose={() => setSelectedAppointmentForCancel(null)}
+        onSuccess={() => refetch()}
+      />
+
+      {/* Reschedule Dialog */}
+      <RescheduleAppointmentDialog
+        isOpen={Boolean(selectedAppointmentForReschedule)}
+        appointment={selectedAppointmentForReschedule}
+        onClose={() => setSelectedAppointmentForReschedule(null)}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

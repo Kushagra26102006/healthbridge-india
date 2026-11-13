@@ -107,3 +107,4 @@ export function RecordDetailSkeleton() {
 }
 
 export default RecordsSkeleton;
+

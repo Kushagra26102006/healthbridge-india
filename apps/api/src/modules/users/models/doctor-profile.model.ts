@@ -9,6 +9,7 @@ export interface IDoctorProfileDocument extends Document {
   experience: number;
   verificationStatus: VerificationStatus;
   facilityId?: Types.ObjectId;
+  consultationModes: ('IN_PERSON' | 'TELECONSULTATION')[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +63,11 @@ const DoctorProfileSchema = new Schema<IDoctorProfileDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Facility',
       index: true,
+    },
+    consultationModes: {
+      type: [String],
+      enum: ['IN_PERSON', 'TELECONSULTATION'],
+      default: ['IN_PERSON', 'TELECONSULTATION'],
     },
   },
   {
