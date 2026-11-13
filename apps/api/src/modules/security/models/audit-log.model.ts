@@ -60,11 +60,19 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
         validator: function (val: Record<string, unknown> | undefined) {
           if (!val) return true;
           // Security filter: Ensure no sensitive keys exist in metadata
-          const forbiddenKeys = ['password', 'passwordHash', 'token', 'accessToken', 'refreshToken', 'secret'];
+          const forbiddenKeys = [
+            'password',
+            'passwordHash',
+            'token',
+            'accessToken',
+            'refreshToken',
+            'secret',
+          ];
           const keys = Object.keys(val).map((k) => k.toLowerCase());
           return !forbiddenKeys.some((f) => keys.includes(f.toLowerCase()));
         },
-        message: 'Security violation: Audit metadata must never contain credentials, passwords, or tokens',
+        message:
+          'Security violation: Audit metadata must never contain credentials, passwords, or tokens',
       },
     },
   },
@@ -109,4 +117,3 @@ export const AuditLogModel: Model<IAuditLogDocument> =
   mongoose.model<IAuditLogDocument>('AuditLog', AuditLogSchema);
 
 export default AuditLogModel;
-

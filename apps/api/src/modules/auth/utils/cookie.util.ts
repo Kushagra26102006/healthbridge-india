@@ -12,11 +12,7 @@ export const getBaseCookieOptions = (maxAgeMs: number): CookieOptions => ({
   maxAge: maxAgeMs,
 });
 
-export const setAuthCookies = (
-  res: Response,
-  accessToken: string,
-  refreshToken?: string
-): void => {
+export const setAuthCookies = (res: Response, accessToken: string, refreshToken?: string): void => {
   // Access Token: 15 minutes (900,000 ms)
   const accessCookieOptions = getBaseCookieOptions(15 * 60 * 1000);
   res.cookie(AUTH_CONFIG.accessTokenCookieName, accessToken, accessCookieOptions);
@@ -38,4 +34,3 @@ export const clearAuthCookies = (res: Response): void => {
   res.clearCookie(AUTH_CONFIG.accessTokenCookieName, clearOptions);
   res.clearCookie(AUTH_CONFIG.refreshTokenCookieName, clearOptions);
 };
-

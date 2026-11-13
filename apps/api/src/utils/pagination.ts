@@ -1,6 +1,9 @@
 import type { PaginationMeta } from '@healthbridge/shared-types';
 import { sanitizeMongoQuery, sanitizeRegexPattern, sanitizeString } from './sanitization';
-import type { PaginationQueryOptions, ParsedPagination } from '../shared/interfaces/pagination.interface';
+import type {
+  PaginationQueryOptions,
+  ParsedPagination,
+} from '../shared/interfaces/pagination.interface';
 
 export interface PaginationOptions {
   defaultPage?: number;
@@ -105,4 +108,3 @@ export const createPaginationMeta = (
     hasPrevPage: safePage > 1,
   };
 };
-

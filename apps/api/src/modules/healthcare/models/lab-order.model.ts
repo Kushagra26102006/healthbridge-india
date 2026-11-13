@@ -76,4 +76,3 @@ export const LaboratoryOrderModel: Model<ILaboratoryOrderDocument> =
   mongoose.model<ILaboratoryOrderDocument>('LaboratoryOrder', LaboratoryOrderSchema);
 
 export default LaboratoryOrderModel;
-

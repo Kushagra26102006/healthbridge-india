@@ -137,7 +137,8 @@ export const openApiSpec = {
     '/auth/register': {
       post: {
         summary: 'Register New Healthcare Account',
-        description: 'Registers a user with role and automatically provisions corresponding profile record',
+        description:
+          'Registers a user with role and automatically provisions corresponding profile record',
         requestBody: {
           required: true,
           content: {
@@ -150,7 +151,11 @@ export const openApiSpec = {
                   email: { type: 'string', format: 'email', example: 'priya.sharma@aims.edu' },
                   phone: { type: 'string', example: '9876543210' },
                   password: { type: 'string', format: 'password', example: 'Pass@1234Secure' },
-                  confirmPassword: { type: 'string', format: 'password', example: 'Pass@1234Secure' },
+                  confirmPassword: {
+                    type: 'string',
+                    format: 'password',
+                    example: 'Pass@1234Secure',
+                  },
                   role: {
                     type: 'string',
                     enum: ['PATIENT', 'DOCTOR', 'PHARMACY', 'LABORATORY', 'ADMIN'],
@@ -191,7 +196,8 @@ export const openApiSpec = {
     '/auth/login': {
       post: {
         summary: 'Authenticate User',
-        description: 'Authenticates via email or phone + password; sets HTTP-only session cookies and returns user data',
+        description:
+          'Authenticates via email or phone + password; sets HTTP-only session cookies and returns user data',
         requestBody: {
           required: true,
           content: {
@@ -231,7 +237,8 @@ export const openApiSpec = {
     '/auth/refresh': {
       post: {
         summary: 'Rotate Refresh Token',
-        description: 'Issues a new short-lived access token and rotates the refresh token with reuse detection',
+        description:
+          'Issues a new short-lived access token and rotates the refresh token with reuse detection',
         responses: {
           '200': {
             description: 'Tokens successfully refreshed',
@@ -415,4 +422,3 @@ export const openApiSpec = {
     },
   },
 };
-

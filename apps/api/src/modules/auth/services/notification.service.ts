@@ -23,7 +23,9 @@ export class NotificationService implements INotificationService {
 
   async sendPhoneOtp(phone: string, _otp: string): Promise<void> {
     if (env.NODE_ENV !== 'production') {
-      logger.info(`[MOCK SMS DISPATCH] OTP queued for phone: ${phone.slice(0, 2)}******${phone.slice(-2)}`);
+      logger.info(
+        `[MOCK SMS DISPATCH] OTP queued for phone: ${phone.slice(0, 2)}******${phone.slice(-2)}`
+      );
     }
   }
 }

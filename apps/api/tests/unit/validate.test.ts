@@ -72,4 +72,3 @@ describe('Validation Middleware Unit Tests', () => {
     expect(caughtError.errors.some((e: any) => e.field.startsWith('params.'))).toBe(true);
   });
 });
-

@@ -3,13 +3,7 @@
  */
 
 export type AppointmentStatus =
-  | 'REQUESTED'
-  | 'SCHEDULED'
-  | 'CONFIRMED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'NO_SHOW';
+  'REQUESTED' | 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
 export interface AppointmentSummaryDto {
   id: string;

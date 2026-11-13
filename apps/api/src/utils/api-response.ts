@@ -26,7 +26,8 @@ export const sendSuccess = <T>(
   meta?: PaginationMeta | Record<string, unknown>
 ): Response => {
   const req = res.req;
-  const requestId = (req?.requestId as string) || (res.getHeader('X-Request-Id') as string) || undefined;
+  const requestId =
+    (req?.requestId as string) || (res.getHeader('X-Request-Id') as string) || undefined;
 
   const payload: ApiResponse<T> = {
     success: true,

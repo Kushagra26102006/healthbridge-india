@@ -47,4 +47,3 @@ export const approveConsentArtifactSchema = z.object({
 
 export type CreateConsentRequestInput = z.infer<typeof createConsentRequestSchema>;
 export type ApproveConsentArtifactInput = z.infer<typeof approveConsentArtifactSchema>;
-

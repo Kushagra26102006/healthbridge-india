@@ -89,4 +89,3 @@ export const LaboratoryReportModel: Model<ILaboratoryReportDocument> =
   mongoose.model<ILaboratoryReportDocument>('LaboratoryReport', LaboratoryReportSchema);
 
 export default LaboratoryReportModel;
-

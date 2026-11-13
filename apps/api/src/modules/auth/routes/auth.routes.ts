@@ -35,11 +35,8 @@ router.post(
  * @desc    Authenticate user using email or 10-digit phone
  * @access  Public (Rate-limited: 5 attempts / 15 mins)
  */
-router.post(
-  '/login',
-  loginRateLimiter,
-  validateRequest(loginValidationSchema),
-  (req, res, next) => authController.login(req, res, next)
+router.post('/login', loginRateLimiter, validateRequest(loginValidationSchema), (req, res, next) =>
+  authController.login(req, res, next)
 );
 
 /**
@@ -89,10 +86,8 @@ router.post(
  * @desc    Reset password using one-time cryptographic token
  * @access  Public
  */
-router.post(
-  '/reset-password',
-  validateRequest(resetPasswordValidationSchema),
-  (req, res, next) => authController.resetPassword(req, res, next)
+router.post('/reset-password', validateRequest(resetPasswordValidationSchema), (req, res, next) =>
+  authController.resetPassword(req, res, next)
 );
 
 /**
@@ -100,10 +95,8 @@ router.post(
  * @desc    Verify email address using verification token
  * @access  Public
  */
-router.post(
-  '/verify-email',
-  validateRequest(verifyEmailValidationSchema),
-  (req, res, next) => authController.verifyEmail(req, res, next)
+router.post('/verify-email', validateRequest(verifyEmailValidationSchema), (req, res, next) =>
+  authController.verifyEmail(req, res, next)
 );
 
 /**
@@ -120,4 +113,3 @@ router.post(
 
 export const authRoutes: Router = router;
 export default authRoutes;
-

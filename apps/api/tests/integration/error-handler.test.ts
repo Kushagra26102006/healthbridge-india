@@ -20,13 +20,11 @@ describe('Error Handler Middleware Integration Tests', () => {
   });
 
   it('should return 422 with VALIDATION_ERROR code on invalid input payload', async () => {
-    const res = await request(app)
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'not-an-email',
-        phone: '123',
-        password: 'weak',
-      });
+    const res = await request(app).post('/api/v1/auth/register').send({
+      email: 'not-an-email',
+      phone: '123',
+      password: 'weak',
+    });
 
     expect(res.status).toBe(422);
     expect(res.body.success).toBe(false);
@@ -35,4 +33,3 @@ describe('Error Handler Middleware Integration Tests', () => {
     expect(res.body.requestId).toBeDefined();
   });
 });
-

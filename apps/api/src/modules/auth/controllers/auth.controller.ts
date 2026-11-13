@@ -23,7 +23,12 @@ export class AuthController {
         setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
       }
 
-      sendSuccess(res, result, result.message || 'User registered successfully', HttpStatus.CREATED);
+      sendSuccess(
+        res,
+        result,
+        result.message || 'User registered successfully',
+        HttpStatus.CREATED
+      );
     } catch (error) {
       next(error);
     }
@@ -141,7 +146,11 @@ export class AuthController {
     try {
       const { token, password } = req.body;
       await authService.resetPassword(token, password, req.requestId);
-      sendSuccess(res, null, 'Password reset successful. You may now log in with your new password.');
+      sendSuccess(
+        res,
+        null,
+        'Password reset successful. You may now log in with your new password.'
+      );
     } catch (error) {
       next(error);
     }
@@ -167,4 +176,3 @@ export class AuthController {
 }
 
 export const authController = new AuthController();
-

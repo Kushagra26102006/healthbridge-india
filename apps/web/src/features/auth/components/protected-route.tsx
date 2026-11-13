@@ -13,11 +13,7 @@ interface ProtectedRouteProps {
   onRequireLogin?: () => void;
 }
 
-export function ProtectedRoute({
-  children,
-  allowedRoles,
-  onRequireLogin,
-}: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, onRequireLogin }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading, isInitialized } = useAuth();
 
   if (!isInitialized || isLoading) {
@@ -76,4 +72,3 @@ export function ProtectedRoute({
 
   return <>{children}</>;
 }
-

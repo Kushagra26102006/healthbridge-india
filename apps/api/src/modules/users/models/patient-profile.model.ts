@@ -20,7 +20,12 @@ const AddressSchema = new Schema<Address>(
     city: { type: String, required: true, trim: true },
     district: { type: String, required: true, trim: true },
     state: { type: String, required: true, trim: true },
-    postalCode: { type: String, required: true, trim: true, match: [/^\d{6}$/, 'Invalid 6-digit PIN code'] },
+    postalCode: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [/^\d{6}$/, 'Invalid 6-digit PIN code'],
+    },
   },
   { _id: false }
 );
@@ -29,7 +34,12 @@ const EmergencyContactSchema = new Schema<EmergencyContact>(
   {
     name: { type: String, required: true, trim: true },
     relationship: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, trim: true, match: [/^[6-9]\d{9}$/, 'Invalid 10-digit mobile number'] },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [/^[6-9]\d{9}$/, 'Invalid 10-digit mobile number'],
+    },
   },
   { _id: false }
 );
@@ -106,4 +116,3 @@ export const PatientProfileModel: Model<IPatientProfileDocument> =
   mongoose.model<IPatientProfileDocument>('PatientProfile', PatientProfileSchema);
 
 export default PatientProfileModel;
-

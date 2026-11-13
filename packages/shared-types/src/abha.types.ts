@@ -50,4 +50,3 @@ export interface AbhaConsentArtifact {
   expiryDate: string;
   createdAt: string;
 }
-

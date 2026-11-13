@@ -127,7 +127,11 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             </div>
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium"
+          >
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -189,4 +193,3 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     </Card>
   );
 }
-

@@ -23,11 +23,7 @@ export const registerValidationSchema = z
       .trim()
       .min(2, 'Full name must be at least 2 characters long')
       .max(100, 'Full name cannot exceed 100 characters'),
-    email: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .email('Please enter a valid email address'),
+    email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
     phone: z
       .string()
       .trim()
@@ -68,11 +64,7 @@ export const loginValidationSchema = z.object({
 });
 
 export const forgotPasswordValidationSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Please enter a valid email address'),
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
 });
 
 export const resetPasswordValidationSchema = z
@@ -91,11 +83,7 @@ export const verifyEmailValidationSchema = z.object({
 });
 
 export const resendVerificationValidationSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Please enter a valid email address'),
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
 });
 
 // Backward-compatibility aliases

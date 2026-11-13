@@ -117,7 +117,9 @@ export class TokenService {
         },
       });
 
-      throw AppError.unauthorized('Security alert: Compromised session detected. All sessions have been revoked.');
+      throw AppError.unauthorized(
+        'Security alert: Compromised session detected. All sessions have been revoked.'
+      );
     }
 
     // Check expiration
@@ -130,7 +132,10 @@ export class TokenService {
     await storedToken.save();
 
     // Issue newly minted refresh token
-    const newRefreshToken = await this.createRefreshToken(storedToken.userId.toString(), deviceInfo);
+    const newRefreshToken = await this.createRefreshToken(
+      storedToken.userId.toString(),
+      deviceInfo
+    );
 
     return {
       newRefreshToken,
@@ -158,4 +163,3 @@ export class TokenService {
 }
 
 export const tokenService = new TokenService();
-

@@ -58,10 +58,7 @@ export class AppError extends Error {
     return new AppError(message, HttpStatus.NOT_FOUND, code, true);
   }
 
-  static conflict(
-    message: string,
-    code: ErrorCodeType | string = ErrorCode.CONFLICT
-  ): AppError {
+  static conflict(message: string, code: ErrorCodeType | string = ErrorCode.CONFLICT): AppError {
     return new AppError(message, HttpStatus.CONFLICT, code, true);
   }
 

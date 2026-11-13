@@ -82,9 +82,7 @@ export const createRateLimiter = (options: RateLimitOptions) => {
         message ||
         `Rate limit exceeded. Maximum ${max} requests allowed per ${Math.ceil(windowMs / 1000)} seconds. Please try again in ${retryAfterSeconds}s.`;
 
-      return next(
-        AppError.tooManyRequests(errorMessage, ErrorCode.RATE_LIMIT_EXCEEDED)
-      );
+      return next(AppError.tooManyRequests(errorMessage, ErrorCode.RATE_LIMIT_EXCEEDED));
     }
 
     next();
@@ -131,4 +129,3 @@ export const sensitiveOpLimiter = createRateLimiter({
   max: 5,
   message: 'Too many sensitive requests. Please wait 1 hour before retrying.',
 });
-

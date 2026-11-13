@@ -68,7 +68,12 @@ apiClient.interceptors.response.use(
       originalRequest?.url?.includes(API_ENDPOINTS.AUTH.REGISTER) ||
       originalRequest?.url?.includes(API_ENDPOINTS.AUTH.REFRESH);
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRoute) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthRoute
+    ) {
       if (isRefreshing) {
         // Queue concurrent requests while refresh is in-flight to prevent refresh storm
         return new Promise((resolve, reject) => {

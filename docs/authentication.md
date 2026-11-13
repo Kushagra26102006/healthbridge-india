@@ -2,7 +2,7 @@
 
 > **Platform:** HealthBridge India  
 > **Classification:** Technical Specification / Identity & Access Management (IAM)  
-> **Standard:** Ayushman Bharat Digital Mission (ABDM) & DISHA Compliant  
+> **Standard:** Ayushman Bharat Digital Mission (ABDM) & DISHA Compliant
 
 ---
 
@@ -50,13 +50,13 @@ graph TD
 
 The platform supports 5 primary user roles with distinct credential verification rules:
 
-| Role | Initial Status | Verification Workflow | Associated Profile |
-| :--- | :--- | :--- | :--- |
-| **`PATIENT`** | `ACTIVE` | Immediate activation upon mobile/email verification; can link ABHA. | `PatientProfileModel` |
-| **`DOCTOR`** | `PENDING` | Requires NMC / State Medical Council registration check before activation. | `DoctorProfileModel` |
-| **`PHARMACY`** | `PENDING` | Requires State Drug Controller retail license verification. | `PharmacyProfileModel` |
-| **`LABORATORY`**| `PENDING` | Requires NABL / Clinical Establishment diagnostic license verification. | `LaboratoryProfileModel`|
-| **`ADMIN`** | `ACTIVE` | Restricted: Requires cryptographic `ADMIN_REGISTRATION_KEY`. Public registration forbidden. | `AdminProfileModel` |
+| Role             | Initial Status | Verification Workflow                                                                       | Associated Profile       |
+| :--------------- | :------------- | :------------------------------------------------------------------------------------------ | :----------------------- |
+| **`PATIENT`**    | `ACTIVE`       | Immediate activation upon mobile/email verification; can link ABHA.                         | `PatientProfileModel`    |
+| **`DOCTOR`**     | `PENDING`      | Requires NMC / State Medical Council registration check before activation.                  | `DoctorProfileModel`     |
+| **`PHARMACY`**   | `PENDING`      | Requires State Drug Controller retail license verification.                                 | `PharmacyProfileModel`   |
+| **`LABORATORY`** | `PENDING`      | Requires NABL / Clinical Establishment diagnostic license verification.                     | `LaboratoryProfileModel` |
+| **`ADMIN`**      | `ACTIVE`       | Restricted: Requires cryptographic `ADMIN_REGISTRATION_KEY`. Public registration forbidden. | `AdminProfileModel`      |
 
 ### Account Status State Machine
 
@@ -78,11 +78,11 @@ stateDiagram-v2
 
 ### Token Specifications
 
-| Token Type | Lifespan | Storage / Transport | Encoding / Signature |
-| :--- | :--- | :--- | :--- |
-| **Access Token** | 15 Minutes | `hb_access_token` cookie (`httpOnly`, `sameSite: lax`) | HMAC-SHA256 JWT (`iss`, `aud`, `sub`, `role`, `jti`) |
-| **Refresh Token** | 7 Days | `hb_refresh_token` cookie (`httpOnly`, `sameSite: lax`) | 40-byte random hex, stored in MongoDB as SHA-256 hash |
-| **Reset Token** | 1 Hour | One-time URL parameter / VerificationToken collection | 32-byte random hex, stored in MongoDB as SHA-256 hash |
+| Token Type        | Lifespan   | Storage / Transport                                     | Encoding / Signature                                  |
+| :---------------- | :--------- | :------------------------------------------------------ | :---------------------------------------------------- |
+| **Access Token**  | 15 Minutes | `hb_access_token` cookie (`httpOnly`, `sameSite: lax`)  | HMAC-SHA256 JWT (`iss`, `aud`, `sub`, `role`, `jti`)  |
+| **Refresh Token** | 7 Days     | `hb_refresh_token` cookie (`httpOnly`, `sameSite: lax`) | 40-byte random hex, stored in MongoDB as SHA-256 hash |
+| **Reset Token**   | 1 Hour     | One-time URL parameter / VerificationToken collection   | 32-byte random hex, stored in MongoDB as SHA-256 hash |
 
 ### Refresh Token Rotation with Reuse Detection
 
@@ -100,7 +100,7 @@ sequenceDiagram
     Client->>Gateway: POST /api/v1/auth/refresh (Cookie: hb_refresh_token)
     Gateway->>TokenSvc: rotateRefreshToken(rawToken)
     TokenSvc->>DB: findOne({ tokenHash: sha256(rawToken) })
-    
+
     alt Token was ALREADY REVOKED (Token Reuse Detected!)
         TokenSvc->>DB: updateMany({ userId }, { revokedAt: now }) [REVOKE ALL TOKENS]
         TokenSvc->>Audit: create({ action: 'REFRESH_TOKEN_REUSE_DETECTED', outcome: 'BLOCKED' })
@@ -162,4 +162,3 @@ pnpm test:auth
 # Or from apps/api:
 pnpm --filter @healthbridge/api test:auth
 ```
-

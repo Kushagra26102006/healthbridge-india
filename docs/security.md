@@ -2,20 +2,20 @@
 
 > **Platform:** HealthBridge India  
 > **Compliance Benchmarks:** DISHA (India), HIPAA (Security Rule), ABDM Milestone 1–3  
-> **Classification:** Security Architecture & Threat Model Specification  
+> **Classification:** Security Architecture & Threat Model Specification
 
 ---
 
 ## 1. Threat Model & Risk Analysis (STRIDE)
 
-| Threat Category | Potential Attack Vector | HealthBridge India Mitigation |
-| :--- | :--- | :--- |
-| **Spoofing Identity** | Fake credential submission, stolen session cookie | Hashed passwords (bcrypt 10+), short-lived JWT (15m), refresh token rotation with family revocation on reuse. |
-| **Tampering with Data**| Modifying clinical records or audit trails in transit | TLS 1.3 encryption, immutable append-only audit logging (blocked update/delete hooks), Zod validation. |
-| **Repudiation** | Denying issuance of prescription or medical record | Append-only `AuditLog` storing actor ID, IP address, timestamp, requestId, and cryptographic consent artifacts. |
-| **Information Disclosure**| Leaking patient records or password hashes | Zero password hash in `select`, `passwordHash` stripped in transforms, HTTP-only cookies (no localStorage), generic auth errors. |
-| **Denial of Service** | Credential stuffing, password reset flood | In-memory sliding-window rate limiters: 5 login attempts / 15m, 3 password resets / hour, 100 general requests / 15m. |
-| **Elevation of Privilege**| Patient accessing doctor EHRs or admin portals | Two-tier authorization: Layer 1 RBAC (`authorize(...)`), Layer 2 ABDM Consent Artifact verification. |
+| Threat Category            | Potential Attack Vector                               | HealthBridge India Mitigation                                                                                                    |
+| :------------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| **Spoofing Identity**      | Fake credential submission, stolen session cookie     | Hashed passwords (bcrypt 10+), short-lived JWT (15m), refresh token rotation with family revocation on reuse.                    |
+| **Tampering with Data**    | Modifying clinical records or audit trails in transit | TLS 1.3 encryption, immutable append-only audit logging (blocked update/delete hooks), Zod validation.                           |
+| **Repudiation**            | Denying issuance of prescription or medical record    | Append-only `AuditLog` storing actor ID, IP address, timestamp, requestId, and cryptographic consent artifacts.                  |
+| **Information Disclosure** | Leaking patient records or password hashes            | Zero password hash in `select`, `passwordHash` stripped in transforms, HTTP-only cookies (no localStorage), generic auth errors. |
+| **Denial of Service**      | Credential stuffing, password reset flood             | In-memory sliding-window rate limiters: 5 login attempts / 15m, 3 password resets / hour, 100 general requests / 15m.            |
+| **Elevation of Privilege** | Patient accessing doctor EHRs or admin portals        | Two-tier authorization: Layer 1 RBAC (`authorize(...)`), Layer 2 ABDM Consent Artifact verification.                             |
 
 ---
 
@@ -30,6 +30,7 @@ Under DISHA and ABDM regulations, the platform enforces strict logging sanitizat
 5. Electronic Health Record (EHR) payload contents, diagnostic observations, or clinical notes.
 
 ### Sanitization Implementation:
+
 - **AuditLog Metadata Filter:** The `AuditLog` Mongoose schema validates metadata, rejecting documents containing forbidden keys (`password`, `token`, `secret`, `refreshToken`).
 - **Logger Masking:** The database connector automatically masks MongoDB URIs (`mongodb://user:****@cluster/`).
 
@@ -65,3 +66,52 @@ graph TD
 > [!IMPORTANT]
 > Role checks alone are never sufficient for clinical data access. Even a verified doctor cannot access a patient's medical records without an active, unexpired, and purpose-matching `ConsentArtifact`.
 
+---
+
+## 5. Day 1 Security Audit & Findings
+
+A comprehensive security audit was executed across the authentication, authorization, session management, and API transport layers during Day 1 foundation verification.
+
+### 5.1 Layered Authorization Architecture (RBAC + ABDM Consent)
+
+- **Role Verification (Layer 1):** The `authorize` middleware intercepts requests and guarantees that actors possess the necessary role (`PATIENT`, `DOCTOR`, `PHARMACY`, `LABORATORY`, `ADMIN`). Any attempt by unauthorized roles to access clinical endpoints returns a standardized `403 FORBIDDEN` response without revealing internal endpoint structures.
+- **ABDM Consent Enforcement (Layer 2):** For patient Electronic Health Records (EHR) and diagnostic consultations, possessing the `DOCTOR` role is insufficient. Access requires an unexpired, active `ConsentArtifact` linking the doctor and patient for that specific clinical purpose. If expired, revoked, or non-existent, the query is rejected at the service level.
+
+### 5.2 Cryptographic Session Security & Token Rotation
+
+- **Zero Plaintext Secrets:** Passwords are uniformly hashed using `bcryptjs` with 10 salt rounds. Plaintext passwords are never logged, cached, or returned in user profile responses (`passwordHash` excluded via schema-level JSON transforms).
+- **Refresh Token Invariant:** Raw refresh tokens are 40-character cryptographically random strings (`crypto.randomBytes(40)`). Only SHA-256 hashes (`tokenHash`) are persisted in MongoDB.
+- **Automatic Token Family Invalidation:** If a compromised or revoked refresh token is presented for exchange, the authentication service flags an intrusion attempt, immediately marks all tokens belonging to that user's session family as revoked, and logs an alert. Subsequent requests with any token in that family are denied with `401 UNAUTHORIZED`.
+
+### 5.3 Zero-Enumeration Authentication Defenses
+
+- **Uniform Error Signatures:** Registration, login, and password reset endpoints avoid timing discrepancies or distinctive error codes that could reveal whether an email address exists in the system.
+- Login failures consistently return `401 UNAUTHORIZED` with message `"Invalid email or password"`.
+- Password reset requests return a generic success message regardless of whether the account was located, eliminating user harvesting vectors.
+
+### 5.4 Rate Limiting & Brute Force Prevention
+
+- In-memory sliding-window limiters with automated memory garbage collection are active on public authentication routes:
+  - Strict 5 attempts per 15 minutes for credential verification (`POST /api/v1/auth/login`).
+  - Strict 3 requests per 60 minutes for password reset dispatch (`POST /api/v1/auth/forgot-password`).
+  - 100 requests per 15 minutes for general authenticated endpoints.
+- Rate limit headers (`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`) provide standard RFC-compliant feedback.
+
+### 5.5 Cookie Security & Transport Hardening
+
+- Session tokens are transmitted via `HttpOnly`, `SameSite: 'lax'`, `Path: '/'` cookies (`hb_access_token` and `hb_refresh_token`).
+- In production mode (`NODE_ENV === 'production'`), `Secure: true` is strictly enforced to guarantee transport over TLS 1.3 only.
+- Client-side JavaScript cannot access session cookies, mitigating token exfiltration via Cross-Site Scripting (XSS).
+
+### 5.6 Transport Security & Injection Protection
+
+- **Helmet Headers:** Automated security headers including `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Cross-Origin-Opener-Policy: same-origin`.
+- **CORS Lockdown:** Strict origin matching against configured `CORS_ORIGIN` (`http://localhost:3000` in development). Credentials (`Access-Control-Allow-Credentials: true`) are only permitted for validated origins.
+- **NoSQL Injection Defense:** `sanitizeInput` recursively sanitizes request payloads, removing keys containing `$` operators or `.`, preventing query injection attacks.
+- **Prototype Pollution Prevention:** Object prototype modification vectors (`__proto__`, `constructor`, `prototype`) are intercepted and stripped before payloads reach application services.
+
+### 5.7 Audit Trails & Non-Repudiation
+
+- The `auditLogs` collection is append-only. Mongoose middleware blocks document `updateOne`, `updateMany`, and `deleteOne` operations.
+- All administrative and authentication actions record the actor ID, action type, IP address, user-agent, and correlation `X-Request-Id`.
+- Sensitive fields (`password`, `token`, `secret`, `refreshToken`) are prohibited from audit log metadata via schema validators.

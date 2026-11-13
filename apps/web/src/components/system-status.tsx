@@ -32,7 +32,9 @@ export function SystemStatus() {
           <div>
             <div className="flex items-center space-x-2">
               <span className="font-semibold text-sm text-red-900">API Connection Offline</span>
-              <Badge variant="destructive" className="text-xs">Disconnected</Badge>
+              <Badge variant="destructive" className="text-xs">
+                Disconnected
+              </Badge>
             </div>
             <p className="text-xs text-red-700 mt-0.5">
               {error?.message || 'Unable to connect to backend service.'}
@@ -62,9 +64,15 @@ export function SystemStatus() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         {/* Left: Application & Status */}
         <div className="flex items-center space-x-3">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-            isHealthy ? 'bg-emerald-50 text-emerald-600' : isDegraded ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
-          }`}>
+          <div
+            className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+              isHealthy
+                ? 'bg-emerald-50 text-emerald-600'
+                : isDegraded
+                  ? 'bg-amber-50 text-amber-600'
+                  : 'bg-red-50 text-red-600'
+            }`}
+          >
             <Activity className="w-5 h-5" />
           </div>
 
@@ -76,24 +84,35 @@ export function SystemStatus() {
               <Badge
                 variant={isHealthy ? 'secondary' : 'destructive'}
                 className={`text-[11px] font-medium ${
-                  isHealthy ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                  isHealthy
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                  isHealthy ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-                }`} />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                    isHealthy ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  }`}
+                />
                 {isHealthy ? 'Operational' : isDegraded ? 'Degraded' : 'Offline'}
               </Badge>
             </div>
 
             <div className="flex items-center space-x-3 text-xs text-slate-500 mt-0.5">
-              <span>Environment: <strong className="text-slate-700 uppercase text-[10px] tracking-wider">{health?.environment || 'development'}</strong></span>
+              <span>
+                Environment:{' '}
+                <strong className="text-slate-700 uppercase text-[10px] tracking-wider">
+                  {health?.environment || 'development'}
+                </strong>
+              </span>
               <span>•</span>
               <span>v{health?.version || '1.0.0'}</span>
               <span>•</span>
               <span className="flex items-center space-x-1">
                 <Database className="w-3 h-3 text-slate-400" />
-                <span>DB: <strong>{dbConnected ? 'Online' : 'Standby'}</strong></span>
+                <span>
+                  DB: <strong>{dbConnected ? 'Online' : 'Standby'}</strong>
+                </span>
               </span>
             </div>
           </div>
@@ -102,7 +121,8 @@ export function SystemStatus() {
         {/* Right: Last Check & Refresh */}
         <div className="flex items-center space-x-2 self-end sm:self-center">
           <span className="text-[11px] text-slate-400 hidden md:inline">
-            Checked: {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'Just now'}
+            Checked:{' '}
+            {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'Just now'}
           </span>
           <Button
             size="sm"
@@ -111,7 +131,9 @@ export function SystemStatus() {
             disabled={isFetching}
             className="h-8 text-xs text-slate-600 hover:text-teal-700 hover:bg-slate-100"
           >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isFetching ? 'animate-spin text-teal-600' : ''}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 mr-1 ${isFetching ? 'animate-spin text-teal-600' : ''}`}
+            />
             Refresh
           </Button>
         </div>

@@ -50,6 +50,8 @@ export const sanitizeRegexPattern = (pattern: string): string => {
 export const sanitizeString = (value: string): string => {
   if (typeof value !== 'string') return '';
   // Remove null bytes and non-printable ASCII control characters (keep standard whitespace)
-  return value.replace(/\0/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+  return value
+    .replace(/\0/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim();
 };
-

@@ -27,9 +27,13 @@ docsRoutes.get('/', (_req: Request, res: Response) => {
         path: `/api/v1${path}`,
         methods: Object.keys(openApiSpec.paths[path as keyof typeof openApiSpec.paths]),
       })),
-      standardsCompliance: ['ABDM M1/M2/M3', 'DISHA Data Privacy', 'FHIR R4', 'OWASP Top 10 API Security'],
+      standardsCompliance: [
+        'ABDM M1/M2/M3',
+        'DISHA Data Privacy',
+        'FHIR R4',
+        'OWASP Top 10 API Security',
+      ],
     },
     'HealthBridge India API Documentation'
   );
 });
-

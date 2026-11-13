@@ -11,15 +11,14 @@ export const userRegistrationSchema = z.object({
     .trim()
     .min(2, 'Name must be at least 2 characters long')
     .max(100, 'Name cannot exceed 100 characters'),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Please enter a valid email address'),
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
   phone: z
     .string()
     .trim()
-    .regex(/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9'),
+    .regex(
+      /^[6-9]\d{9}$/,
+      'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9'
+    ),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters long')
@@ -32,14 +31,9 @@ export const userRegistrationSchema = z.object({
 });
 
 export const userLoginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Please enter a valid email address'),
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
 export type UserRegistrationInput = z.infer<typeof userRegistrationSchema>;
 export type UserLoginInput = z.infer<typeof userLoginSchema>;
-

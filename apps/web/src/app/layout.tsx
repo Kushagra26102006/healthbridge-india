@@ -6,7 +6,14 @@ export const metadata: Metadata = {
   title: 'HealthBridge India — One Nation One Health Record',
   description:
     'ABHA-Integrated Unified Healthcare Platform connecting patients, hospitals, doctors, and diagnostic labs under Ayushman Bharat Digital Mission (ABDM).',
-  keywords: ['ABHA', 'ABDM', 'HealthBridge', 'EHR', 'One Nation One Health Record', 'Healthcare India'],
+  keywords: [
+    'ABHA',
+    'ABDM',
+    'HealthBridge',
+    'EHR',
+    'One Nation One Health Record',
+    'Healthcare India',
+  ],
 };
 
 export default function RootLayout({
@@ -22,4 +29,3 @@ export default function RootLayout({
     </html>
   );
 }
-

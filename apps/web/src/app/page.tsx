@@ -28,7 +28,9 @@ export default function HomePage() {
   const { user, isAuthenticated, logout, logoutAll, isLoading: authLoading } = useAuth();
   const [authView, setAuthView] = useState<'NONE' | 'LOGIN' | 'REGISTER'>('NONE');
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ApiResponse<HealthCheckData>>({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<
+    ApiResponse<HealthCheckData>
+  >({
     queryKey: ['backend-health'],
     queryFn: async () => {
       const response = await apiClient.get<ApiResponse<HealthCheckData>>('/health');
@@ -74,7 +76,11 @@ export default function HomePage() {
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
-              {isAuthenticated && user ? user.name[0]?.toUpperCase() : <Shield className="h-5 w-5" />}
+              {isAuthenticated && user ? (
+                user.name[0]?.toUpperCase()
+              ) : (
+                <Shield className="h-5 w-5" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -87,7 +93,10 @@ export default function HomePage() {
                   </Badge>
                 )}
                 {isAuthenticated && user && (
-                  <Badge variant={user.accountStatus === 'ACTIVE' ? 'success' : 'warning'} className="text-xs">
+                  <Badge
+                    variant={user.accountStatus === 'ACTIVE' ? 'success' : 'warning'}
+                    className="text-xs"
+                  >
                     {user.accountStatus}
                   </Badge>
                 )}
@@ -168,7 +177,9 @@ export default function HomePage() {
           {/* Backend Status Card */}
           <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">API Gateway Status</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">
+                API Gateway Status
+              </CardTitle>
               <Server className="h-4 w-4 text-slate-500" />
             </CardHeader>
             <CardContent>
@@ -218,7 +229,9 @@ export default function HomePage() {
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">Mongoose Architecture Ready (18 Collections)</p>
+                <p className="text-xs text-slate-500">
+                  Mongoose Architecture Ready (18 Collections)
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -226,15 +239,23 @@ export default function HomePage() {
           {/* Architecture Card */}
           <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Security Architecture</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">
+                Security Architecture
+              </CardTitle>
               <Layers className="h-4 w-4 text-slate-500" />
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="secondary" className="text-xs">JWT Rotation</Badge>
-                  <Badge variant="secondary" className="text-xs">HTTP-Only</Badge>
-                  <Badge variant="secondary" className="text-xs">RBAC</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    JWT Rotation
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    HTTP-Only
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    RBAC
+                  </Badge>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">Append-only audit & DISHA controls</p>
               </div>
@@ -251,7 +272,8 @@ export default function HomePage() {
                 Protected Clinical Zone (RBAC Demonstration)
               </h2>
               <p className="text-sm text-slate-500">
-                Demonstrates client-side & server-side authorization: accessible exclusively to DOCTOR and ADMIN roles
+                Demonstrates client-side & server-side authorization: accessible exclusively to
+                DOCTOR and ADMIN roles
               </p>
             </div>
           </div>
@@ -277,7 +299,9 @@ export default function HomePage() {
         <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Task 03 Auth Deliverables Checklist</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                Task 03 Auth Deliverables Checklist
+              </h2>
               <p className="text-sm text-slate-500">Verified security and identity capabilities</p>
             </div>
             <Button
@@ -298,7 +322,8 @@ export default function HomePage() {
               <div>
                 <p className="font-medium text-slate-800">5 User Roles & Registration Workflows</p>
                 <p className="text-xs text-slate-500">
-                  PATIENT, DOCTOR, PHARMACY, LABORATORY, ADMIN. Auto-profile initialization & status assignment.
+                  PATIENT, DOCTOR, PHARMACY, LABORATORY, ADMIN. Auto-profile initialization & status
+                  assignment.
                 </p>
               </div>
             </div>
@@ -308,7 +333,8 @@ export default function HomePage() {
               <div>
                 <p className="font-medium text-slate-800">JWT & Refresh Token Rotation</p>
                 <p className="text-xs text-slate-500">
-                  Short-lived JWT (15m), SHA-256 hashed refresh tokens, reuse breach detection & token family revocation.
+                  Short-lived JWT (15m), SHA-256 hashed refresh tokens, reuse breach detection &
+                  token family revocation.
                 </p>
               </div>
             </div>
@@ -318,7 +344,8 @@ export default function HomePage() {
               <div>
                 <p className="font-medium text-slate-800">Password Reset & Session Revocation</p>
                 <p className="text-xs text-slate-500">
-                  One-time cryptographic tokens, zero user enumeration, automatic logout from all active devices.
+                  One-time cryptographic tokens, zero user enumeration, automatic logout from all
+                  active devices.
                 </p>
               </div>
             </div>
@@ -328,7 +355,8 @@ export default function HomePage() {
               <div>
                 <p className="font-medium text-slate-800">Rate Limiting & Correlation Tracing</p>
                 <p className="text-xs text-slate-500">
-                  Sliding-window brute-force limiter (5 attempts / 15m), X-Request-Id request tracing, secure HTTP-only cookies.
+                  Sliding-window brute-force limiter (5 attempts / 15m), X-Request-Id request
+                  tracing, secure HTTP-only cookies.
                 </p>
               </div>
             </div>
@@ -338,7 +366,9 @@ export default function HomePage() {
         {/* Footer */}
         <footer className="text-center text-xs text-slate-500 pt-4 border-t border-slate-200">
           <p>HealthBridge India — One Nation One Health Record Platform</p>
-          <p className="mt-1 text-slate-400">Strictly following DISHA, HIPAA, and ABDM security guidelines.</p>
+          <p className="mt-1 text-slate-400">
+            Strictly following DISHA, HIPAA, and ABDM security guidelines.
+          </p>
         </footer>
       </div>
     </main>

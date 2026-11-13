@@ -17,13 +17,15 @@ export interface ValidationTargetSchemas {
  * - Query Parameters
  * - URL Path Parameters
  */
-export const validateRequest = (
-  schemaOrTargets: ZodTypeAny | ValidationTargetSchemas
-) => {
+export const validateRequest = (schemaOrTargets: ZodTypeAny | ValidationTargetSchemas) => {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       // If a single Zod schema is provided, validate req.body by default
-      if (schemaOrTargets && 'parseAsync' in schemaOrTargets && typeof schemaOrTargets.parseAsync === 'function') {
+      if (
+        schemaOrTargets &&
+        'parseAsync' in schemaOrTargets &&
+        typeof schemaOrTargets.parseAsync === 'function'
+      ) {
         const parsed = await schemaOrTargets.parseAsync(req.body);
         req.body = parsed;
         return next();
@@ -112,4 +114,3 @@ export const validateRequest = (
 };
 
 export const validate = validateRequest;
-

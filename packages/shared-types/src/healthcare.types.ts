@@ -83,11 +83,7 @@ export interface IAppointment {
 }
 
 export type LabOrderStatus =
-  | 'ORDERED'
-  | 'SAMPLE_COLLECTED'
-  | 'IN_ANALYSIS'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  'ORDERED' | 'SAMPLE_COLLECTED' | 'IN_ANALYSIS' | 'COMPLETED' | 'CANCELLED';
 
 export interface LabTestItem {
   testCode: string;
@@ -125,4 +121,3 @@ export interface ILaboratoryReport {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
-

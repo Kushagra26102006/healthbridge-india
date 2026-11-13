@@ -47,4 +47,3 @@ describe('Rate Limiter Integration Tests', () => {
     expect(res4.body.requestId).toBeDefined();
   });
 });
-

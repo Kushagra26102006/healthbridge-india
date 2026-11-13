@@ -60,9 +60,8 @@ export const authApi = {
    * Fetch current authenticated user context
    */
   async getMe(): Promise<{ user: UserPublicDto; profile: unknown }> {
-    const response = await apiClient.get<ApiResponse<{ user: UserPublicDto; profile: unknown }>>(
-      '/auth/me'
-    );
+    const response =
+      await apiClient.get<ApiResponse<{ user: UserPublicDto; profile: unknown }>>('/auth/me');
     if (!response.data.data) {
       throw new Error('No user session active');
     }
@@ -85,4 +84,3 @@ export const authApi = {
     return response.data.message || 'Password reset successful';
   },
 };
-

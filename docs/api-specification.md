@@ -3,7 +3,7 @@
 **Platform:** HealthBridge India — One Nation One Health Record  
 **Standard Compliance:** ABDM M1/M2/M3, DISHA, FHIR R4, OWASP API Security Top 10  
 **Current Version:** `1.0.0` (API Version `v1`)  
-**Base URL:** `http://localhost:5000/api/v1` (Production: `https://api.healthbridge.in/api/v1`)  
+**Base URL:** `http://localhost:5000/api/v1` (Production: `https://api.healthbridge.in/api/v1`)
 
 ---
 
@@ -24,6 +24,7 @@ The HealthBridge India API service follows strict enterprise healthcare architec
 Every endpoint across the platform conforms to a unified envelope structure.
 
 ### 2.1 Standard Success Envelope
+
 ```json
 {
   "success": true,
@@ -43,6 +44,7 @@ Every endpoint across the platform conforms to a unified envelope structure.
 ```
 
 ### 2.2 Standard Error Envelope
+
 ```json
 {
   "success": false,
@@ -64,21 +66,21 @@ Every endpoint across the platform conforms to a unified envelope structure.
 
 ## 3. Standard Application Error Codes
 
-| Error Code | HTTP Status | Description |
-| :--- | :--- | :--- |
-| `BAD_REQUEST` | 400 | Malformed request or semantic client error |
-| `MALFORMED_JSON` | 400 | JSON parser syntax error in request body |
-| `INVALID_IDENTIFIER` | 400 | Malformed MongoDB ObjectId or resource reference |
-| `UNAUTHORIZED` | 401 | Missing, invalid, or expired JWT access token |
-| `FORBIDDEN` | 403 | RBAC permission check failed or account suspended |
-| `NOT_FOUND` | 404 | Target route or resource does not exist |
-| `CONFLICT` | 409 | State conflict with existing database records |
-| `DUPLICATE_RESOURCE` | 409 | Unique index violation (duplicate email, phone, license) |
-| `VALIDATION_ERROR` | 422 | Zod schema validation failed for body, query, or params |
-| `RATE_LIMIT_EXCEEDED`| 429 | Request rate exceeded allowed tier threshold |
-| `INTERNAL_SERVER_ERROR` | 500 | Unhandled operational server failure |
-| `DATABASE_ERROR` | 500 | Database connection or transaction failure |
-| `SERVICE_UNAVAILABLE` | 503 | Database ping or third-party gateway offline |
+| Error Code              | HTTP Status | Description                                              |
+| :---------------------- | :---------- | :------------------------------------------------------- |
+| `BAD_REQUEST`           | 400         | Malformed request or semantic client error               |
+| `MALFORMED_JSON`        | 400         | JSON parser syntax error in request body                 |
+| `INVALID_IDENTIFIER`    | 400         | Malformed MongoDB ObjectId or resource reference         |
+| `UNAUTHORIZED`          | 401         | Missing, invalid, or expired JWT access token            |
+| `FORBIDDEN`             | 403         | RBAC permission check failed or account suspended        |
+| `NOT_FOUND`             | 404         | Target route or resource does not exist                  |
+| `CONFLICT`              | 409         | State conflict with existing database records            |
+| `DUPLICATE_RESOURCE`    | 409         | Unique index violation (duplicate email, phone, license) |
+| `VALIDATION_ERROR`      | 422         | Zod schema validation failed for body, query, or params  |
+| `RATE_LIMIT_EXCEEDED`   | 429         | Request rate exceeded allowed tier threshold             |
+| `INTERNAL_SERVER_ERROR` | 500         | Unhandled operational server failure                     |
+| `DATABASE_ERROR`        | 500         | Database connection or transaction failure               |
+| `SERVICE_UNAVAILABLE`   | 503         | Database ping or third-party gateway offline             |
 
 ---
 
@@ -120,27 +122,29 @@ const { page, limit, skip, sortBy, sortOrder, filters, search } = parsePaginatio
 ```
 
 ### Protocol Parameters
-| Query Parameter | Type | Default | Constraints |
-| :--- | :--- | :--- | :--- |
-| `page` | integer | `1` | Must be $\ge 1$ |
-| `limit` | integer | `20` | Clamped to `maxLimit` (default 100) |
-| `sortBy` | string | `createdAt`| Must be in endpoint's sorting allowlist |
-| `sortOrder` | string | `desc` | `'asc'` or `'desc'` (maps to 1 or -1) |
-| `search` | string | optional | Stripped of control bytes; regex characters escaped |
+
+| Query Parameter | Type    | Default     | Constraints                                         |
+| :-------------- | :------ | :---------- | :-------------------------------------------------- |
+| `page`          | integer | `1`         | Must be $\ge 1$                                     |
+| `limit`         | integer | `20`        | Clamped to `maxLimit` (default 100)                 |
+| `sortBy`        | string  | `createdAt` | Must be in endpoint's sorting allowlist             |
+| `sortOrder`     | string  | `desc`      | `'asc'` or `'desc'` (maps to 1 or -1)               |
+| `search`        | string  | optional    | Stripped of control bytes; regex characters escaped |
 
 ---
 
 ## 6. Rate Limiting Architecture
 
-| Tier | Window | Limit | Target Endpoints | Behavior on Exceeded |
-| :--- | :--- | :--- | :--- | :--- |
-| **Public** | 15 min | 100 req | `/api/v1/health`, `/api/v1/docs` | 429 `RATE_LIMIT_EXCEEDED` |
-| **API General** | 15 min | 1000 req | Authenticated clinical modules | 429 `RATE_LIMIT_EXCEEDED` |
-| **Auth General**| 15 min | 30 req | `/api/v1/auth/*` | 429 `RATE_LIMIT_EXCEEDED` |
-| **Login Attempts**| 15 min | 5 req | `/api/v1/auth/login` (by IP + identifier)| 429 `RATE_LIMIT_EXCEEDED` |
-| **Sensitive Ops**| 1 hour | 5 req | `/api/v1/auth/forgot-password`, key exchanges | 429 `RATE_LIMIT_EXCEEDED` |
+| Tier               | Window | Limit    | Target Endpoints                              | Behavior on Exceeded      |
+| :----------------- | :----- | :------- | :-------------------------------------------- | :------------------------ |
+| **Public**         | 15 min | 100 req  | `/api/v1/health`, `/api/v1/docs`              | 429 `RATE_LIMIT_EXCEEDED` |
+| **API General**    | 15 min | 1000 req | Authenticated clinical modules                | 429 `RATE_LIMIT_EXCEEDED` |
+| **Auth General**   | 15 min | 30 req   | `/api/v1/auth/*`                              | 429 `RATE_LIMIT_EXCEEDED` |
+| **Login Attempts** | 15 min | 5 req    | `/api/v1/auth/login` (by IP + identifier)     | 429 `RATE_LIMIT_EXCEEDED` |
+| **Sensitive Ops**  | 1 hour | 5 req    | `/api/v1/auth/forgot-password`, key exchanges | 429 `RATE_LIMIT_EXCEEDED` |
 
 ### Rate Limit Response Headers
+
 - `RateLimit-Limit`: Maximum requests permitted within window.
 - `RateLimit-Remaining`: Requests remaining within active window.
 - `RateLimit-Reset`: Unix timestamp when the window resets.
@@ -334,4 +338,3 @@ paths:
         '200':
           description: New verification token dispatched
 ```
-

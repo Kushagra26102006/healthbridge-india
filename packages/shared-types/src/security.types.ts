@@ -34,11 +34,7 @@ export interface IAuditLog {
 }
 
 export type NotificationType =
-  | 'APPOINTMENT'
-  | 'CONSENT_REQUEST'
-  | 'LAB_REPORT'
-  | 'PRESCRIPTION'
-  | 'SYSTEM_ALERT';
+  'APPOINTMENT' | 'CONSENT_REQUEST' | 'LAB_REPORT' | 'PRESCRIPTION' | 'SYSTEM_ALERT';
 
 export interface INotification {
   id: string;
@@ -50,4 +46,3 @@ export interface INotification {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
-

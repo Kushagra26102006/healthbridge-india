@@ -82,7 +82,8 @@ export const authGeneralLimiter = createRateLimiter({
 export const loginRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 failed attempts allowed in window
-  message: 'Too many login attempts. Account temporarily locked for 15 minutes to prevent brute-force attacks.',
+  message:
+    'Too many login attempts. Account temporarily locked for 15 minutes to prevent brute-force attacks.',
   keyGenerator: (req: Request) => {
     const identifier = req.body?.identifier || '';
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
@@ -93,6 +94,6 @@ export const loginRateLimiter = createRateLimiter({
 export const passwordResetRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3,
-  message: 'Too many password reset requests. Please wait an hour before requesting another reset email.',
+  message:
+    'Too many password reset requests. Please wait an hour before requesting another reset email.',
 });
-

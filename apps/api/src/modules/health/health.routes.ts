@@ -11,4 +11,3 @@ const router = Router();
 router.get('/', (req, res, next) => healthController.getHealth(req, res, next));
 
 export const healthRoutes: Router = router;
-

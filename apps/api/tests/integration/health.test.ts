@@ -22,4 +22,3 @@ describe('Health Endpoint Integration Tests (GET /api/v1/health)', () => {
     expect(res.headers['x-request-id']).toBeDefined();
   });
 });
-

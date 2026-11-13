@@ -25,4 +25,3 @@ export interface HealthRecordSummary {
   hasAttachment: boolean;
   createdAt: string;
 }
-

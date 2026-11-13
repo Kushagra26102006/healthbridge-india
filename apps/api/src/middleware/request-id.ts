@@ -18,19 +18,18 @@ const SAFE_REQUEST_ID_REGEX = /^[a-zA-Z0-9_\-.]{8,64}$/;
  * Request ID Middleware
  * Validates or generates cryptographically secure request correlation IDs
  */
-export const requestIdMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const requestIdMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const incomingId = (req.headers['x-request-id'] || req.headers['x-correlation-id']) as
-    | string
-    | undefined;
+    string | undefined;
 
   let requestId: string;
 
   // Sanitize incoming request ID to avoid HTTP header injection or log poisoning
-  if (incomingId && typeof incomingId === 'string' && SAFE_REQUEST_ID_REGEX.test(incomingId.trim())) {
+  if (
+    incomingId &&
+    typeof incomingId === 'string' &&
+    SAFE_REQUEST_ID_REGEX.test(incomingId.trim())
+  ) {
     requestId = incomingId.trim();
   } else {
     requestId = crypto.randomUUID();
@@ -47,4 +46,3 @@ export const requestIdMiddleware = (
 };
 
 export const correlationIdMiddleware = requestIdMiddleware;
-

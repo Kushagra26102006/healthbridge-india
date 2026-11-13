@@ -5,13 +5,19 @@ export const addressSchema = z.object({
   city: z.string().trim().min(2, 'City is required'),
   district: z.string().trim().min(2, 'District is required'),
   state: z.string().trim().min(2, 'State is required'),
-  postalCode: z.string().trim().regex(/^\d{6}$/, 'Postal code must be a 6-digit Indian PIN code'),
+  postalCode: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Postal code must be a 6-digit Indian PIN code'),
 });
 
 export const emergencyContactSchema = z.object({
   name: z.string().trim().min(2, 'Contact name is required'),
   relationship: z.string().trim().min(2, 'Relationship is required'),
-  phone: z.string().trim().regex(/^[6-9]\d{9}$/, 'Contact phone must be a valid 10-digit Indian mobile number'),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[6-9]\d{9}$/, 'Contact phone must be a valid 10-digit Indian mobile number'),
 });
 
 export const patientProfileSchema = z.object({
@@ -65,4 +71,3 @@ export type PatientProfileInput = z.infer<typeof patientProfileSchema>;
 export type DoctorProfileInput = z.infer<typeof doctorProfileSchema>;
 export type PharmacyProfileInput = z.infer<typeof pharmacyProfileSchema>;
 export type LaboratoryProfileInput = z.infer<typeof laboratoryProfileSchema>;
-

@@ -138,7 +138,7 @@ export const runDatabaseTestSuite = async (): Promise<void> => {
       permittedDataTypes: ['OP_CONSULTATION'],
       validityPeriod: {
         from: new Date(Date.now() - 3600000), // 1 hour ago
-        to: new Date(Date.now() + 86400000),  // 24 hours in future
+        to: new Date(Date.now() + 86400000), // 24 hours in future
       },
       consentStatus: 'ACTIVE',
       approvedAt: new Date(),
@@ -156,7 +156,7 @@ export const runDatabaseTestSuite = async (): Promise<void> => {
       permittedDataTypes: ['OP_CONSULTATION'],
       validityPeriod: {
         from: new Date(Date.now() - 86400000 * 10), // 10 days ago
-        to: new Date(Date.now() - 86400000 * 2),   // Expired 2 days ago
+        to: new Date(Date.now() - 86400000 * 2), // Expired 2 days ago
       },
       consentStatus: 'ACTIVE',
       approvedAt: new Date(Date.now() - 86400000 * 10),
@@ -402,12 +402,16 @@ export const runDatabaseTestSuite = async (): Promise<void> => {
       const patientCount = await PatientProfileModel.countDocuments();
       const doctorCount = await DoctorProfileModel.countDocuments();
       if (patientCount === 0 || doctorCount === 0) {
-        throw new Error('Seeding verification failed: Expected patient and doctor profiles in database');
+        throw new Error(
+          'Seeding verification failed: Expected patient and doctor profiles in database'
+        );
       }
     });
   } else {
     logger.warn('  ℹ️ MongoDB Atlas/local daemon is currently offline in this test run.');
-    logger.warn('     Offline schema validation, constraint checks, and consent logic tests completed.');
+    logger.warn(
+      '     Offline schema validation, constraint checks, and consent logic tests completed.'
+    );
   }
 
   // --- SUMMARY ---
@@ -420,7 +424,9 @@ export const runDatabaseTestSuite = async (): Promise<void> => {
 
   if (failed > 0) {
     logger.error('Test suite failed with errors:');
-    results.filter((r) => r.status === 'FAILED').forEach((r) => logger.error(` - ${r.name}: ${r.error}`));
+    results
+      .filter((r) => r.status === 'FAILED')
+      .forEach((r) => logger.error(` - ${r.name}: ${r.error}`));
     process.exit(1);
   } else {
     logger.info('🎉 ALL DATABASE TESTS PASSED WITH 100% SUCCESS RATE!\n');

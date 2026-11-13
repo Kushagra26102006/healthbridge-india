@@ -6,7 +6,8 @@ export const APP_METADATA = {
   name: 'HealthBridge India',
   tagline: 'One Nation One Health Record',
   version: '1.0.0',
-  description: 'National Unified Healthcare Platform integrated with Ayushman Bharat Digital Mission (ABDM)',
+  description:
+    'National Unified Healthcare Platform integrated with Ayushman Bharat Digital Mission (ABDM)',
   author: 'HealthBridge India Architecture Team',
 } as const;
 

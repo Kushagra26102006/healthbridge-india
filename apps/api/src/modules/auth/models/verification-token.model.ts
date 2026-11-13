@@ -73,4 +73,3 @@ export const VerificationTokenModel: Model<IVerificationTokenDocument> =
   mongoose.model<IVerificationTokenDocument>('VerificationToken', VerificationTokenSchema);
 
 export default VerificationTokenModel;
-

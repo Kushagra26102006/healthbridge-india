@@ -7,7 +7,8 @@ export class HealthController {
   async getHealth(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const healthData = await healthService.getHealthStatus();
-      const statusCode = healthData.status === 'unhealthy' ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK;
+      const statusCode =
+        healthData.status === 'unhealthy' ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK;
       sendSuccess(res, healthData, 'HealthBridge India API is operational', statusCode);
     } catch (error) {
       next(error);
@@ -16,4 +17,3 @@ export class HealthController {
 }
 
 export const healthController = new HealthController();
-

@@ -86,4 +86,3 @@ export const FacilityModel: Model<IFacilityDocument> =
   mongoose.model<IFacilityDocument>('Facility', FacilitySchema);
 
 export default FacilityModel;
-

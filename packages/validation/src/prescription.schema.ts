@@ -22,4 +22,3 @@ export const createPrescriptionSchema = z.object({
 });
 
 export type CreatePrescriptionInput = z.infer<typeof createPrescriptionSchema>;
-

@@ -98,4 +98,3 @@ export const PrescriptionModel: Model<IPrescriptionDocument> =
   mongoose.model<IPrescriptionDocument>('Prescription', PrescriptionSchema);
 
 export default PrescriptionModel;
-

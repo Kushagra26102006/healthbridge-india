@@ -2,22 +2,17 @@
  * ABDM Aligned Consent Architecture Types
  */
 
-export type ConsentRequestStatus =
-  | 'REQUESTED'
-  | 'GRANTED'
-  | 'DENIED'
-  | 'REVOKED'
-  | 'EXPIRED';
+export type ConsentRequestStatus = 'REQUESTED' | 'GRANTED' | 'DENIED' | 'REVOKED' | 'EXPIRED';
 
 export type ConsentArtifactStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
 
 export type ConsentPurposeCode =
-  | 'CAREMGT'    // Care Management
-  | 'BTG'        // Break the Glass / Emergency
-  | 'PUBHLTH'    // Public Health
-  | 'HPAYMT'     // Healthcare Payment
-  | 'DSRCH'      // Disease Specific Healthcare Research
-  | 'PATRQT';    // Self Patient Request
+  | 'CAREMGT' // Care Management
+  | 'BTG' // Break the Glass / Emergency
+  | 'PUBHLTH' // Public Health
+  | 'HPAYMT' // Healthcare Payment
+  | 'DSRCH' // Disease Specific Healthcare Research
+  | 'PATRQT'; // Self Patient Request
 
 export interface DateRange {
   from: Date | string;
@@ -56,4 +51,3 @@ export interface IConsentArtifact {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
-

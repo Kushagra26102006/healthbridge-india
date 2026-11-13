@@ -74,4 +74,3 @@ export interface AuthenticatedUser {
   accountStatus: AccountStatus;
   name: string;
 }
-

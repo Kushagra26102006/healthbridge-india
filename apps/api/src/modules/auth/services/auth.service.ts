@@ -37,8 +37,7 @@ export class AuthService {
     // 1. Security Check: Restrict public ADMIN registration
     if (dto.role === 'ADMIN') {
       const isAuthorized =
-        dto.adminRegistrationKey &&
-        dto.adminRegistrationKey === env.ADMIN_REGISTRATION_KEY;
+        dto.adminRegistrationKey && dto.adminRegistrationKey === env.ADMIN_REGISTRATION_KEY;
 
       if (!isAuthorized) {
         throw AppError.forbidden('Public registration for the ADMIN role is restricted');
@@ -82,8 +81,17 @@ export class AuthService {
           userId: user._id,
           dateOfBirth: new Date('2000-01-01'), // Default placeholder, updated during onboarding
           gender: 'OTHER',
-          address: { city: 'Not specified', district: 'Not specified', state: 'Not specified', postalCode: '110001' },
-          emergencyContact: { name: 'Emergency Contact', relationship: 'Other', phone: normalizedPhone },
+          address: {
+            city: 'Not specified',
+            district: 'Not specified',
+            state: 'Not specified',
+            postalCode: '110001',
+          },
+          emergencyContact: {
+            name: 'Emergency Contact',
+            relationship: 'Other',
+            phone: normalizedPhone,
+          },
           abhaLinkageStatus: 'NOT_LINKED',
         });
       } else if (dto.role === 'DOCTOR') {
@@ -181,9 +189,7 @@ export class AuthService {
     const rawIdentifier = dto.identifier.trim();
     const isEmail = /^\S+@\S+\.\S+$/.test(rawIdentifier);
 
-    const query = isEmail
-      ? { email: rawIdentifier.toLowerCase() }
-      : { phone: rawIdentifier };
+    const query = isEmail ? { email: rawIdentifier.toLowerCase() } : { phone: rawIdentifier };
 
     // Find user with passwordHash included explicitly
     const user = await UserModel.findOne(query).select('+passwordHash');
@@ -233,7 +239,9 @@ export class AuthService {
         outcome: 'BLOCKED',
         metadata: { reason: 'Account suspended' },
       });
-      throw AppError.forbidden('Your account has been suspended. Please contact HealthBridge support.');
+      throw AppError.forbidden(
+        'Your account has been suspended. Please contact HealthBridge support.'
+      );
     }
 
     if (user.accountStatus === 'DEACTIVATED') {
@@ -496,4 +504,3 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
-

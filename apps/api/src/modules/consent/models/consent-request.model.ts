@@ -104,4 +104,3 @@ export const ConsentRequestModel: Model<IConsentRequestDocument> =
   mongoose.model<IConsentRequestDocument>('ConsentRequest', ConsentRequestSchema);
 
 export default ConsentRequestModel;
-

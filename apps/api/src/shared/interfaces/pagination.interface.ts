@@ -23,4 +23,3 @@ export interface PaginatedResponseData<T> {
   items: T[];
   meta: PaginationMeta;
 }
-

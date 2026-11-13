@@ -59,4 +59,3 @@ export const LaboratoryProfileModel: Model<ILaboratoryProfileDocument> =
   mongoose.model<ILaboratoryProfileDocument>('LaboratoryProfile', LaboratoryProfileSchema);
 
 export default LaboratoryProfileModel;
-

@@ -3,7 +3,7 @@
 > **Platform:** HealthBridge India  
 > **Vision:** One Nation One Health Record — ABHA Integrated Healthcare Platform  
 > **Classification:** Enterprise Architectural Blueprint  
-> **Author:** Senior Full-Stack Architect & DevOps Team  
+> **Author:** Senior Full-Stack Architect & DevOps Team
 
 ---
 
@@ -12,6 +12,7 @@
 HealthBridge India is architected as an enterprise-grade digital healthcare platform designed to deliver seamless, longitudinal electronic health records across India. The system aligns natively with the **National Health Authority (NHA)** guidelines under the **Ayushman Bharat Digital Mission (ABDM)**.
 
 The architecture addresses three mission-critical tenets:
+
 1. **Patient Sovereignty:** Complete user ownership over medical history through consent-driven ABHA data exchange under DISHA privacy principles.
 2. **Federated Interoperability:** FHIR R4 standardized data exchange between Health Information Providers (HIP) and Health Information Users (HIU).
 3. **Resilience & Scalability:** Monorepo architecture enabling unified typing, atomic changes, and isolated service evolution.
@@ -46,6 +47,7 @@ graph TD
 ```
 
 ### Monorepo Boundaries:
+
 - **`apps/web`**: Consumer-facing web application and healthcare provider portal built on Next.js 14 with App Router, Tailwind CSS, shadcn/ui, TanStack Query v5, and Redux Toolkit.
 - **`apps/api`**: RESTful API Gateway and Core Backend Service built with Express.js, TypeScript, Mongoose, and Pino logger.
 - **`packages/shared-types`**: Pure TypeScript contracts ensuring 100% compile-time type safety across network boundaries (`roles.ts`, `api.ts`, `user.ts`, `auth.ts`, `healthcare.ts`, `appointment.ts`, `consent.ts`).
@@ -83,6 +85,7 @@ sequenceDiagram
 ```
 
 ### Key Communication Safeguards:
+
 1. **HttpOnly Cookie Propagation:** Auth tokens (`hb_access_token`, `hb_refresh_token`) are strictly transmitted via HttpOnly, SameSite, Secure cookies. Zero tokens are stored in browser `localStorage`.
 2. **Refresh Concurrency Mutex:** If an access token expires while multiple queries are in-flight, only a single refresh call (`POST /api/v1/auth/refresh`) is issued. Concurrent requests are queued and replayed upon rotation.
 3. **Loop Circuit Breaker:** Refresh requests and login requests are tagged with non-retry markers (`_retry: true`) to prevent infinite redirection loops.

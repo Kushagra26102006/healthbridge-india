@@ -53,4 +53,3 @@ const startServer = async (): Promise<void> => {
 };
 
 void startServer();
-

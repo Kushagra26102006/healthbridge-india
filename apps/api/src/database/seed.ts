@@ -211,7 +211,8 @@ export const seedDatabase = async (): Promise<void> => {
     startTime: new Date(Date.now() - 86400000 * 3), // 3 days ago
     endTime: new Date(Date.now() - 86400000 * 3 + 1800000), // 30 mins later
     status: 'COMPLETED',
-    notes: 'Routine cardiovascular checkup. Patient reports mild fatigue after exercise. Vitals stable.',
+    notes:
+      'Routine cardiovascular checkup. Patient reports mild fatigue after exercise. Vitals stable.',
   });
 
   // 8. Create Medical Record (OP Consultation)
@@ -219,7 +220,8 @@ export const seedDatabase = async (): Promise<void> => {
     patientId: patientUser._id,
     recordType: 'OP_CONSULTATION',
     title: 'Cardiology Consultation Note',
-    description: 'Patient presented with mild exertion dyspnea. Advised lipid panel and resting ECG.',
+    description:
+      'Patient presented with mild exertion dyspnea. Advised lipid panel and resting ECG.',
     source: 'MANUAL_ENTRY',
     resourceReference: `urn:healthbridge:encounter:${encounter._id}`,
     createdBy: doctorUser._id,
@@ -381,4 +383,3 @@ if (require.main === module || process.argv[1]?.endsWith('seed.ts')) {
       process.exit(1);
     });
 }
-

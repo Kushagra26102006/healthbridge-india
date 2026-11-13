@@ -4,7 +4,7 @@
 > **Vision:** One Nation One Health Record — ABHA Integrated Healthcare Platform  
 > **Classification:** Technical Architecture Specification / Database Design  
 > **Author:** Senior Database Architect & Healthcare Backend Engineering Team  
-> **Storage Engine:** MongoDB Atlas (Mongoose ODM v8, TypeScript, Zod)  
+> **Storage Engine:** MongoDB Atlas (Mongoose ODM v8, TypeScript, Zod)
 
 ---
 
@@ -13,6 +13,7 @@
 HealthBridge India's database layer is engineered as a secure, distributed, multi-tenant healthcare data repository aligned natively with the **Ayushman Bharat Digital Mission (ABDM)** and **Digital Information Security in Healthcare Act (DISHA)** standards.
 
 ### Key Architectural Principles:
+
 1. **Separation of Identity & Domain Profiles:** The `users` collection maintains core authentication and authorization credentials. Specific roles (`PATIENT`, `DOCTOR`, `PHARMACY`, `LABORATORY`, `ADMIN`) extend into dedicated profile collections linked via strict 1:1 foreign references.
 2. **Patient-Centric Data Ownership:** Clinical records, encounters, prescriptions, and lab reports are strictly partitioned by `patientId`. Cross-provider access is governed exclusively through cryptographically auditable ABDM consent artifacts.
 3. **Purpose-Specific & Time-Bound Consent:** Consent is not a simple Boolean flag. Access to medical data requires an active, purpose-specific, time-delimited `ConsentArtifact`. Expired or revoked consent automatically invalidates data read authorization.
@@ -139,26 +140,26 @@ erDiagram
 
 ## 3. Collections & Responsibilities
 
-| Domain | Collection Name | Purpose & Responsibilities | Mongoose Model |
-| :--- | :--- | :--- | :--- |
-| **Identity** | `users` | Core credentials, authentication status, global roles, and contact info | `UserModel` |
-| **Profile** | `patientProfiles` | Demographics, emergency contacts, ABHA linkage, and KYC addresses | `PatientProfileModel` |
-| **Profile** | `doctorProfiles` | Medical council registration, specializations, credentials, and hospital affiliation | `DoctorProfileModel` |
-| **Profile** | `pharmacyProfiles` | Retail/hospital pharmacy licenses and physical facility link | `PharmacyProfileModel` |
-| **Profile** | `laboratoryProfiles` | NABL / diagnostic laboratory license and testing affiliation | `LaboratoryProfileModel` |
-| **Profile** | `adminProfiles` | Platform administrative levels, RBAC privileges, and audit authority | `AdminProfileModel` |
-| **Healthcare**| `facilities` | Health Facility Registry (HFR) entities (hospitals, clinics, centers) | `FacilityModel` |
-| **Healthcare**| `medicalRecords` | Canonical clinical documents (OP consults, discharge summaries, wellness notes) | `MedicalRecordModel` |
-| **Healthcare**| `encounters` | Inpatient, outpatient, emergency, or virtual consultation sessions | `EncounterModel` |
-| **Healthcare**| `prescriptions` | Drug orders, dosage, frequencies, validity limits, and fulfillment status | `PrescriptionModel` |
-| **Healthcare**| `appointments` | Clinic visit scheduling, slot allocations, and status tracking | `AppointmentModel` |
-| **Healthcare**| `labOrders` | Diagnostic requisition items ordered by registered practitioners | `LaboratoryOrderModel` |
-| **Healthcare**| `labReports` | Published diagnostic findings, test observation metrics, and report files | `LaboratoryReportModel` |
-| **Consent** | `consentRequests` | Inbound consent inquiries from HIUs specifying purpose, data types, and expiry | `ConsentRequestModel` |
-| **Consent** | `consentArtifacts`| Signed, purpose-specific, time-delimited ABDM consent grants | `ConsentArtifactModel` |
-| **Security** | `refreshTokens` | Hashed long-lived refresh tokens with automated MongoDB TTL purging | `RefreshTokenModel` |
-| **Security** | `auditLogs` | Append-only security and data-access audit trails (HIPAA/DISHA compliant) | `AuditLogModel` |
-| **Security** | `notifications` | In-app user notifications for appointments, lab results, and consents | `NotificationModel` |
+| Domain         | Collection Name      | Purpose & Responsibilities                                                           | Mongoose Model           |
+| :------------- | :------------------- | :----------------------------------------------------------------------------------- | :----------------------- |
+| **Identity**   | `users`              | Core credentials, authentication status, global roles, and contact info              | `UserModel`              |
+| **Profile**    | `patientProfiles`    | Demographics, emergency contacts, ABHA linkage, and KYC addresses                    | `PatientProfileModel`    |
+| **Profile**    | `doctorProfiles`     | Medical council registration, specializations, credentials, and hospital affiliation | `DoctorProfileModel`     |
+| **Profile**    | `pharmacyProfiles`   | Retail/hospital pharmacy licenses and physical facility link                         | `PharmacyProfileModel`   |
+| **Profile**    | `laboratoryProfiles` | NABL / diagnostic laboratory license and testing affiliation                         | `LaboratoryProfileModel` |
+| **Profile**    | `adminProfiles`      | Platform administrative levels, RBAC privileges, and audit authority                 | `AdminProfileModel`      |
+| **Healthcare** | `facilities`         | Health Facility Registry (HFR) entities (hospitals, clinics, centers)                | `FacilityModel`          |
+| **Healthcare** | `medicalRecords`     | Canonical clinical documents (OP consults, discharge summaries, wellness notes)      | `MedicalRecordModel`     |
+| **Healthcare** | `encounters`         | Inpatient, outpatient, emergency, or virtual consultation sessions                   | `EncounterModel`         |
+| **Healthcare** | `prescriptions`      | Drug orders, dosage, frequencies, validity limits, and fulfillment status            | `PrescriptionModel`      |
+| **Healthcare** | `appointments`       | Clinic visit scheduling, slot allocations, and status tracking                       | `AppointmentModel`       |
+| **Healthcare** | `labOrders`          | Diagnostic requisition items ordered by registered practitioners                     | `LaboratoryOrderModel`   |
+| **Healthcare** | `labReports`         | Published diagnostic findings, test observation metrics, and report files            | `LaboratoryReportModel`  |
+| **Consent**    | `consentRequests`    | Inbound consent inquiries from HIUs specifying purpose, data types, and expiry       | `ConsentRequestModel`    |
+| **Consent**    | `consentArtifacts`   | Signed, purpose-specific, time-delimited ABDM consent grants                         | `ConsentArtifactModel`   |
+| **Security**   | `refreshTokens`      | Hashed long-lived refresh tokens with automated MongoDB TTL purging                  | `RefreshTokenModel`      |
+| **Security**   | `auditLogs`          | Append-only security and data-access audit trails (HIPAA/DISHA compliant)            | `AuditLogModel`          |
+| **Security**   | `notifications`      | In-app user notifications for appointments, lab results, and consents                | `NotificationModel`      |
 
 ---
 
@@ -243,6 +244,7 @@ auditLogs.index({ resourceType: 1, resourceId: 1, timestamp: -1 });
 ## 8. Verification & Seed Workflow
 
 ### Running Database Unit & Integration Tests
+
 ```bash
 # Execute the comprehensive test suite
 pnpm test:db
@@ -251,6 +253,7 @@ pnpm --filter @healthbridge/api test:db
 ```
 
 ### Seeding Synthetic Demo Records
+
 ```bash
 # Populate demo doctor, patient, pharmacy, lab, admin, and clinical records
 pnpm seed
@@ -259,9 +262,9 @@ pnpm --filter @healthbridge/api seed
 ```
 
 ### Synthetic Demo Credentials (Local / Non-Production):
+
 - **Administrator:** `admin.demo@healthbridge.local` | `DemoSecure#2026`
 - **Doctor:** `dr.priya.sharma@healthbridge.local` | `DemoSecure#2026`
 - **Patient:** `ramesh.patel@healthbridge.local` | `DemoSecure#2026`
 - **Pharmacy:** `pharmacy.demo@healthbridge.local` | `DemoSecure#2026`
 - **Laboratory:** `lab.demo@healthbridge.local` | `DemoSecure#2026`
-

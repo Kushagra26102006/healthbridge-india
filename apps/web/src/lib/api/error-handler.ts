@@ -77,7 +77,9 @@ export const handleAxiosError = (error: AxiosError<ApiResponse>): ApiClientError
     case 503:
     case 504:
       code = code || 'SERVER_ERROR';
-      message = message || 'HealthBridge server encountered an error. Our engineering team is investigating.';
+      message =
+        message ||
+        'HealthBridge server encountered an error. Our engineering team is investigating.';
       break;
     default:
       code = code || 'UNKNOWN_ERROR';

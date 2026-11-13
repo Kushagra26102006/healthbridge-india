@@ -61,27 +61,29 @@ healthbridge-india/
 
 ## 🛠️ Technology Stack
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Monorepo Engine** | [pnpm Workspaces](https://pnpm.io/workspaces) (v9.15+) |
-| **Frontend App** | [Next.js 14](https://nextjs.org/) (App Router, Turbopack), [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) |
-| **Styling & UI** | [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [Lucide Icons](https://lucide.dev/), [Framer Motion](https://www.framer.com/motion/) |
-| **Client State & Cache**| [Redux Toolkit](https://redux-toolkit.js.org/), [TanStack React Query v5](https://tanstack.com/query) |
-| **Frontend API Client** | [Axios](https://axios-http.com/) (Typed client, HttpOnly cookies, request ID tracing, refresh mutex) |
-| **Backend API** | [Express.js](https://expressjs.com/), [Node.js](https://nodejs.org/), [tsx](https://github.com/privatenumber/tsx), [Pino](https://getpino.io/) |
-| **Database & ODM** | [MongoDB Atlas](https://www.mongodb.com/atlas), [Mongoose 8](https://mongoosejs.com/) |
-| **Validation Layer** | [Zod 3](https://zod.dev/) (Strict schemas across frontend, backend, and environment) |
-| **Testing Engine** | [Vitest](https://vitest.dev/), [Supertest](https://github.com/ladjs/supertest) |
-| **Security & Auth** | [bcryptjs](https://github.com/dcodeIO/bcrypt.js), [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken), [Helmet](https://helmetjs.github.io/), [CORS](https://github.com/expressjs/cors), [cookie-parser](https://github.com/expressjs/cookie-parser) |
+| Layer                    | Technologies                                                                                                                                                                                                                                                |
+| :----------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Monorepo Engine**      | [pnpm Workspaces](https://pnpm.io/workspaces) (v9.15+)                                                                                                                                                                                                      |
+| **Frontend App**         | [Next.js 14](https://nextjs.org/) (App Router, Turbopack), [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)                                                                                                                    |
+| **Styling & UI**         | [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [Lucide Icons](https://lucide.dev/), [Framer Motion](https://www.framer.com/motion/)                                                                                         |
+| **Client State & Cache** | [Redux Toolkit](https://redux-toolkit.js.org/), [TanStack React Query v5](https://tanstack.com/query)                                                                                                                                                       |
+| **Frontend API Client**  | [Axios](https://axios-http.com/) (Typed client, HttpOnly cookies, request ID tracing, refresh mutex)                                                                                                                                                        |
+| **Backend API**          | [Express.js](https://expressjs.com/), [Node.js](https://nodejs.org/), [tsx](https://github.com/privatenumber/tsx), [Pino](https://getpino.io/)                                                                                                              |
+| **Database & ODM**       | [MongoDB Atlas](https://www.mongodb.com/atlas), [Mongoose 8](https://mongoosejs.com/)                                                                                                                                                                       |
+| **Validation Layer**     | [Zod 3](https://zod.dev/) (Strict schemas across frontend, backend, and environment)                                                                                                                                                                        |
+| **Testing Engine**       | [Vitest](https://vitest.dev/), [Supertest](https://github.com/ladjs/supertest)                                                                                                                                                                              |
+| **Security & Auth**      | [bcryptjs](https://github.com/dcodeIO/bcrypt.js), [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken), [Helmet](https://helmetjs.github.io/), [CORS](https://github.com/expressjs/cors), [cookie-parser](https://github.com/expressjs/cookie-parser) |
 
 ---
 
 ## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
+
 Ensure Node.js (`>= 20.x`) and pnpm (`>= 9.x`) are installed.
 
 ### 2. Install Workspace Dependencies
+
 ```bash
 git clone <repository-url> healthbridge-india
 cd healthbridge-india
@@ -89,15 +91,18 @@ pnpm install
 ```
 
 ### 3. Setup Environment Configurations
+
 ```bash
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 ```
 
 ### 4. Run Both Applications (Concurrently)
+
 ```bash
 pnpm dev
 ```
+
 - **Web Frontend**: [http://localhost:3000](http://localhost:3000)
 - **API Backend**: [http://localhost:5001/api/v1](http://localhost:5001/api/v1)
 - **Health Check**: [http://localhost:5001/api/v1/health](http://localhost:5001/api/v1/health)
