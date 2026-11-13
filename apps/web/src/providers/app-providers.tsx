@@ -3,6 +3,7 @@
 import React from 'react';
 import { ReduxProvider } from './redux-provider';
 import { QueryProvider } from './query-provider';
+import { ThemeProvider } from './theme-provider';
 
 export interface AppProvidersProps {
   children: React.ReactNode;
@@ -10,13 +11,15 @@ export interface AppProvidersProps {
 
 /**
  * Unified Application Client Providers
- * Composes Redux Toolkit and TanStack Query with isolated client component boundaries
+ * Composes ThemeProvider, Redux Toolkit, and TanStack Query with isolated client boundaries
  */
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <ReduxProvider>
-      <QueryProvider>{children}</QueryProvider>
-    </ReduxProvider>
+    <ThemeProvider>
+      <ReduxProvider>
+        <QueryProvider>{children}</QueryProvider>
+      </ReduxProvider>
+    </ThemeProvider>
   );
 }
 

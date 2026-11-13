@@ -4,48 +4,73 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Healthcare Design Tokens - Light Theme */
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
+
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 173 80% 36%;
+
+    /* Deep Healthcare Blue */
+    --primary: 221 83% 40%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+
+    /* Healthcare Teal */
+    --secondary: 173 80% 36%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Soft Cyan */
+    --accent: 189 94% 43%;
     --accent-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 94%;
+    --muted-foreground: 215.4 16.3% 44%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 173 80% 36%;
-    --radius: 0.5rem;
+
+    --border: 214.3 31.8% 90%;
+    --input: 214.3 31.8% 90%;
+    --ring: 221 83% 40%;
+
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Healthcare Design Tokens - Deep Navy Theme */
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
-    --primary: 173 80% 40%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+
+    /* Accessible Vibrant Healthcare Blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 224 71% 4%;
+
+    /* Luminous Teal */
+    --secondary: 173 80% 40%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+
+    /* Soft Bright Cyan */
+    --accent: 189 80% 50%;
+    --accent-foreground: 224 71% 4%;
+
+    --muted: 217.2 32.6% 14%;
+    --muted-foreground: 215 20.2% 68%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 173 80% 40%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -53,9 +78,20 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-teal-600 selection:text-white;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
 
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-radial-gradient {
+    background-image: radial-gradient(circle at top center, rgba(14, 165, 233, 0.08), transparent 70%);
+  }
+}

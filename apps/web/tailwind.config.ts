@@ -6,13 +6,20 @@ const config: Config = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/features/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     container: {
       center: true,
-      padding: '2rem',
+      padding: {
+        DEFAULT: '1rem',
+        sm: '1.5rem',
+        lg: '2rem',
+        xl: '2.5rem',
+        '2xl': '3rem',
+      },
       screens: {
-        '2xl': '1400px',
+        '2xl': '1380px',
       },
     },
     extend: {
@@ -50,17 +57,45 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        health: {
+        brand: {
+          blue: '#1d4ed8',
+          deepBlue: '#0f2b5c',
           teal: '#0d9488',
-          blue: '#1e40af',
-          saffron: '#ff9933',
-          green: '#138808',
+          cyan: '#06b6d4',
+          navy: '#0b1329',
+          ash: '#f8fafc',
+          indiaOrange: '#ff9933',
+          indiaGreen: '#138808',
         },
       },
+      boxShadow: {
+        subtle: '0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04)',
+        card: '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
+        cardHover:
+          '0 12px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04)',
+        glow: '0 0 25px -5px rgba(13, 148, 136, 0.25)',
+        glowBlue: '0 0 25px -5px rgba(29, 78, 216, 0.25)',
+      },
       borderRadius: {
+        '2xl': '1rem',
+        xl: 'calc(var(--radius) + 2px)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+        pulseGlow: {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.8' },
+        },
+      },
+      animation: {
+        float: 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulseGlow 4s ease-in-out infinite',
       },
     },
   },
