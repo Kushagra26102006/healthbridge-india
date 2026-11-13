@@ -1,36 +1,46 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, Mail, Phone, ExternalLink } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import type { InfoModalType } from './InfoModal';
 
-export function Footer() {
-  const productLinks = [
-    { label: 'For Patients', href: '#patients' },
-    { label: 'For Doctors', href: '#doctors' },
-    { label: 'Healthcare Facilities', href: '#providers' },
-    { label: 'ABHA Linkage', href: '#how-it-works' },
-    { label: 'Consent Manager', href: '#principles' },
+export interface FooterProps {
+  onOpenInfo?: (type: NonNullable<InfoModalType>) => void;
+}
+
+export function Footer({ onOpenInfo }: FooterProps) {
+  const currentYear = new Date().getFullYear();
+
+  const platformLinks = [
+    { label: 'Overview', href: '#overview' },
+    { label: 'Health Records', href: '#services' },
+    { label: 'Appointments', href: '#services' },
+    { label: 'Prescriptions', href: '#services' },
+  ];
+
+  const userLinks = [
+    { label: 'Patients', href: '#ecosystem' },
+    { label: 'Doctors', href: '#ecosystem' },
+    { label: 'Pharmacies', href: '#ecosystem' },
+    { label: 'Laboratories', href: '#ecosystem' },
   ];
 
   const resourceLinks = [
-    { label: 'Architecture Overview', href: '#top' },
-    { label: 'ABDM Guidelines', href: 'https://abdm.gov.in', external: true },
-    { label: 'Developer API Specs', href: '/api/v1/health' },
-    { label: 'Security & Compliance', href: '#about' },
-    { label: 'Support & Help Desk', href: '#contact' },
+    { label: 'About ABHA', href: '#abha' },
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'Help Center', href: '#overview' },
   ];
 
-  const legalLinks = [
-    { label: 'Privacy Policy', href: '#privacy-policy' },
-    { label: 'Terms of Service', href: '#terms-of-service' },
-    { label: 'ABDM Consent Rules', href: '#consent-rules' },
-    { label: 'DISHA Compliance', href: '#disha' },
+  const legalLinks: { label: string; type: NonNullable<InfoModalType> }[] = [
+    { label: 'Privacy Policy', type: 'PRIVACY' },
+    { label: 'Terms of Service', type: 'TERMS' },
+    { label: 'Consent Information', type: 'CONSENT' },
   ];
 
   return (
-    <footer id="about" className="bg-card text-card-foreground border-t border-border">
-      {/* Top Footer Banner: National Healthcare Commitment */}
+    <footer className="bg-card text-card-foreground border-t border-border">
+      {/* Top Banner: ABDM Compliance Context */}
       <div className="border-b border-border/80 bg-muted/40 py-6">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -38,9 +48,9 @@ export function Footer() {
               <ShieldCheck className="h-4 w-4" />
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Built in accordance with{' '}
+              Designed in alignment with{' '}
               <strong className="text-foreground">Ayushman Bharat Digital Mission (ABDM)</strong>{' '}
-              standards and DISHA privacy regulations.
+              architecture and national data governance standards.
             </p>
           </div>
           <Badge variant="abha" className="text-[11px] shrink-0">
@@ -49,10 +59,10 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Main Footer Links */}
+      {/* Main Footer Navigation Columns */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-          {/* Brand Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-10">
+          {/* Brand Info & Mission Statement */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-blue-700 via-teal-600 to-cyan-500 text-white shadow-sm">
@@ -76,28 +86,22 @@ export function Footer() {
             </div>
 
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
-              HealthBridge India is a national digital health platform designed to unify patient
-              records, clinical consultations, e-prescriptions, and diagnostic investigations
-              through explicit patient consent and ABHA architecture.
+              HealthBridge India is a digital healthcare platform designed to connect patients,
+              doctors, pharmacies, and diagnostic centers through secure, consent-based health
+              information exchange.
             </p>
 
-            <div className="pt-2 text-xs text-muted-foreground space-y-1" id="contact">
-              <div className="flex items-center gap-2">
-                <Phone className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-                <span>National Helpline: 1800-XXX-XXXX (Placeholder)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-                <span>Support Desk: support@healthbridge.india.placeholder</span>
-              </div>
-            </div>
+            <p className="text-[11px] text-muted-foreground italic">
+              Independent digital health platform. Built to support national health
+              interoperability.
+            </p>
           </div>
 
-          {/* Product Links */}
+          {/* 1. Platform Links */}
           <div className="space-y-3">
             <p className="text-xs font-bold uppercase tracking-wider text-foreground">Platform</p>
             <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
-              {productLinks.map((link, idx) => (
+              {platformLinks.map((link, idx) => (
                 <li key={idx}>
                   <a
                     href={link.href}
@@ -110,7 +114,24 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Resources */}
+          {/* 2. For Users Links */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-foreground">For Users</p>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+              {userLinks.map((link, idx) => (
+                <li key={idx}>
+                  <a
+                    href={link.href}
+                    className="hover:text-primary transition-colors focus-visible:outline-none focus-visible:underline"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 3. Resources Links */}
           <div className="space-y-3">
             <p className="text-xs font-bold uppercase tracking-wider text-foreground">Resources</p>
             <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
@@ -118,26 +139,6 @@ export function Footer() {
                 <li key={idx}>
                   <a
                     href={link.href}
-                    target={link.external ? '_blank' : undefined}
-                    rel={link.external ? 'noopener noreferrer' : undefined}
-                    className="inline-flex items-center gap-1 hover:text-primary transition-colors focus-visible:outline-none focus-visible:underline"
-                  >
-                    {link.label}
-                    {link.external && <ExternalLink className="h-3 w-3" />}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal / Policy */}
-          <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-foreground">Compliance</p>
-            <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
-              {legalLinks.map((link, idx) => (
-                <li key={idx}>
-                  <a
-                    href={link.href}
                     className="hover:text-primary transition-colors focus-visible:outline-none focus-visible:underline"
                   >
                     {link.label}
@@ -146,14 +147,32 @@ export function Footer() {
               ))}
             </ul>
           </div>
+
+          {/* 4. Legal Links (Modal Triggers) */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-foreground">Legal</p>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+              {legalLinks.map((link, idx) => (
+                <li key={idx}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenInfo?.(link.type)}
+                    className="text-left hover:text-primary transition-colors focus-visible:outline-none focus-visible:underline text-xs sm:text-sm text-muted-foreground"
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Bottom Bar */}
+        {/* Bottom Copyright & Mission Attribution */}
         <div className="mt-12 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© 2026 HealthBridge India Platform. All rights reserved.</p>
+          <p>© {currentYear} HealthBridge India Platform. All rights reserved.</p>
           <p className="flex items-center gap-1">
-            Engineered for <span className="font-semibold text-foreground">Digital India</span>{' '}
-            under ABDM
+            Engineered for{' '}
+            <span className="font-semibold text-foreground">Digital Healthcare in India</span>
           </p>
         </div>
       </div>

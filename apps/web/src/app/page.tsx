@@ -3,15 +3,18 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { InfoModal, type InfoModalType } from '@/components/layout/InfoModal';
 import { HeroSection } from '@/components/landing/HeroSection';
-import { TrustSection } from '@/components/landing/TrustSection';
+import { PlatformOverview } from '@/components/landing/PlatformOverview';
+import { ServicesSection } from '@/components/landing/ServicesSection';
 import { HowItWorks } from '@/components/landing/HowItWorks';
-import { UserRoles } from '@/components/landing/UserRoles';
+import { UserEcosystem } from '@/components/landing/UserEcosystem';
+import { PrivacySection } from '@/components/landing/PrivacySection';
+import { AbhaInformation } from '@/components/landing/AbhaInformation';
+import { FinalCTA } from '@/components/landing/FinalCTA';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { SystemStatus } from '@/components/system-status';
 import { Activity, ChevronUp, ChevronDown } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -20,6 +23,7 @@ export default function HomePage() {
     'PATIENT' | 'DOCTOR' | 'PHARMACY' | 'LABORATORY'
   >('PATIENT');
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
+  const [infoModalType, setInfoModalType] = useState<InfoModalType>(null);
 
   const handleOpenAuth = (
     view: 'LOGIN' | 'REGISTER',
@@ -28,6 +32,13 @@ export default function HomePage() {
     setAuthView(view);
     if (role) setSelectedRole(role);
     setAuthModalOpen(true);
+  };
+
+  const handleScrollTo = (elementId: string) => {
+    const el = document.getElementById(elementId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -40,63 +51,37 @@ export default function HomePage() {
         {/* Hero Section with Interactive ABHA Dashboard Preview */}
         <HeroSection onGetStarted={() => handleOpenAuth('REGISTER', 'PATIENT')} />
 
-        {/* Platform Trust & Core Principles */}
-        <TrustSection />
+        {/* Section 1: Platform Overview */}
+        <PlatformOverview />
 
-        {/* 4-Step How It Works Flow */}
+        {/* Section 2: Platform Services */}
+        <ServicesSection />
+
+        {/* Section 3: How It Works */}
         <HowItWorks />
 
-        {/* Stakeholder Ecosystem / User Roles */}
-        <UserRoles
+        {/* Section 4: User Ecosystem */}
+        <UserEcosystem
           onSelectRole={(role) => {
             handleOpenAuth('REGISTER', role);
           }}
         />
 
-        {/* Security & National Compliance Banner */}
-        <section id="security-banner" className="py-12 bg-background border-t border-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="rounded-3xl bg-gradient-to-br from-blue-900/10 via-teal-900/10 to-transparent border border-teal-500/30 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-2 max-w-2xl text-left">
-                <div className="flex items-center gap-2">
-                  <Badge variant="abha">ABDM Milestone 1–3 Architecture</Badge>
-                  <Badge variant="success">DISHA & HIPAA Standard</Badge>
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                  Ready for India&apos;s Digital Health Revolution
-                </h3>
-                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  Engineered with cryptographic session security, append-only audit logging, and
-                  two-tier authorization combining role permissions with explicit patient consent
-                  artifacts.
-                </p>
-              </div>
+        {/* Section 5: Privacy and Security */}
+        <PrivacySection />
 
-              <div className="shrink-0 flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                <Button
-                  variant="teal"
-                  size="lg"
-                  onClick={() => handleOpenAuth('REGISTER', 'PATIENT')}
-                  className="w-full sm:w-auto shadow-md hover:shadow-glow"
-                >
-                  Create Your ABHA Account
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => handleOpenAuth('LOGIN')}
-                  className="w-full sm:w-auto"
-                >
-                  Sign In to Portal
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Section 6: ABHA and ABDM Information */}
+        <AbhaInformation onExplore={() => handleScrollTo('services')} />
+
+        {/* Section 7: Final Call to Action */}
+        <FinalCTA
+          onGetStarted={() => handleOpenAuth('REGISTER', 'PATIENT')}
+          onExplore={() => handleScrollTo('overview')}
+        />
       </main>
 
       {/* 3. Comprehensive Professional Footer */}
-      <Footer />
+      <Footer onOpenInfo={(type) => setInfoModalType(type)} />
 
       {/* 4. Auth Modal Dialog */}
       <AuthModal
@@ -107,7 +92,10 @@ export default function HomePage() {
         onSwitchView={(view) => setAuthView(view)}
       />
 
-      {/* 5. Floating Real-time API Health Inspector (Day 1 Integration Assurance) */}
+      {/* 5. Informational Modal (Privacy, Terms, Consent) */}
+      <InfoModal type={infoModalType} onClose={() => setInfoModalType(null)} />
+
+      {/* 6. Floating Real-time API Health Inspector (Day 1 Integration Assurance) */}
       <div className="fixed bottom-4 right-4 z-40">
         <div className="relative">
           {showStatusDrawer && (

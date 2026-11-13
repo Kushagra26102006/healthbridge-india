@@ -25,7 +25,7 @@ export function Navbar({ onOpenAuth, className }: NavbarProps) {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
 
-      const sections = ['patients', 'doctors', 'providers', 'how-it-works', 'about'];
+      const sections = ['overview', 'services', 'how-it-works', 'ecosystem', 'privacy', 'abha'];
       const scrollPosition = window.scrollY + 100;
 
       for (const sectionId of sections) {
@@ -67,11 +67,12 @@ export function Navbar({ onOpenAuth, className }: NavbarProps) {
 
   const navLinks = [
     { label: 'Home', href: '#top', id: 'home' },
-    { label: 'For Patients', href: '#patients', id: 'patients' },
-    { label: 'For Doctors', href: '#doctors', id: 'doctors' },
-    { label: 'For Healthcare Providers', href: '#providers', id: 'providers' },
+    { label: 'Overview', href: '#overview', id: 'overview' },
+    { label: 'Services', href: '#services', id: 'services' },
     { label: 'How It Works', href: '#how-it-works', id: 'how-it-works' },
-    { label: 'About Us', href: '#about', id: 'about' },
+    { label: 'Ecosystem', href: '#ecosystem', id: 'ecosystem' },
+    { label: 'Privacy', href: '#privacy', id: 'privacy' },
+    { label: 'About ABHA', href: '#abha', id: 'abha' },
   ];
 
   return (
