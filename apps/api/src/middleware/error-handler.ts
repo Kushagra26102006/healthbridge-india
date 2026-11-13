@@ -2,35 +2,53 @@ import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import mongoose from 'mongoose';
 import { AppError } from '../shared/errors/app-error';
+import { ErrorCode } from '../shared/errors/error-codes';
 import { HttpStatus, HttpStatusCode } from '../shared/constants/http-status';
 import { sendError } from '../utils/api-response';
-import { logger } from '../utils/logger';
+import { logger } from '../config/logger';
 import { env } from '../config/env';
 import type { ApiErrorDetail } from '@healthbridge/shared-types';
 
+interface MongoDuplicateError {
+  code?: number;
+  codeName?: string;
+  keyPattern?: Record<string, number>;
+  keyValue?: Record<string, unknown>;
+}
+
 /**
  * Centralized Application Error Handling Middleware
+ * Guarantees standard error responses:
+ * {
+ *   "success": false,
+ *   "message": "Human-readable message",
+ *   "code": "ERROR_CODE",
+ *   "requestId": "request-id"
+ * }
  */
 export const errorHandler: ErrorRequestHandler = (
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void => {
   let statusCode: HttpStatusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+  let code: string = ErrorCode.INTERNAL_SERVER_ERROR;
   let message = 'An unexpected internal error occurred';
   let errors: ApiErrorDetail[] | undefined = undefined;
 
-  // Handle known operational AppError
+  // 1. Handle Known Operational AppError
   if (err instanceof AppError) {
     statusCode = err.statusCode;
+    code = err.code || ErrorCode.INTERNAL_SERVER_ERROR;
     message = err.message;
     errors = err.errors;
   }
-  // Handle Zod schema validation errors
+  // 2. Handle Zod Schema Validation Errors
   else if (err instanceof ZodError) {
     statusCode = HttpStatus.UNPROCESSABLE_ENTITY;
+    code = ErrorCode.VALIDATION_ERROR;
     message = 'Validation failed for request data';
     errors = err.errors.map((e) => ({
       field: e.path.join('.'),
@@ -38,42 +56,74 @@ export const errorHandler: ErrorRequestHandler = (
       code: e.code,
     }));
   }
-  // Handle Mongoose validation errors
+  // 3. Handle MongoDB / Mongoose Duplicate Key Error (E11000)
+  else if (
+    err &&
+    typeof err === 'object' &&
+    ('code' in err || 'codeName' in err) &&
+    ((err as MongoDuplicateError).code === 11000 ||
+      (err as MongoDuplicateError).codeName === 'DuplicateKey')
+  ) {
+    statusCode = HttpStatus.CONFLICT;
+    code = ErrorCode.DUPLICATE_RESOURCE;
+    const mongoErr = err as MongoDuplicateError;
+    const field = mongoErr.keyPattern ? Object.keys(mongoErr.keyPattern)[0] : 'record';
+    message = `A resource with this ${field} already exists`;
+  }
+  // 4. Handle Mongoose Schema Validation Errors
   else if (err instanceof mongoose.Error.ValidationError) {
     statusCode = HttpStatus.BAD_REQUEST;
-    message = 'Database validation error';
+    code = ErrorCode.VALIDATION_ERROR;
+    message = 'Database validation failed';
     errors = Object.values(err.errors).map((e) => ({
       field: e.path,
       message: e.message,
     }));
   }
-  // Handle Mongoose CastError (e.g. invalid ObjectId)
+  // 5. Handle Mongoose CastError (invalid ObjectId / type cast)
   else if (err instanceof mongoose.Error.CastError) {
     statusCode = HttpStatus.BAD_REQUEST;
-    message = `Invalid ${err.path}: ${err.value}`;
+    code = ErrorCode.INVALID_IDENTIFIER;
+    message = `Invalid format for resource identifier '${err.path}'`;
   }
-  // Handle standard JSON syntax error in request body
-  else if (err instanceof SyntaxError && 'status' in err && (err as { status: number }).status === 400) {
+  // 6. Handle Malformed JSON Syntax in Request Body
+  else if (
+    err instanceof SyntaxError &&
+    'status' in err &&
+    (err as { status: number }).status === 400
+  ) {
     statusCode = HttpStatus.BAD_REQUEST;
+    code = ErrorCode.MALFORMED_JSON;
     message = 'Malformed JSON syntax in request payload';
   }
-  // Handle generic native error
+  // 7. Generic unexpected native Error
   else if (err instanceof Error) {
-    message = err.message;
+    if (env.NODE_ENV === 'production') {
+      message = 'An unexpected internal error occurred';
+    } else {
+      message = err.message;
+    }
   }
 
-  // Log error
+  // Structured logging of error
+  const logContext = {
+    requestId: req.requestId,
+    method: req.method,
+    path: req.originalUrl || req.url,
+    statusCode,
+    code,
+  };
+
   if (statusCode >= 500) {
-    logger.error(`[Unhandled Server Error] ${message}`, err);
+    logger.error(`[Unhandled Server Error] ${message}`, err, logContext);
   } else {
-    logger.warn(`[Client/Operational Error ${statusCode}] ${message}`);
+    logger.warn(`[Client/Operational Error ${statusCode}] ${message}`, logContext);
   }
 
-  // Include stack trace only in development
+  // Development stack trace attachment (NEVER exposed in production)
   if (env.NODE_ENV === 'development' && err instanceof Error && !errors) {
     errors = [{ message: err.stack ?? err.message, code: 'DEV_STACK_TRACE' }];
   }
 
-  sendError(res, message, statusCode, errors);
+  sendError(res, message, statusCode, code, errors, req.requestId);
 };
-

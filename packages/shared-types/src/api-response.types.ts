@@ -8,12 +8,33 @@ export interface ApiErrorDetail {
   code?: string;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
+  meta?: PaginationMeta | Record<string, unknown>;
+  code?: string;
+  requestId?: string;
   errors?: ApiErrorDetail[];
-  timestamp: string;
+  timestamp?: string;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  code: string;
+  requestId: string;
+  errors?: ApiErrorDetail[];
+  timestamp?: string;
 }
 
 export interface HealthCheckData {
@@ -32,4 +53,3 @@ export interface HealthCheckData {
 }
 
 export type HealthCheckResponse = ApiResponse<HealthCheckData>;
-

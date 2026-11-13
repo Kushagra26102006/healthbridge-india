@@ -9,7 +9,9 @@ import { UserRole } from '@healthbridge/shared-types';
  * prescriptions, and clinical data, resource ownership and ABDM consent artifacts
  * must be verified separately prior to granting access.
  */
-export const authorize = (...allowedRoles: UserRole[]) => {
+export const authorize = (...rolesOrArray: (UserRole | UserRole[])[]) => {
+  const allowedRoles = rolesOrArray.flat() as UserRole[];
+
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(AppError.unauthorized('Authentication required'));
