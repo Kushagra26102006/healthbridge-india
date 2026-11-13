@@ -3,6 +3,9 @@
  * One Nation One Health Record — ABHA Integrated Healthcare Platform
  */
 
+export * from './constants';
+export * from './env';
+
 export const APP_CONFIG = {
   name: 'HealthBridge India',
   description: 'ABHA Integrated Unified Healthcare Platform',
@@ -40,4 +43,3 @@ export const HEALTH_RECORD_TYPES = [
   'IMMUNIZATION_RECORD',
   'WELLNESS_RECORD',
 ] as const;
-

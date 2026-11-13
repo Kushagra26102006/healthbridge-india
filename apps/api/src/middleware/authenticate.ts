@@ -71,3 +71,4 @@ export const authenticate = async (
     next(error);
   }
 };
+

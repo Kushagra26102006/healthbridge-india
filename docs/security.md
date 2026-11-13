@@ -64,3 +64,4 @@ graph TD
 
 > [!IMPORTANT]
 > Role checks alone are never sufficient for clinical data access. Even a verified doctor cannot access a patient's medical records without an active, unexpired, and purpose-matching `ConsentArtifact`.
+

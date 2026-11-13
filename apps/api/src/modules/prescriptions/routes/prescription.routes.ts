@@ -6,3 +6,4 @@ export const prescriptionRoutes = Router();
 prescriptionRoutes.get('/', (_req: Request, res: Response) => {
   sendSuccess(res, { module: 'Prescriptions', status: 'scaffolded', milestone: 'Day 2' }, 'Prescriptions module ready');
 });
+

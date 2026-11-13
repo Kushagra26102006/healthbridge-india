@@ -21,6 +21,7 @@ import { LoginForm } from '@/features/auth/components/login-form';
 import { RegisterForm } from '@/features/auth/components/register-form';
 import { ProtectedRoute } from '@/features/auth/components/protected-route';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { SystemStatus } from '@/components/system-status';
 import type { ApiResponse, HealthCheckData } from '@healthbridge/shared-types';
 
 export default function HomePage() {
@@ -60,11 +61,14 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="border-teal-600 text-teal-700 bg-teal-50">
-              Day 1: Tasks 01–03
+              Day 1: Tasks 01–05
             </Badge>
-            <Badge variant="success">Task 03 Auth Verified</Badge>
+            <Badge variant="success">Architecture & Integration Verified</Badge>
           </div>
         </header>
+
+        {/* Real-time System Status Component */}
+        <SystemStatus />
 
         {/* User Session Bar */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

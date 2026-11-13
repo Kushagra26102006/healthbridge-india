@@ -1,10 +1,12 @@
+/**
+ * HealthBridge India — Unified Shared Types
+ */
+export * from './roles';
+export * from './api';
 export * from './user';
-export * from './user.types';
-export * from './auth.types';
-export * from './profiles.types';
-export * from './healthcare.types';
-export * from './consent.types';
+export * from './auth';
+export * from './healthcare';
+export * from './appointment';
+export * from './consent';
 export * from './security.types';
 export * from './abha.types';
-export * from './health-record.types';
-export * from './api-response.types';

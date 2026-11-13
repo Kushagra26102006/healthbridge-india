@@ -334,3 +334,4 @@ paths:
         '200':
           description: New verification token dispatched
 ```
+

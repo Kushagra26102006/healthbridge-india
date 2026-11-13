@@ -47,3 +47,4 @@ export const requestIdMiddleware = (
 };
 
 export const correlationIdMiddleware = requestIdMiddleware;
+

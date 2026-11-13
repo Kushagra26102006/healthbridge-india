@@ -13,35 +13,45 @@ This project is structured as a high-performance **pnpm Monorepo** engineered fo
 ```
 healthbridge-india/
 ├── apps/
-│   ├── web/                    # Next.js 14 App Router Frontend
+│   ├── web/                    # Next.js 14 App Router Frontend (React, Tailwind, Redux, TanStack Query)
 │   │   ├── src/
 │   │   │   ├── app/            # App Router pages and layout
 │   │   │   ├── components/ui/  # shadcn/ui design system primitives
-│   │   │   ├── lib/            # Axios API client & utils
-│   │   │   ├── providers/      # TanStack Query & Redux Toolkit providers
-│   │   │   └── store/          # Global state management
+│   │   │   ├── features/auth/  # Authentication views, forms, and RBAC protected route guard
+│   │   │   ├── features/system/# System health status hook & telemetry
+│   │   │   ├── lib/api/        # Typed Axios API client, endpoints, error normalizer & mutex
+│   │   │   ├── providers/      # QueryProvider, ReduxProvider, AppProviders
+│   │   │   └── store/          # Redux Toolkit slices (auth, system)
 │   │   └── package.json
 │   │
-│   └── api/                    # Express.js + TypeScript REST API Gateway
+│   └── api/                    # Express.js + TypeScript REST API Service
 │       ├── src/
-│       │   ├── app.ts          # Express application initialization & middleware
+│       │   ├── app.ts          # Express application initialization & middleware stack
 │       │   ├── server.ts       # Server bootstrap & graceful shutdown hooks
-│       │   ├── config/         # MongoDB Atlas connection & Zod env validation
-│       │   ├── middleware/     # Error handler, 404, request logger
-│       │   ├── modules/        # Modular domain services (Health, Auth, EHR)
-│       │   ├── shared/         # Custom AppError & HTTP status constants
-│       │   └── utils/          # Standardized API response wrappers & logging
+│       │   ├── config/         # MongoDB Atlas connection, Pino logger & Zod env validation
+│       │   ├── middleware/     # Auth, RBAC, Rate-limit, Request ID, Zod validate, Error handler
+│       │   ├── modules/        # Modular domains (auth, health, docs, users, patients, doctors, etc.)
+│       │   ├── routes/         # Centralized /api/v1 router
+│       │   ├── shared/         # AppError class, ErrorCode catalog, HTTP status constants
+│       │   └── utils/          # Standardized API response wrappers, pagination, sanitization
+│       ├── tests/              # Vitest unit & integration test suites
 │       └── package.json
 │
 ├── packages/
-│   ├── shared-types/           # Common TypeScript types (ABHA, User, API contracts)
-│   ├── validation/             # Shared Zod validation schemas (Auth, ABHA, Env)
-│   └── config/                 # Platform constants & configurations
+│   ├── shared-types/           # Common TypeScript contracts (roles, api, user, auth, healthcare, appointment, consent)
+│   ├── validation/             # Shared Zod validation schemas (auth, user, profile, appointment, pagination, env)
+│   └── config/                 # Platform constants, route registry, env defaults, and base TSConfig
 │
 ├── docs/
-│   ├── architecture.md         # Monorepo, ABDM/ABHA & system architecture
-│   └── development-setup.md    # Developer onboarding & operational guide
+│   ├── architecture.md         # Monorepo architecture & communication topology
+│   ├── development-setup.md    # Developer onboarding, commands, & operational guide
+│   ├── database.md             # Complete database schema, Mongoose models, & ERD
+│   ├── authentication.md       # IAM, JWT access tokens, token rotation sequence, & RBAC
+│   ├── security.md             # STRIDE threat model, redaction rules, & defense-in-depth
+│   └── api-specification.md    # API specification, standard envelopes, & OpenAPI 3.1.0 documentation
 │
+├── scripts/
+│   └── verify-integration.ts   # Automated monorepo integration verification runner
 ├── .env.example                # Root environment variable template
 ├── pnpm-workspace.yaml         # Monorepo workspace definition
 └── tsconfig.base.json          # Strict baseline TypeScript configuration
@@ -57,117 +67,82 @@ healthbridge-india/
 | **Frontend App** | [Next.js 14](https://nextjs.org/) (App Router, Turbopack), [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) |
 | **Styling & UI** | [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [Lucide Icons](https://lucide.dev/), [Framer Motion](https://www.framer.com/motion/) |
 | **Client State & Cache**| [Redux Toolkit](https://redux-toolkit.js.org/), [TanStack React Query v5](https://tanstack.com/query) |
-| **Backend API** | [Express.js](https://expressjs.com/), [Node.js](https://nodejs.org/) (v20+ / v26+), [tsx](https://github.com/privatenumber/tsx) |
-| **Database & ODM** | [MongoDB Atlas](https://www.mongodb.com/atlas) / Local MongoDB, [Mongoose v8](https://mongoosejs.com/) |
-| **Security & Utilities**| [Helmet](https://helmetjs.github.io/), [CORS](https://github.com/expressjs/cors), [Zod](https://zod.dev/), [bcryptjs](https://github.com/dcodeIO/bcrypt.js), [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken), [cookie-parser](https://github.com/expressjs/cookie-parser) |
+| **Frontend API Client** | [Axios](https://axios-http.com/) (Typed client, HttpOnly cookies, request ID tracing, refresh mutex) |
+| **Backend API** | [Express.js](https://expressjs.com/), [Node.js](https://nodejs.org/), [tsx](https://github.com/privatenumber/tsx), [Pino](https://getpino.io/) |
+| **Database & ODM** | [MongoDB Atlas](https://www.mongodb.com/atlas), [Mongoose 8](https://mongoosejs.com/) |
+| **Validation Layer** | [Zod 3](https://zod.dev/) (Strict schemas across frontend, backend, and environment) |
+| **Testing Engine** | [Vitest](https://vitest.dev/), [Supertest](https://github.com/ladjs/supertest) |
+| **Security & Auth** | [bcryptjs](https://github.com/dcodeIO/bcrypt.js), [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken), [Helmet](https://helmetjs.github.io/), [CORS](https://github.com/expressjs/cors), [cookie-parser](https://github.com/expressjs/cookie-parser) |
 
 ---
 
-## 🚀 Quickstart Guide
+## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- **Node.js**: `v20.x` or higher (verified on `v26.13.0`)
-- **pnpm**: `v9.x` (`npm install -g pnpm`)
-- **Git**
-- **MongoDB**: Local MongoDB instance or free MongoDB Atlas cluster
+Ensure Node.js (`>= 20.x`) and pnpm (`>= 9.x`) are installed.
 
-### 2. Installation
-Clone the repository and install all workspace dependencies from the root:
-
+### 2. Install Workspace Dependencies
 ```bash
-git clone <repository-url>
+git clone <repository-url> healthbridge-india
 cd healthbridge-india
 pnpm install
 ```
 
-### 3. Environment Setup
-Generate local environment files:
-
+### 3. Setup Environment Configurations
 ```bash
-# Setup Backend environment
 cp apps/api/.env.example apps/api/.env
-
-# Setup Frontend environment
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-### 4. Running the Development Servers
-
-To run both Frontend and Backend concurrently:
+### 4. Run Both Applications (Concurrently)
 ```bash
 pnpm dev
 ```
-
-Or run services independently in separate terminal tabs:
-```bash
-# Terminal 1: Run Express Backend API (Port 5001)
-pnpm dev:api
-
-# Terminal 2: Run Next.js Frontend with Turbopack (Port 3000)
-pnpm dev:web
-```
-
-### 5. Accessing the Platform
-- **Frontend Web App**: [http://localhost:3000](http://localhost:3000)
-- **Backend API Root**: [http://localhost:5001](http://localhost:5001)
-- **Health Check Endpoint**: [http://localhost:5001/api/v1/health](http://localhost:5001/api/v1/health)
+- **Web Frontend**: [http://localhost:3000](http://localhost:3000)
+- **API Backend**: [http://localhost:5001/api/v1](http://localhost:5001/api/v1)
+- **Health Check**: [http://localhost:5001/api/v1/health](http://localhost:5001/api/v1/health)
+- **API Documentation**: [http://localhost:5001/api/v1/docs](http://localhost:5001/api/v1/docs)
 
 ---
 
-## 🩺 Health Check Verification
-
-The API provides a standardized health check endpoint at `GET /api/v1/health`:
+## 📋 Root Development & Quality Commands
 
 ```bash
-curl http://localhost:5001/api/v1/health
-```
+# Development servers
+pnpm dev                     # Starts both web (3000) and api (5001) in parallel
+pnpm dev:web                 # Starts Next.js web application
+pnpm dev:api                 # Starts Express API server with hot-reload
 
-Example JSON response:
-```json
-{
-  "success": true,
-  "message": "HealthBridge India API is operational",
-  "data": {
-    "application": "HealthBridge India",
-    "environment": "development",
-    "status": "healthy",
-    "timestamp": "2026-11-13T06:45:00.000Z",
-    "uptime": 42,
-    "version": "1.0.0",
-    "services": {
-      "database": {
-        "status": "connected",
-        "latencyMs": 3
-      }
-    }
-  },
-  "timestamp": "2026-11-13T06:45:00.000Z"
-}
+# Quality & Type Safety
+pnpm typecheck               # Strict TypeScript checks across all 5 workspace projects
+pnpm lint                    # ESLint verification across frontend and backend
+pnpm build                   # Compiles production builds for @healthbridge/web and @healthbridge/api
+
+# Test Suites
+pnpm test                    # Runs Vitest test suite (43 unit & integration tests)
+pnpm test:unit               # Runs isolated unit tests (30 tests)
+pnpm test:auth               # Runs 16-point Authentication & RBAC test suite
+pnpm test:db                 # Runs 17-point Database & Mongoose schema test suite
+pnpm verify:integration      # Runs end-to-end frontend-backend monorepo verification
 ```
 
 ---
 
-## 📜 Monorepo Scripts Reference
+## 🛡️ Security & National Health Standards
 
-| Command | Action |
-| :--- | :--- |
-| `pnpm dev` | Starts all applications in parallel |
-| `pnpm dev:web` | Starts Next.js frontend with Turbopack on port 3000 |
-| `pnpm dev:api` | Starts Express backend in live-reload mode on port 5001 |
-| `pnpm build` | Compiles packages and builds production bundles |
-| `pnpm type-check` | Runs strict TypeScript verification across all apps & packages |
-| `pnpm lint` | Executes ESLint across all projects |
-| `pnpm clean` | Purges `node_modules`, `.next`, and build artifacts |
+1. **DISHA & ABDM Compliance:** Patient consent records govern electronic health data sharing. All PHI/PII data transfers strictly follow consent-artifact validation.
+2. **HttpOnly Cookie Authentication:** Access (`15m`) and Refresh (`7d`) tokens are exchanged via secure, HttpOnly, SameSite cookies. Zero access tokens reside in `localStorage`.
+3. **Cryptographic Tracing (`X-Request-Id`):** Automatically injected on all requests and correlated across logs, responses, and error traces.
+4. **Structured Logging & Redaction:** Pino logger automatically redacts passwords, tokens, cookies, OTPs, and ABHA numbers from all logs.
+5. **Rate Limiting:** Distinct sliding-window limits protect authentication, public discovery, and healthcare APIs from denial-of-service without interrupting hospital operations.
 
 ---
 
-## 🛡️ Security & Healthcare Compliance
+## 📚 Technical Documentation Index
 
-HealthBridge India is architected from day one in compliance with:
-- **DISHA** (Digital Information Security in Healthcare Act)
-- **ABDM Standards** (Ayushman Bharat Digital Mission Milestone 1-3)
-- **FHIR R4** (Fast Healthcare Interoperability Resources)
-- Strict cryptographic token issuance, secure HTTP-only cookies, and sanitized CORS origins.
-
-For more technical details, consult [docs/architecture.md](file:///Users/kushagrayadav/Desktop/untitled%20folder%206/healthbridge-india/docs/architecture.md) and [docs/development-setup.md](file:///Users/kushagrayadav/Desktop/untitled%20folder%206/healthbridge-india/docs/development-setup.md).
-
+- [Architecture Specification](docs/architecture.md) — System topology, communication layer, and state management.
+- [Developer Setup Guide](docs/development-setup.md) — Workstation onboarding, port mapping, and troubleshooting.
+- [Database Architecture](docs/database.md) — MongoDB collections, Mongoose schemas, and ERD.
+- [Authentication & IAM](docs/authentication.md) — Token rotation, recovery workflows, and RBAC policies.
+- [Security Architecture](docs/security.md) — STRIDE threat model, redaction rules, and defense controls.
+- [API Specification](docs/api-specification.md) — Envelopes, error codes, and OpenAPI 3.1.0 specification.

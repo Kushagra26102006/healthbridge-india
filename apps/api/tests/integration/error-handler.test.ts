@@ -35,3 +35,4 @@ describe('Error Handler Middleware Integration Tests', () => {
     expect(res.body.requestId).toBeDefined();
   });
 });
+

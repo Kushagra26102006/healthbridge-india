@@ -105,3 +105,4 @@ export const createPaginationMeta = (
     hasPrevPage: safePage > 1,
   };
 };
+

@@ -2,19 +2,19 @@
 
 > **Platform:** HealthBridge India  
 > **Vision:** One Nation One Health Record — ABHA Integrated Healthcare Platform  
-> **Classification:** Confidential / Architectural Blueprint  
+> **Classification:** Enterprise Architectural Blueprint  
 > **Author:** Senior Full-Stack Architect & DevOps Team  
 
 ---
 
 ## 1. Executive Architectural Vision
 
-HealthBridge India is architected as an enterprise-grade digital healthcare super-platform designed to deliver seamless, longitudinal electronic health records across India. The system aligns natively with the **National Health Authority (NHA)** guidelines under the **Ayushman Bharat Digital Mission (ABDM)**.
+HealthBridge India is architected as an enterprise-grade digital healthcare platform designed to deliver seamless, longitudinal electronic health records across India. The system aligns natively with the **National Health Authority (NHA)** guidelines under the **Ayushman Bharat Digital Mission (ABDM)**.
 
 The architecture addresses three mission-critical tenets:
-1. **Patient Sovereignty:** Complete user ownership over medical history through consent-driven ABHA data exchange.
+1. **Patient Sovereignty:** Complete user ownership over medical history through consent-driven ABHA data exchange under DISHA privacy principles.
 2. **Federated Interoperability:** FHIR R4 standardized data exchange between Health Information Providers (HIP) and Health Information Users (HIU).
-3. **Resilience & Scalability:** Monorepo architecture enabling unified typing, atomic changes, and isolated microservice or serverless evolution.
+3. **Resilience & Scalability:** Monorepo architecture enabling unified typing, atomic changes, and isolated service evolution.
 
 ---
 
@@ -25,14 +25,14 @@ The repository leverages **pnpm Workspaces** for lightning-fast disk-deduplicate
 ```mermaid
 graph TD
     subgraph Packages ["Shared Monorepo Packages"]
-        Config["@healthbridge/config<br/>(Constants, Ports, ABHA Specs)"]
-        SharedTypes["@healthbridge/shared-types<br/>(ABHA, User, EHR, API Contracts)"]
-        Validation["@healthbridge/validation<br/>(Zod Schemas, Env, Auth, OTP)"]
+        Config["@healthbridge/config<br/>(Constants, Ports, ABHA Specs, ENV Defaults)"]
+        SharedTypes["@healthbridge/shared-types<br/>(Roles, User, API Contracts, Healthcare, Consent)"]
+        Validation["@healthbridge/validation<br/>(Zod Schemas, Auth, Profiles, Pagination, Env)"]
     end
 
     subgraph Applications ["Applications"]
-        Web["apps/web<br/>(Next.js 14 App Router, shadcn/ui, TanStack Query, Redux)"]
-        API["apps/api<br/>(Express.js, TypeScript, Mongoose, Zod Env)"]
+        Web["apps/web<br/>(Next.js 14 App Router, TanStack Query, Redux, Typed Axios)"]
+        API["apps/api<br/>(Express.js, TypeScript, Mongoose, Pino Logger, Vitest)"]
     end
 
     Config --> SharedTypes
@@ -46,110 +46,77 @@ graph TD
 ```
 
 ### Monorepo Boundaries:
-- **`apps/web`**: Consumer-facing web application and healthcare provider portal built on Next.js 14 with App Router, Turbopack, Tailwind CSS, and shadcn/ui.
-- **`apps/api`**: RESTful API Gateway and Core Backend Service built with Express.js and TypeScript, handling business orchestration, data persistence, and security controls.
-- **`packages/shared-types`**: Pure TypeScript contracts ensuring 100% compile-time type safety across network boundaries.
-- **`packages/validation`**: Runtime validation layer powered by Zod, ensuring zero invalid payloads penetrate backend domain logic or frontend forms.
-- **`packages/config`**: Global constants, system defaults, ABHA endpoints, and shared configuration primitives.
+- **`apps/web`**: Consumer-facing web application and healthcare provider portal built on Next.js 14 with App Router, Tailwind CSS, shadcn/ui, TanStack Query v5, and Redux Toolkit.
+- **`apps/api`**: RESTful API Gateway and Core Backend Service built with Express.js, TypeScript, Mongoose, and Pino logger.
+- **`packages/shared-types`**: Pure TypeScript contracts ensuring 100% compile-time type safety across network boundaries (`roles.ts`, `api.ts`, `user.ts`, `auth.ts`, `healthcare.ts`, `appointment.ts`, `consent.ts`).
+- **`packages/validation`**: Runtime validation layer powered by Zod, ensuring zero invalid payloads penetrate backend domain logic or frontend forms (`auth.schema.ts`, `user.schema.ts`, `profile.schema.ts`, `appointment.schema.ts`, `pagination.schema.ts`, `env.schema.ts`).
+- **`packages/config`**: Global constants, system defaults, ABHA endpoints, ports, and client-safe environment constants (`constants.ts`, `env.ts`, `index.ts`, `tsconfig.base.json`).
 
 ---
 
-## 3. ABDM / ABHA Integration Topology
+## 3. Frontend-Backend Communication Layer
 
-HealthBridge India is built to operate across all three ABDM milestones:
+The frontend-backend bridge is designed around security, resiliency, and zero-trust authentication:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Patient
-    participant Web as apps/web
-    participant API as apps/api
-    participant ABDM as NHA / ABDM Gateway
-    participant Atlas as MongoDB Atlas
+    actor User as User / Practitioner
+    participant Web as Next.js Web App (apps/web)
+    participant Client as Typed Axios API Client
+    participant API as Express API Service (apps/api)
+    participant DB as MongoDB Database
 
-    Patient->>Web: Request ABHA Verification / Linkage
-    Web->>API: POST /api/v1/abha/init (Mobile / Aadhaar)
-    API->>ABDM: Forward Request to Gateway /v0.5
-    ABDM-->>API: Transaction ID + OTP Dispatched
-    API-->>Web: Transaction Token
-    Patient->>Web: Input 6-Digit OTP
-    Web->>API: POST /api/v1/abha/confirm
-    API->>ABDM: Verify OTP with ABDM Gateway
-    ABDM-->>API: Verified ABHA Profile & Token
-    API->>Atlas: Update Patient Profile & ABHA Linkage
-    API-->>Web: Linkage Successful (ABHA Number & Address)
+    User->>Web: Action (e.g., Query System Health / Submit Form)
+    Web->>Client: Call API (e.g., API_ENDPOINTS.HEALTH)
+    Note over Client: Injects X-Request-Id (UUID)<br/>Enables withCredentials: true
+    Client->>API: HTTP Request (Headers + HttpOnly Session Cookie)
+    API->>API: Correlation ID Middleware (X-Request-Id)
+    API->>API: Rate Limiting & Helmet Headers Check
+    API->>API: Zod Request Validation Middleware
+    API->>DB: Query / Mutation Execution
+    DB-->>API: Result / Status
+    API-->>Client: Standardized ApiResponse Envelope
+    Note over Client: On 401: Concurrency Mutex executes<br/>token refresh and drains queue
+    Client-->>Web: Typed Data / Normalized ApiClientError
+    Web-->>User: Render Reactive UI / System Status
 ```
 
-- **Milestone 1 (M1):** ABHA creation, verification, and profile authentication (Mobile OTP, Aadhaar OTP, Demographics).
-- **Milestone 2 (M2):** Health Information Provider (HIP) capability — generating and securely binding Electronic Health Records (OPD, Discharge summaries, Lab reports) to ABHA.
-- **Milestone 3 (M3):** Health Information User (HIU) capability — consent request manager, electronic consent artifact verification, and encrypted FHIR data ingestion.
+### Key Communication Safeguards:
+1. **HttpOnly Cookie Propagation:** Auth tokens (`hb_access_token`, `hb_refresh_token`) are strictly transmitted via HttpOnly, SameSite, Secure cookies. Zero tokens are stored in browser `localStorage`.
+2. **Refresh Concurrency Mutex:** If an access token expires while multiple queries are in-flight, only a single refresh call (`POST /api/v1/auth/refresh`) is issued. Concurrent requests are queued and replayed upon rotation.
+3. **Loop Circuit Breaker:** Refresh requests and login requests are tagged with non-retry markers (`_retry: true`) to prevent infinite redirection loops.
+4. **End-to-End Tracing:** The Axios client assigns `X-Request-Id` using browser `crypto.randomUUID()`, which is validated by backend middleware and persisted in Pino logs and response headers.
+5. **Centralized Error Normalization:** Backend errors (400, 401, 403, 404, 409, 422, 429, 500) and client-side network disconnects/timeouts are transformed into `ApiClientError` instances with status codes, error codes, and field validation details.
 
 ---
 
-## 4. Backend Layered Architecture (`apps/api`)
+## 4. Frontend State & Provider Topology
 
-The backend follows a strict **Layered Clean Architecture**:
-
-```
-Request ➡️ Security Middleware ➡️ Router ➡️ Controller ➡️ Service ➡️ Database (Mongoose)
-          (Helmet, CORS, Cookie)            (Validation) (Business)  (MongoDB Atlas)
-```
-
-1. **Routing Layer (`src/modules/*/*.routes.ts`):** Defines clean REST paths, attaches route-specific guards.
-2. **Controller Layer (`src/modules/*/*.controller.ts`):** Handles HTTP request parameter unpacking, initiates schema validation, and delegates to services. Never writes SQL/NoSQL queries directly.
-3. **Service Layer (`src/modules/*/*.service.ts`):** Implements pure business logic, domain rules, and external integrations (ABDM, SMS, Email).
-4. **Data Access Layer (`src/config/database.ts`):** Manages Mongoose ODM schemas, connection pooling, indexing, and transactions.
-5. **Centralized Error & Response Pipeline (`src/middleware/error-handler.ts`):**
-   - Catches both operational `AppError` and non-operational runtime errors.
-   - Formats uniform `ApiResponse<T>` objects with ISO timestamps.
-   - Suppresses internal stack traces in non-development environments.
-
----
-
-## 5. Database Architecture (`MongoDB Atlas`)
-
-- **Connection Management:** Connection pool configured with `maxPoolSize: 10`, `minPoolSize: 2`, `serverSelectionTimeoutMS: 5000`.
-- **Fault-Tolerant Bootstrap:** Database errors during local startup are caught and logged without aborting HTTP server availability, enabling the health check endpoint to report database connectivity states (`connected`, `connecting`, `disconnected`).
-- **Graceful Teardown:** Listens for `SIGTERM` and `SIGINT` to safely drain active connections and close Mongoose connection pool before process termination.
-- **Security:** Connection strings are passed purely through validated environment variables (`MONGODB_URI`). No hardcoded credentials exist anywhere in source code.
-
----
-
-## 6. Frontend State & Data-Fetching Architecture (`apps/web`)
+The Next.js 14 frontend separates concerns across server components and client-side reactive state:
 
 ```mermaid
-graph LR
-    subgraph UI ["React 18 Component Tree"]
-        Page["Server / Client Pages"]
-        Shadcn["shadcn/ui Components"]
-    end
+graph TD
+    RootLayout["apps/web/src/app/layout.tsx<br/>(Server Component)"]
+    AppProviders["apps/web/src/providers/app-providers.tsx<br/>('use client' Boundary)"]
+    Redux["ReduxProvider<br/>(Global Session State, System Status, User Cache)"]
+    Query["QueryProvider<br/>(TanStack React Query Cache, 30s Polling, Deduplication)"]
+    Page["apps/web/src/app/page.tsx<br/>(System Status, Auth Forms, Protected Routes)"]
 
-    subgraph State ["Client State Management"]
-        RTK["Redux Toolkit<br/>(Session, Auth, UI State)"]
-        Query["TanStack React Query v5<br/>(Server State, Caching, Auto-Refetch)"]
-    end
-
-    subgraph Network ["Network Layer"]
-        Axios["Axios API Client<br/>(JWT Injection, Interceptors)"]
-    end
-
-    Page --> Shadcn
-    Page --> Query
-    Page --> RTK
-    Query --> Axios
-    Axios --> API["Express API Gateway"]
+    RootLayout --> AppProviders
+    AppProviders --> Redux
+    Redux --> Query
+    Query --> Page
 ```
 
-- **Server Cache:** **TanStack React Query v5** handles server synchronization, caching, query deduplication, background re-fetching, and optimistic updates.
-- **Client Cache:** **Redux Toolkit** manages local application state (active user session, auth tokens, modal states).
-- **Design System:** Built using **shadcn/ui** and **Tailwind CSS** with full accessible contrast tokens and CSS variables.
+- **Query Client Singleton:** Managed via `useState(() => new QueryClient(...))` in `query-provider.tsx` to prevent instance recreation during Next.js client component re-renders.
+- **Redux Store Singleton:** Managed via `useRef<AppStore>()` in `redux-provider.tsx` with slices for `auth` and `system`.
 
 ---
 
-## 7. Security & Compliance Blueprint
+## 5. Security & DISHA Compliance Highlights
 
-- **DISHA Compliance:** Ensures patient health data is encrypted both at rest (AES-256) and in transit (TLS 1.3).
-- **Transport Security:** Strict `Helmet` policy enforcing CSP, XSS filter, No-Sniff, and frameguard headers.
-- **Authentication:** Stateless JSON Web Tokens (JWT) using short-lived access tokens (15m) and secure, HTTP-only, SameSite refresh tokens (7d).
-- **Input Sanitization:** Every HTTP request body, query parameter, and route parameter is validated using Zod prior to execution.
-
+- **Zero Credential Enumeration:** Password reset and login endpoints return uniform responses regardless of whether the account exists.
+- **Role Verification:** Multi-role access control (`PATIENT`, `DOCTOR`, `PHARMACY`, `LABORATORY`, `ADMIN`) is validated server-side. Public administrator self-registration is strictly rejected.
+- **Data Redaction:** Passwords, tokens, OTPs, ABHA numbers, and clinical record bodies are stripped from logs by Pino serializers.
+- **Database Index Protection:** Automatic index synchronization is disabled in production runtime (`autoIndex: false`) to safeguard active healthcare workloads.

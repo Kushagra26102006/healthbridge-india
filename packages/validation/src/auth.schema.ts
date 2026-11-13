@@ -40,7 +40,20 @@ export const registerValidationSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
-  });
+  })
+  .refine(
+    (data) => {
+      // Disallow public administrator registration without administrative key
+      if (data.role === 'ADMIN') {
+        return !!data.adminRegistrationKey && data.adminRegistrationKey.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: 'Public administrator registration is disabled. Administrative key required.',
+      path: ['adminRegistrationKey'],
+    }
+  );
 
 export const loginValidationSchema = z.object({
   identifier: z

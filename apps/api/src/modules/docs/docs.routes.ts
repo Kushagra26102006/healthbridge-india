@@ -32,3 +32,4 @@ docsRoutes.get('/', (_req: Request, res: Response) => {
     'HealthBridge India API Documentation'
   );
 });
+

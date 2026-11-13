@@ -15,6 +15,7 @@ export const backendEnvSchema = z.object({
     .url('MONGODB_URI must be a valid MongoDB connection URI (e.g. mongodb://... or mongodb+srv://...)')
     .default('mongodb://127.0.0.1:27017/healthbridge_dev'),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  FRONTEND_URL: z.string().default('http://localhost:3000').optional(),
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 characters').default('dev_access_secret_hb_platform_key_32bytes'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters').default('dev_refresh_secret_hb_platform_key_32bytes'),
   JWT_EXPIRES_IN: z.string().default('15m'),

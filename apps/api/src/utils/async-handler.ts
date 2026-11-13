@@ -15,3 +15,4 @@ export const asyncHandler = <T = unknown>(fn: AsyncRequestHandler<T>) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
+

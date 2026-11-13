@@ -120,3 +120,4 @@ router.post(
 
 export const authRoutes: Router = router;
 export default authRoutes;
+

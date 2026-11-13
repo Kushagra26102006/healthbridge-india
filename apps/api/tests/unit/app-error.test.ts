@@ -73,3 +73,4 @@ describe('AppError Unit Tests', () => {
     expect(error.isOperational).toBe(false);
   });
 });
+

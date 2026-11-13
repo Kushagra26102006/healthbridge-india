@@ -17,3 +17,4 @@ describe('Not Found Route Integration Tests (404 Catch-All)', () => {
     expect(res.headers['x-request-id']).toBeDefined();
   });
 });
+

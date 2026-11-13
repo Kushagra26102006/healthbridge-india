@@ -36,3 +36,4 @@ v1Router.use('/abdm', apiLimiter, abdmRoutes);
 v1Router.use('/pharmacy', apiLimiter, pharmacyRoutes);
 v1Router.use('/laboratory', apiLimiter, laboratoryRoutes);
 v1Router.use('/audit', apiLimiter, auditRoutes);
+

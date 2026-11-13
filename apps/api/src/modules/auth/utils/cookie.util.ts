@@ -38,3 +38,4 @@ export const clearAuthCookies = (res: Response): void => {
   res.clearCookie(AUTH_CONFIG.accessTokenCookieName, clearOptions);
   res.clearCookie(AUTH_CONFIG.refreshTokenCookieName, clearOptions);
 };
+

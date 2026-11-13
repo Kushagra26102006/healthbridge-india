@@ -67,12 +67,8 @@ export interface IPrescription {
   updatedAt: Date | string;
 }
 
-export type AppointmentStatus =
-  | 'REQUESTED'
-  | 'CONFIRMED'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'NO_SHOW';
+import type { AppointmentStatus } from './appointment';
+export type { AppointmentStatus };
 
 export interface IAppointment {
   id: string;

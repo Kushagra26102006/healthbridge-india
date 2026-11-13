@@ -189,3 +189,4 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     </Card>
   );
 }
+

@@ -1,26 +1,10 @@
 /**
- * HealthBridge India — User & Identity Types
+ * HealthBridge India — User & Identity Shared Contracts
  * One Nation One Health Record — ABHA Integrated Healthcare Platform
  */
 
-export type UserRole = 'PATIENT' | 'DOCTOR' | 'PHARMACY' | 'LABORATORY' | 'ADMIN';
-
-export const USER_ROLES: readonly UserRole[] = [
-  'PATIENT',
-  'DOCTOR',
-  'PHARMACY',
-  'LABORATORY',
-  'ADMIN',
-] as const;
-
-export type AccountStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
-
-export const ACCOUNT_STATUSES: readonly AccountStatus[] = [
-  'PENDING',
-  'ACTIVE',
-  'SUSPENDED',
-  'DEACTIVATED',
-] as const;
+export * from './roles';
+import type { UserRole, AccountStatus } from './roles';
 
 export interface IUser {
   id: string;
@@ -37,7 +21,7 @@ export interface IUser {
 
 /**
  * Public User representation returned across API boundaries.
- * Strictly excludes passwordHash and sensitive authentication internals.
+ * Strictly excludes passwordHash, refresh tokens, and sensitive authentication internals.
  */
 export interface UserPublicDto {
   id: string;
@@ -49,6 +33,13 @@ export interface UserPublicDto {
   emailVerified: boolean;
   phoneVerified: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
+/**
+ * Session snapshot of an authenticated user
+ */
+export interface UserSessionDto {
+  user: UserPublicDto;
+  isAuthenticated: boolean;
+  activeRole: UserRole;
+}
