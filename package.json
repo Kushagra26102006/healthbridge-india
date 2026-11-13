@@ -20,6 +20,7 @@
     "seed": "pnpm --filter @healthbridge/api seed",
     "test:db": "pnpm --filter @healthbridge/api test:db",
     "test:auth": "pnpm --filter @healthbridge/api test:auth",
+    "audit:frontend": "pnpm --filter @healthbridge/api exec tsx ../../scripts/verify-frontend-auth.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "rm -rf node_modules apps/*/.next apps/*/dist packages/*/dist"

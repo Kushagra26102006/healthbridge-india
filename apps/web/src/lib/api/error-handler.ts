@@ -28,11 +28,11 @@ export const handleAxiosError = (error: AxiosError<ApiResponse>): ApiClientError
   // 2. HTTP Response Errors
   const status = error.response.status;
   const data = error.response.data;
-  const requestId = data?.requestId || (error.response.headers['x-request-id'] as string);
+  const requestId = data?.requestId || (error.response.headers?.['x-request-id'] as string);
 
   // Extract Retry-After header for 429 rate limiting
   let retryAfter: number | undefined = undefined;
-  if (status === 429 && error.response.headers['retry-after']) {
+  if (status === 429 && error.response.headers?.['retry-after']) {
     retryAfter = parseInt(error.response.headers['retry-after'] as string, 10);
   }
 

@@ -2,8 +2,8 @@
 
 import React, { useEffect } from 'react';
 import { X, ShieldCheck } from 'lucide-react';
-import { LoginForm } from '@/features/auth/components/login-form';
-import { RegisterForm } from '@/features/auth/components/register-form';
+import { LoginForm } from './LoginForm';
+import { RegistrationForm } from './RegistrationForm';
 
 export interface AuthModalProps {
   isOpen: boolean;
@@ -47,7 +47,7 @@ export function AuthModal({ isOpen, view, defaultRole, onClose, onSwitchView }: 
       />
 
       {/* Modal Dialog Window */}
-      <div className="relative w-full max-w-lg rounded-3xl border border-border/80 bg-background/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl z-10 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border/80 bg-background/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl z-10 animate-in zoom-in-95 duration-200">
         {/* Close Button */}
         <button
           type="button"
@@ -82,7 +82,11 @@ export function AuthModal({ isOpen, view, defaultRole, onClose, onSwitchView }: 
         {view === 'LOGIN' ? (
           <LoginForm onSuccess={onClose} onSwitchToRegister={() => onSwitchView('REGISTER')} />
         ) : (
-          <RegisterForm onSuccess={onClose} onSwitchToLogin={() => onSwitchView('LOGIN')} />
+          <RegistrationForm
+            initialRole={defaultRole}
+            onSuccess={onClose}
+            onSwitchToLogin={() => onSwitchView('LOGIN')}
+          />
         )}
       </div>
     </div>
