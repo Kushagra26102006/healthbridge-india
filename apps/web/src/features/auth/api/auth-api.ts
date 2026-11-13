@@ -83,4 +83,22 @@ export const authApi = {
     const response = await apiClient.post<ApiResponse<null>>('/auth/reset-password', data);
     return response.data.message || 'Password reset successful';
   },
+
+  /**
+   * Verify email address with cryptographic token
+   */
+  async verifyEmail(token: string): Promise<string> {
+    const response = await apiClient.post<ApiResponse<null>>('/auth/verify-email', { token });
+    return response.data.message || 'Email address verified successfully';
+  },
+
+  /**
+   * Resend verification email
+   */
+  async resendVerification(email: string): Promise<string> {
+    const response = await apiClient.post<ApiResponse<null>>('/auth/resend-verification', {
+      email,
+    });
+    return response.data.message || 'Verification email sent if account is unverified';
+  },
 };

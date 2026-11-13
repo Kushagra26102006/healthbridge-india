@@ -111,6 +111,15 @@ export const useAuth = () => {
     register: registerMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
     logoutAll: logoutAllMutation.mutateAsync,
+    forgotPassword: (email: string) => authApi.forgotPassword(email),
+    resetPassword: (data: { token: string; password: string; confirmPassword?: string }) =>
+      authApi.resetPassword({
+        token: data.token,
+        password: data.password,
+        confirmPassword: data.confirmPassword || data.password,
+      }),
+    verifyEmail: (token: string) => authApi.verifyEmail(token),
+    resendVerification: (email: string) => authApi.resendVerification(email),
     initSession,
   };
 };
