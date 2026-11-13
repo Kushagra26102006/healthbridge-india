@@ -1,0 +1,21 @@
+{
+  "name": "healthbridge-india-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HealthBridge India — One Nation One Health Record — ABHA Integrated Healthcare Platform",
+  "packageManager": "pnpm@9.15.5",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter @healthbridge/web dev",
+    "dev:api": "pnpm --filter @healthbridge/api dev",
+    "build": "pnpm --recursive run build",
+    "lint": "pnpm --recursive run lint",
+    "type-check": "pnpm --recursive run type-check",
+    "clean": "rm -rf node_modules apps/*/.next apps/*/dist packages/*/dist"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}
+
