@@ -23,9 +23,13 @@ export const API_ENDPOINTS = {
     RESEND_VERIFICATION: '/auth/resend-verification',
   },
 
-  // Healthcare Domain Scaffolds (Operational for Day 2)
+  // Healthcare Domain Endpoints
   USERS: '/users',
-  PATIENTS: '/patients',
+  PATIENTS: {
+    ROOT: '/patients',
+    DASHBOARD_SUMMARY: '/patients/dashboard-summary',
+    PROFILE: '/patients/profile',
+  },
   DOCTORS: '/doctors',
   APPOINTMENTS: '/appointments',
   RECORDS: '/records',

@@ -121,3 +121,45 @@ export interface ILaboratoryReport {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+
+import type { IPatientProfile } from './profiles.types';
+
+export interface PatientDashboardStatsDto {
+  totalRecords: number;
+  upcomingAppointments: number;
+  activePrescriptions: number;
+  availableLabReports: number;
+  activeConsents: number;
+}
+
+export interface PatientRecentActivityDto {
+  id: string;
+  type: 'RECORD' | 'APPOINTMENT' | 'PRESCRIPTION' | 'LAB_REPORT' | 'CONSENT';
+  title: string;
+  description: string;
+  timestamp: string;
+  badge?: string;
+  actionUrl?: string;
+}
+
+export interface PatientDashboardSummaryDto {
+  profile: IPatientProfile | null;
+  stats: PatientDashboardStatsDto;
+  upcomingAppointments: Array<{
+    id: string;
+    doctorName: string;
+    specialty: string;
+    scheduledAt: string;
+    facilityName: string;
+    status: AppointmentStatus;
+  }>;
+  recentPrescriptions: Array<{
+    id: string;
+    doctorName: string;
+    issuedAt: string;
+    medicationsSummary: string;
+    status: PrescriptionStatus;
+    medicationsCount: number;
+  }>;
+  recentActivity: PatientRecentActivityDto[];
+}
