@@ -11,6 +11,8 @@
     "build": "pnpm --recursive run build",
     "lint": "pnpm --recursive run lint",
     "type-check": "pnpm --recursive run type-check",
+    "seed": "pnpm --filter @healthbridge/api seed",
+    "test:db": "pnpm --filter @healthbridge/api test:db",
     "clean": "rm -rf node_modules apps/*/.next apps/*/dist packages/*/dist"
   },
   "devDependencies": {

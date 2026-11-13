@@ -1,21 +1,15 @@
 /**
  * User and Identity Types for HealthBridge India
  */
+import type { UserRole, AccountStatus } from './user';
 
-export type UserRole =
-  | 'PATIENT'
-  | 'DOCTOR'
-  | 'HOSPITAL_ADMIN'
-  | 'PHARMACIST'
-  | 'DIAGNOSTIC_LAB'
-  | 'SUPER_ADMIN';
-
-export type AccountStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+export type { UserRole, AccountStatus };
 
 export interface UserProfile {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  name: string;
   email: string;
   phone: string;
   role: UserRole;
@@ -27,11 +21,10 @@ export interface UserProfile {
   updatedAt: string;
 }
 
-export interface DoctorProfile extends UserProfile {
+export interface LegacyDoctorProfile extends UserProfile {
   role: 'DOCTOR';
   nmcRegistrationNumber: string;
   specialization: string[];
   qualifications: string[];
   hospitalAffiliations: string[];
 }
-

@@ -1,5 +1,9 @@
+export * from './user';
 export * from './user.types';
+export * from './profiles.types';
+export * from './healthcare.types';
+export * from './consent.types';
+export * from './security.types';
 export * from './abha.types';
 export * from './health-record.types';
 export * from './api-response.types';
-

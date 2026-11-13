@@ -1,4 +1,8 @@
+export * from './user.schema';
+export * from './profile.schema';
+export * from './appointment.schema';
+export * from './prescription.schema';
+export * from './consent.schema';
 export * from './abha.schema';
 export * from './auth.schema';
 export * from './env.schema';
-

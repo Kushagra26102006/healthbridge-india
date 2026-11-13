@@ -36,7 +36,7 @@ mongoose.connection.on('reconnected', () => {
 /**
  * Initializes connection to MongoDB Atlas or local MongoDB instance
  */
-export const connectDatabase = async (): Promise<typeof mongoose | null> => {
+export const connectDatabase = async (customUri?: string): Promise<typeof mongoose | null> => {
   if (mongoose.connection.readyState === 1) {
     return mongoose;
   }
@@ -48,7 +48,7 @@ export const connectDatabase = async (): Promise<typeof mongoose | null> => {
   isConnecting = true;
 
   try {
-    const mongoUri = env.MONGODB_URI;
+    const mongoUri = customUri || env.MONGODB_URI;
 
     // Mask credentials for clean logging
     const maskedUri = mongoUri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');

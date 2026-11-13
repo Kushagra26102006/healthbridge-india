@@ -9,7 +9,9 @@
     "build": "tsc --project tsconfig.json",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "lint": "echo 'api lint passed'"
+    "lint": "echo 'api lint passed'",
+    "seed": "tsx src/database/seed.ts",
+    "test:db": "tsx src/database/test-db.ts"
   },
   "dependencies": {
     "@healthbridge/config": "workspace:*",
