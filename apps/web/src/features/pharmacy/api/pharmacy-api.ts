@@ -25,6 +25,12 @@ import type {
   PharmacyExpiryReportSummaryDto,
   PharmacyAlertsSummaryDto,
   PharmacyInventoryAnalyticsDto,
+  PrescriptionVerificationDto,
+  MedicineMatchResultDto,
+  DispensePrescriptionDto,
+  DispensingRecordDto,
+  DispensingFilterDto,
+  CancelDispensingDto,
 } from '@healthbridge/shared-types';
 
 export const pharmacyApi = {
@@ -383,6 +389,108 @@ export const pharmacyApi = {
     );
     if (!res.data.data) {
       throw new Error(res.data.message || 'Failed to create order');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * 8. Prescription Verification, Matching & Dispensing Workflow (Day 5 Task 03)
+   */
+  async verifyPrescription(prescriptionId: string): Promise<PrescriptionVerificationDto> {
+    const res = await apiClient.get<ApiResponse<PrescriptionVerificationDto>>(
+      API_ENDPOINTS.PHARMACY.VERIFY_PRESCRIPTION(prescriptionId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to verify prescription');
+    }
+    return res.data.data;
+  },
+
+  async matchPrescriptionInventory(
+    prescriptionId: string
+  ): Promise<MedicineMatchResultDto[]> {
+    const res = await apiClient.get<ApiResponse<MedicineMatchResultDto[]>>(
+      API_ENDPOINTS.PHARMACY.MATCH_PRESCRIPTION_INVENTORY(prescriptionId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to match prescription inventory');
+    }
+    return res.data.data;
+  },
+
+  async dispensePrescription(dto: DispensePrescriptionDto): Promise<DispensingRecordDto> {
+    const res = await apiClient.post<ApiResponse<DispensingRecordDto>>(
+      API_ENDPOINTS.PHARMACY.DISPENSING,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to dispense prescription');
+    }
+    return res.data.data;
+  },
+
+  async getDispensingRecords(params?: DispensingFilterDto): Promise<{
+    items: DispensingRecordDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const res = await apiClient.get<
+      ApiResponse<{
+        items: DispensingRecordDto[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >(API_ENDPOINTS.PHARMACY.DISPENSING, { params });
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch dispensing records');
+    }
+    return res.data.data;
+  },
+
+  async getDispensingRecordById(id: string): Promise<DispensingRecordDto> {
+    const res = await apiClient.get<ApiResponse<DispensingRecordDto>>(
+      API_ENDPOINTS.PHARMACY.DISPENSING_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch dispensing record');
+    }
+    return res.data.data;
+  },
+
+  async getDispensingReceipt(id: string): Promise<{
+    receiptNumber: string;
+    dispensingRecord: DispensingRecordDto;
+    disclaimer: string;
+    generatedAt: string;
+  }> {
+    const res = await apiClient.get<
+      ApiResponse<{
+        receiptNumber: string;
+        dispensingRecord: DispensingRecordDto;
+        disclaimer: string;
+        generatedAt: string;
+      }>
+    >(API_ENDPOINTS.PHARMACY.DISPENSING_RECEIPT(id));
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch dispensing receipt');
+    }
+    return res.data.data;
+  },
+
+  async cancelDispensingRecord(
+    id: string,
+    dto: CancelDispensingDto
+  ): Promise<DispensingRecordDto> {
+    const res = await apiClient.post<ApiResponse<DispensingRecordDto>>(
+      API_ENDPOINTS.PHARMACY.CANCEL_DISPENSING(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to cancel dispensing record');
     }
     return res.data.data;
   },

@@ -24,6 +24,11 @@ import {
   createPharmacyOrderSchema,
   pharmacyOrderQuerySchema,
   orderIdParamSchema,
+  verifyPrescriptionParamSchema,
+  dispensePrescriptionSchema,
+  dispensingQuerySchema,
+  dispensingIdParamSchema,
+  cancelDispensingSchema,
 } from '@healthbridge/validation';
 
 export const pharmacyRoutes = Router();
@@ -283,6 +288,87 @@ pharmacyRoutes.get(
   '/prescriptions/:prescriptionId',
   validateRequest({ params: pharmacyPrescriptionIdParamSchema }),
   (req, res, next) => pharmacyController.getPrescriptionById(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/prescriptions/:prescriptionId/verify
+ * @desc    Verify prescription authenticity, validity window and dispensing eligibility
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/prescriptions/:prescriptionId/verify',
+  validateRequest({ params: verifyPrescriptionParamSchema }),
+  (req, res, next) => pharmacyController.verifyPrescription(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/prescriptions/:prescriptionId/match-inventory
+ * @desc    Match prescribed items against active inventory batches with FEFO sorting
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/prescriptions/:prescriptionId/match-inventory',
+  validateRequest({ params: verifyPrescriptionParamSchema }),
+  (req, res, next) => pharmacyController.matchPrescriptionInventory(req, res, next)
+);
+
+/* ==========================================================================
+   PRESCRIPTION DISPENSING WORKFLOW ENDPOINTS (DAY 5 TASK 03)
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/dispensing
+ * @desc    List past dispensing records with date/status filters and search
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/dispensing',
+  validateRequest({ query: dispensingQuerySchema }),
+  (req, res, next) => pharmacyController.getDispensingRecords(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/dispensing
+ * @desc    Execute atomic prescription dispensing and generate audit record
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/dispensing',
+  validateRequest({ body: dispensePrescriptionSchema }),
+  (req, res, next) => pharmacyController.dispensePrescription(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/dispensing/:id
+ * @desc    Get detailed dispensing record by ID
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/dispensing/:id',
+  validateRequest({ params: dispensingIdParamSchema }),
+  (req, res, next) => pharmacyController.getDispensingRecordById(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/dispensing/:id/receipt
+ * @desc    Generate printable CDSCO-compliant pharmacy dispensing receipt
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/dispensing/:id/receipt',
+  validateRequest({ params: dispensingIdParamSchema }),
+  (req, res, next) => pharmacyController.getDispensingReceipt(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/dispensing/:id/cancel
+ * @desc    Cancel dispensing record with auditable reason and optional stock restitution
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/dispensing/:id/cancel',
+  validateRequest({ params: dispensingIdParamSchema, body: cancelDispensingSchema }),
+  (req, res, next) => pharmacyController.cancelDispensingRecord(req, res, next)
 );
 
 /* ==========================================================================

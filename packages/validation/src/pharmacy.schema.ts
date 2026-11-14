@@ -316,3 +316,59 @@ export const orderIdParamSchema = z.object({
 export const pharmacyPrescriptionIdParamSchema = z.object({
   prescriptionId: z.string().regex(objectIdRegex, 'Invalid prescription ID format'),
 });
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 03: PRESCRIPTION VERIFICATION, MATCHING & DISPENSING SCHEMAS
+ * ============================================================================
+ */
+
+export const verifyPrescriptionParamSchema = z.object({
+  prescriptionId: z.string().regex(objectIdRegex, 'Invalid prescription ID format'),
+});
+
+export const dispensePrescriptionItemSchema = z.object({
+  prescriptionMedicationId: z.string().trim().min(1, 'Prescription medication ID is required'),
+  inventoryId: z.string().regex(objectIdRegex, 'Invalid inventory ID format'),
+  quantityToDispense: z.number().int().min(1, 'Quantity to dispense must be at least 1'),
+  dosageInstructions: z.string().trim().max(500).optional(),
+});
+
+export const dispensePrescriptionSchema = z.object({
+  prescriptionId: z.string().regex(objectIdRegex, 'Invalid prescription ID format'),
+  idempotencyKey: z.string().trim().max(100).optional(),
+  items: z.array(dispensePrescriptionItemSchema).min(1, 'At least one item must be dispensed'),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const dispensingQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().optional(),
+  status: z.enum(['ALL', 'PARTIALLY_DISPENSED', 'FULLY_DISPENSED', 'CANCELLED']).optional().default('ALL'),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  prescriptionNumber: z.string().trim().optional(),
+});
+
+export const dispensingIdParamSchema = z.object({
+  id: z.string().regex(objectIdRegex, 'Invalid dispensing record ID format'),
+});
+
+export const cancelDispensingSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(3, 'Cancellation reason must be at least 3 characters')
+    .max(500, 'Cancellation reason cannot exceed 500 characters'),
+  restoreToInventory: z.boolean().optional().default(false),
+  quarantineRestoredStock: z.boolean().optional().default(false),
+});
+
+export type VerifyPrescriptionParamInput = z.infer<typeof verifyPrescriptionParamSchema>;
+export type DispensePrescriptionItemInput = z.infer<typeof dispensePrescriptionItemSchema>;
+export type DispensePrescriptionInput = z.infer<typeof dispensePrescriptionSchema>;
+export type DispensingQueryInput = z.infer<typeof dispensingQuerySchema>;
+export type DispensingIdParamInput = z.infer<typeof dispensingIdParamSchema>;
+export type CancelDispensingInput = z.infer<typeof cancelDispensingSchema>;
+

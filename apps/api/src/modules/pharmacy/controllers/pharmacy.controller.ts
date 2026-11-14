@@ -15,6 +15,9 @@ import type {
   QuarantineBatchDto,
   ReleaseBatchDto,
   InventoryTransactionFilterDto,
+  DispensePrescriptionDto,
+  CancelDispensingDto,
+  DispensingFilterDto,
 } from '@healthbridge/shared-types';
 
 export class PharmacyController {
@@ -401,6 +404,125 @@ export class PharmacyController {
         req.body as CreatePharmacyOrderDto
       );
       sendSuccess(res, order, 'Pharmacy order created successfully', HttpStatus.CREATED);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 03: PRESCRIPTION VERIFICATION, MATCHING & DISPENSING ENDPOINTS
+   * ============================================================================
+   */
+
+  /**
+   * GET /api/v1/pharmacy/prescriptions/:prescriptionId/verify
+   */
+  async verifyPrescription(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.verifyPrescription(
+        userId,
+        req.params.prescriptionId as string
+      );
+      sendSuccess(res, result, 'Prescription verified successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/prescriptions/:prescriptionId/match-inventory
+   */
+  async matchPrescriptionInventory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.matchPrescriptionInventory(
+        userId,
+        req.params.prescriptionId as string
+      );
+      sendSuccess(res, result, 'Prescription inventory matches retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/dispensing
+   */
+  async dispensePrescription(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const record = await pharmacyService.dispensePrescription(
+        userId,
+        req.body as DispensePrescriptionDto
+      );
+      sendSuccess(res, record, 'Prescription dispensed successfully', HttpStatus.CREATED);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/dispensing
+   */
+  async getDispensingRecords(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.getDispensingRecords(
+        userId,
+        req.query as unknown as DispensingFilterDto
+      );
+      sendSuccess(res, result, 'Dispensing records retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/dispensing/:id
+   */
+  async getDispensingRecordById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const record = await pharmacyService.getDispensingRecordById(
+        userId,
+        req.params.id as string
+      );
+      sendSuccess(res, record, 'Dispensing record retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/dispensing/:id/receipt
+   */
+  async getDispensingReceipt(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const receipt = await pharmacyService.getDispensingReceipt(
+        userId,
+        req.params.id as string
+      );
+      sendSuccess(res, receipt, 'Dispensing receipt generated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/dispensing/:id/cancel
+   */
+  async cancelDispensingRecord(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const record = await pharmacyService.cancelDispensingRecord(
+        userId,
+        req.params.id as string,
+        req.body as CancelDispensingDto
+      );
+      sendSuccess(res, record, 'Dispensing record cancelled successfully');
     } catch (error) {
       next(error);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import type { PharmacyPrescriptionQueueItemDto } from '@healthbridge/shared-types';
 import {
   Search,
@@ -287,13 +288,22 @@ export const PrescriptionQueueTable: React.FC<PrescriptionQueueTableProps> = ({
 
                   {/* Action */}
                   <td className="px-5 py-3.5 text-right">
-                    <button
-                      onClick={() => onSelectPrescription(item)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View Details
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => onSelectPrescription(item)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Details
+                      </button>
+                      <Link
+                        href={`/pharmacy/dispensing?prescriptionId=${item.id}`}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors shadow-xs"
+                      >
+                        <Pill className="w-3.5 h-3.5" />
+                        Dispense
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))

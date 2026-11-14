@@ -13,6 +13,9 @@ import type {
   QuarantineBatchDto,
   ReleaseBatchDto,
   InventoryTransactionFilterDto,
+  DispensePrescriptionDto,
+  DispensingFilterDto,
+  CancelDispensingDto,
 } from '@healthbridge/shared-types';
 
 export const PHARMACY_QUERY_KEYS = {
@@ -30,6 +33,11 @@ export const PHARMACY_QUERY_KEYS = {
   transactionDetail: (id: string) => ['pharmacy', 'transaction-detail', id] as const,
   prescriptions: (params?: Record<string, unknown>) => ['pharmacy', 'prescriptions', params] as const,
   prescriptionDetail: (id: string) => ['pharmacy', 'prescription-detail', id] as const,
+  prescriptionVerify: (id: string) => ['pharmacy', 'prescriptions', id, 'verify'] as const,
+  prescriptionMatch: (id: string) => ['pharmacy', 'prescriptions', id, 'match'] as const,
+  dispensingRecords: (filter?: DispensingFilterDto) => ['pharmacy', 'dispensing', filter] as const,
+  dispensingDetail: (id: string) => ['pharmacy', 'dispensing', id] as const,
+  dispensingReceipt: (id: string) => ['pharmacy', 'dispensing', id, 'receipt'] as const,
   orders: (params?: Record<string, unknown>) => ['pharmacy', 'orders', params] as const,
   orderDetail: (id: string) => ['pharmacy', 'order-detail', id] as const,
 };
@@ -316,6 +324,80 @@ export function useCreatePharmacyOrder() {
     mutationFn: (dto: CreatePharmacyOrderDto) => pharmacyApi.createOrder(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+/**
+ * 9. Prescription Verification, Medicine Matching & Dispensing Hooks (Day 5 Task 03)
+ */
+export function useVerifyPrescription(prescriptionId?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.prescriptionVerify(prescriptionId || ''),
+    queryFn: () => pharmacyApi.verifyPrescription(prescriptionId!),
+    enabled: Boolean(prescriptionId),
+  });
+}
+
+export function useMatchPrescriptionInventory(prescriptionId?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.prescriptionMatch(prescriptionId || ''),
+    queryFn: () => pharmacyApi.matchPrescriptionInventory(prescriptionId!),
+    enabled: Boolean(prescriptionId),
+  });
+}
+
+export function useDispensePrescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: DispensePrescriptionDto) => pharmacyApi.dispensePrescription(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'dispensing'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'prescriptions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAlerts });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.alertsSummary });
+    },
+  });
+}
+
+export function usePharmacyDispensingRecords(params?: DispensingFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.dispensingRecords(params),
+    queryFn: () => pharmacyApi.getDispensingRecords(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePharmacyDispensingRecord(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.dispensingDetail(id || ''),
+    queryFn: () => pharmacyApi.getDispensingRecordById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function usePharmacyDispensingReceipt(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.dispensingReceipt(id || ''),
+    queryFn: () => pharmacyApi.getDispensingReceipt(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCancelPharmacyDispensing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: CancelDispensingDto }) =>
+      pharmacyApi.cancelDispensingRecord(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'dispensing'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dispensingDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'prescriptions'] });
       queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
     },
   });

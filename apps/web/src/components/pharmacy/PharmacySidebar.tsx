@@ -43,8 +43,9 @@ export const PHARMACY_NAV_SECTIONS = [
     items: [
       { label: 'Dashboard', href: '/pharmacy/dashboard', icon: LayoutDashboard },
       { label: 'Prescription Queue', href: '/pharmacy/prescriptions', icon: Pill },
+      { label: 'Dispensing Console', href: '/pharmacy/dispensing', icon: CheckCircle2 },
+      { label: 'Dispensing History', href: '/pharmacy/dispensing/history', icon: History },
       { label: 'Orders & Fulfillment', href: '/pharmacy/orders', icon: ShoppingCart },
-      { label: 'Dispensing Records', href: '/pharmacy/dispensing', icon: CheckCircle2 },
     ],
   },
   {

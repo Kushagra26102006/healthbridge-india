@@ -12,6 +12,7 @@ export * from '../modules/users/models/admin-profile.model';
 export * from '../modules/pharmacy/models/pharmacy-inventory.model';
 export * from '../modules/pharmacy/models/pharmacy-inventory-transaction.model';
 export * from '../modules/pharmacy/models/pharmacy-order.model';
+export * from '../modules/pharmacy/models/dispensing-record.model';
 
 export * from '../modules/healthcare/models/facility.model';
 export * from '../modules/healthcare/models/medical-record.model';

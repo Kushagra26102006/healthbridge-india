@@ -101,6 +101,13 @@ export const API_ENDPOINTS = {
     INVENTORY_DETAIL: (inventoryId: string) => `/pharmacy/inventory/${inventoryId}`,
     PRESCRIPTIONS: '/pharmacy/prescriptions',
     PRESCRIPTION_DETAIL: (prescriptionId: string) => `/pharmacy/prescriptions/${prescriptionId}`,
+    VERIFY_PRESCRIPTION: (prescriptionId: string) => `/pharmacy/prescriptions/${prescriptionId}/verify`,
+    MATCH_PRESCRIPTION_INVENTORY: (prescriptionId: string) =>
+      `/pharmacy/prescriptions/${prescriptionId}/match-inventory`,
+    DISPENSING: '/pharmacy/dispensing',
+    DISPENSING_DETAIL: (id: string) => `/pharmacy/dispensing/${id}`,
+    DISPENSING_RECEIPT: (id: string) => `/pharmacy/dispensing/${id}/receipt`,
+    CANCEL_DISPENSING: (id: string) => `/pharmacy/dispensing/${id}/cancel`,
     ORDERS: '/pharmacy/orders',
     ORDER_DETAIL: (orderId: string) => `/pharmacy/orders/${orderId}`,
   },

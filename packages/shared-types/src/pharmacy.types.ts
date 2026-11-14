@@ -458,14 +458,21 @@ export interface PharmacyInventoryAnalyticsDto {
  * Prescriptions and Orders (Preserved from Task 01)
  */
 export interface PharmacyPrescriptionItemDto {
+  id?: string;
+  prescribedMedicationId?: string;
+  medicationCatalogId?: string;
   medicationName: string;
   genericName?: string;
+  brandName?: string;
   strength?: string;
   dosageForm?: string;
   dosage?: string;
   frequency?: string;
   duration?: string;
   quantity: number;
+  prescribedQuantity?: number;
+  previouslyDispensedQuantity?: number;
+  remainingQuantity?: number;
   instructions?: string;
 }
 
@@ -583,3 +590,209 @@ export interface PharmacyDashboardSummaryDto {
   inventoryAlerts: PharmacyInventoryAlertDto[];
   recentActivity: PharmacyRecentActivityDto[];
 }
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 03: PRESCRIPTION VERIFICATION, MATCHING & DISPENSING DTOS
+ * ============================================================================
+ */
+
+export type PrescriptionDispensingStatus =
+  | 'PENDING_VERIFICATION'
+  | 'VERIFIED'
+  | 'READY_FOR_DISPENSING'
+  | 'PARTIALLY_DISPENSED'
+  | 'FULLY_DISPENSED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export type MedicineMatchStatus =
+  | 'EXACT_MATCH'
+  | 'ACCEPTABLE_MATCH'
+  | 'NO_MATCH'
+  | 'INSUFFICIENT_STOCK'
+  | 'EXPIRED_ONLY'
+  | 'QUARANTINED_ONLY';
+
+export interface CandidateBatchOptionDto {
+  inventoryId: string;
+  batchNumber: string;
+  medicationName: string;
+  strength: string;
+  dosageForm: string;
+  availableQuantity: number;
+  expiryDate: string;
+  sellingPrice: number;
+  purchasePrice?: number;
+  mrp?: number;
+  rackLocation?: string;
+  supplier?: string;
+  isFefoSuggested: boolean;
+}
+
+export interface MedicineMatchResultDto {
+  prescribedMedicationId: string;
+  medicationName: string;
+  genericName?: string;
+  brandName?: string;
+  strength?: string;
+  dosageForm?: string;
+  prescribedQuantity: number;
+  previouslyDispensedQuantity: number;
+  remainingQuantity: number;
+  dosageInstructions?: string;
+  matchStatus: MedicineMatchStatus;
+  matchMessage: string;
+  candidateBatches: CandidateBatchOptionDto[];
+  suggestedBatch?: CandidateBatchOptionDto;
+}
+
+export interface PrescriptionVerificationItemDto {
+  prescribedMedicationId: string;
+  medicationName: string;
+  genericName?: string;
+  strength?: string;
+  dosageForm?: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  prescribedQuantity: number;
+  previouslyDispensedQuantity: number;
+  remainingQuantity: number;
+  isFullyDispensed: boolean;
+  instructions?: string;
+}
+
+export interface PrescriptionVerificationDto {
+  prescriptionId: string;
+  prescriptionNumber: string;
+  isEligibleForDispensing: boolean;
+  verificationStatus: 'VERIFIED' | 'REJECTED' | 'EXPIRED' | 'ALREADY_DISPENSED' | 'REVOKED';
+  verificationChecks: {
+    prescriptionExists: boolean;
+    isNotDraft: boolean;
+    doctorExists: boolean;
+    patientExists: boolean;
+    notExpired: boolean;
+    notCancelled: boolean;
+    notFullyDispensed: boolean;
+    pharmacyPermitted: boolean;
+  };
+  verificationErrors: string[];
+  patient: {
+    id: string;
+    name: string;
+    age?: number;
+    gender?: string;
+    phone?: string;
+  };
+  doctor: {
+    id: string;
+    name: string;
+    specialization?: string;
+    licenseNumber?: string;
+  };
+  facilityName?: string;
+  issueDate: string;
+  validUntil: string;
+  prescriptionStatus: string;
+  instructions: string;
+  items: PrescriptionVerificationItemDto[];
+  totalItemsCount: number;
+  totalPrescribedUnits: number;
+  totalRemainingUnits: number;
+}
+
+export interface DispensePrescriptionItemDto {
+  prescriptionMedicationId: string;
+  inventoryId: string;
+  quantityToDispense: number;
+  dosageInstructions?: string;
+}
+
+export interface DispensePrescriptionDto {
+  prescriptionId: string;
+  idempotencyKey?: string;
+  items: DispensePrescriptionItemDto[];
+  notes?: string;
+}
+
+export interface DispensingRecordItemDto {
+  id: string;
+  prescriptionMedicationId: string;
+  medicationCatalogId?: string;
+  inventoryId: string;
+  medicationName: string;
+  genericName?: string;
+  brandName?: string;
+  strength: string;
+  dosageForm: string;
+  batchNumber: string;
+  prescribedQuantity: number;
+  previouslyDispensedQuantity: number;
+  quantityDispensed: number;
+  remainingQuantity: number;
+  dispensedUnit: string;
+  batchExpiryDate: string;
+  sellingPriceSnapshot: number;
+  itemTotal: number;
+  dosageInstructions?: string;
+}
+
+export interface DispensingRecordDto {
+  id: string;
+  dispensingNumber: string;
+  pharmacyId: string;
+  pharmacyName: string;
+  pharmacyLicenseNumber?: string;
+  pharmacyGstin?: string;
+  pharmacyAddress?: {
+    line1?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country?: string;
+  };
+  prescriptionId: string;
+  prescriptionNumber: string;
+  patientId: string;
+  patientName: string;
+  patientPhone?: string;
+  patientGender?: string;
+  patientAge?: number;
+  doctorId: string;
+  doctorName: string;
+  doctorSpecialization?: string;
+  facilityName?: string;
+  dispensedBy: string;
+  dispenserName: string;
+  dispensedAt: string;
+  dispensingStatus: 'PARTIALLY_DISPENSED' | 'FULLY_DISPENSED' | 'CANCELLED';
+  items: DispensingRecordItemDto[];
+  totalItems: number;
+  totalQuantityDispensed: number;
+  totalAmount: number;
+  notes?: string;
+  idempotencyKey?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledByName?: string;
+  createdAt: string;
+}
+
+export interface DispensingFilterDto {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'ALL' | 'PARTIALLY_DISPENSED' | 'FULLY_DISPENSED' | 'CANCELLED';
+  startDate?: string;
+  endDate?: string;
+  prescriptionNumber?: string;
+}
+
+export interface CancelDispensingDto {
+  reason: string;
+  restoreToInventory?: boolean;
+  quarantineRestoredStock?: boolean;
+}
+
