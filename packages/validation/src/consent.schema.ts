@@ -22,6 +22,7 @@ export const createConsentRequestSchema = z.object({
   patientId: z.string().min(1, 'Patient ID is required'),
   requesterId: z.string().min(1, 'Requester ID is required'),
   requesterName: z.string().trim().optional(),
+  organization: z.string().trim().optional(),
   purpose: z.string().min(2, 'Consent purpose is required'),
   purposeDescription: z.string().trim().optional(),
   requestedDataTypes: z
@@ -45,5 +46,37 @@ export const approveConsentArtifactSchema = z.object({
   signature: z.string().optional(),
 });
 
+export const consentIdParamSchema = z.object({
+  consentId: z.string().min(1, 'Consent ID is required'),
+});
+
+export const consentFilterQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().positive().max(100).optional().default(10),
+  status: z.string().optional(),
+  search: z.string().trim().optional(),
+  category: z.string().optional(),
+  sortBy: z.enum(['requestedAt', 'expiresAt', 'createdAt']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+});
+
+export const approveConsentActionSchema = z.object({
+  signature: z.string().optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const rejectConsentActionSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+
+export const revokeConsentActionSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+
 export type CreateConsentRequestInput = z.infer<typeof createConsentRequestSchema>;
 export type ApproveConsentArtifactInput = z.infer<typeof approveConsentArtifactSchema>;
+export type ConsentIdParamInput = z.infer<typeof consentIdParamSchema>;
+export type ConsentFilterQueryInput = z.infer<typeof consentFilterQuerySchema>;
+export type ApproveConsentActionInput = z.infer<typeof approveConsentActionSchema>;
+export type RejectConsentActionInput = z.infer<typeof rejectConsentActionSchema>;
+export type RevokeConsentActionInput = z.infer<typeof revokeConsentActionSchema>;

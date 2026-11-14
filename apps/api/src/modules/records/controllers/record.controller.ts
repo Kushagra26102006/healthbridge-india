@@ -4,20 +4,40 @@ import { sendSuccess } from '../../../utils/api-response';
 import { HttpStatus } from '../../../shared/constants/http-status';
 import { asyncHandler } from '../../../utils/async-handler';
 import { AppError } from '../../../shared/errors/app-error';
+import { consentEnforcementService } from '../../consent/services/consent-enforcement.service';
 import type { CreateRecordInput, RecordFilterQueryInput } from '@healthbridge/validation';
 
 export class RecordController {
   /**
    * GET /api/v1/records
-   * Retrieves paginated health records for the authenticated patient
+   * Retrieves paginated health records for the authenticated patient or authorized doctor under active consent
    */
   getRecords = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user || !req.user.userId) {
       throw AppError.unauthorized('Authentication required to access health records');
     }
 
-    const query = req.query as unknown as RecordFilterQueryInput;
-    const result = await recordService.getPatientRecords(req.user.userId, query);
+    const query = req.query as unknown as RecordFilterQueryInput & { patientId?: string };
+    let targetPatientId = req.user.userId;
+
+    // If a healthcare provider (e.g. DOCTOR) specifies a patientId, enforce ABDM electronic consent
+    if (query.patientId && query.patientId !== req.user.userId) {
+      if (req.user.role !== 'DOCTOR' && req.user.role !== 'ADMIN') {
+        throw AppError.forbidden('Only authorized medical practitioners can request patient records');
+      }
+
+      await consentEnforcementService.enforce({
+        requesterId: req.user.userId,
+        requesterRole: req.user.role,
+        patientId: query.patientId,
+        dataCategory: 'MEDICAL_RECORDS',
+        requestId: (req as Request & { id?: string }).id,
+      });
+
+      targetPatientId = query.patientId;
+    }
+
+    const result = await recordService.getPatientRecords(targetPatientId, query);
 
     sendSuccess(
       res,
@@ -37,13 +57,27 @@ export class RecordController {
       throw AppError.unauthorized('Authentication required to access records summary');
     }
 
-    const summary = await recordService.getPatientRecordsSummary(req.user.userId);
+    const query = req.query as { patientId?: string };
+    let targetPatientId = req.user.userId;
+
+    if (query.patientId && query.patientId !== req.user.userId) {
+      await consentEnforcementService.enforce({
+        requesterId: req.user.userId,
+        requesterRole: req.user.role,
+        patientId: query.patientId,
+        dataCategory: 'MEDICAL_RECORDS',
+        requestId: (req as Request & { id?: string }).id,
+      });
+      targetPatientId = query.patientId;
+    }
+
+    const summary = await recordService.getPatientRecordsSummary(targetPatientId);
     sendSuccess(res, summary, 'Records summary retrieved successfully');
   });
 
   /**
    * GET /api/v1/records/:recordId
-   * Retrieves a single record with strict patient ownership check
+   * Retrieves a single record with patient ownership or provider consent check
    */
   getRecordById = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user || !req.user.userId) {
@@ -51,14 +85,33 @@ export class RecordController {
     }
 
     const recordId = String(req.params.recordId);
-    const record = await recordService.getPatientRecordById(req.user.userId, recordId);
+    // If user is DOCTOR and accessing, verify consent
+    if (req.user.role === 'DOCTOR') {
+      const record = await recordService.getRecordDocument(recordId);
+      if (!record) {
+        throw AppError.notFound('Medical record not found');
+      }
 
+      await consentEnforcementService.enforce({
+        requesterId: req.user.userId,
+        requesterRole: req.user.role,
+        patientId: record.patientId.toString(),
+        dataCategory: 'MEDICAL_RECORDS',
+        requestId: (req as Request & { id?: string }).id,
+      });
+
+      const detail = await recordService.getPatientRecordById(record.patientId.toString(), recordId);
+      sendSuccess(res, detail, 'Medical record retrieved successfully');
+      return;
+    }
+
+    const record = await recordService.getPatientRecordById(req.user.userId, recordId);
     sendSuccess(res, record, 'Medical record retrieved successfully');
   });
 
   /**
    * GET /api/v1/records/:recordId/download
-   * Streams authorized medical document for download with strict ownership check
+   * Streams authorized medical document for download with strict ownership or consent check
    */
   downloadRecord = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user || !req.user.userId) {
@@ -66,7 +119,25 @@ export class RecordController {
     }
 
     const recordId = String(req.params.recordId);
-    const doc = await recordService.getRecordForDownload(req.user.userId, recordId);
+    let targetPatientId = req.user.userId;
+
+    if (req.user.role === 'DOCTOR') {
+      const record = await recordService.getRecordDocument(recordId);
+      if (!record) {
+        throw AppError.notFound('Medical record not found');
+      }
+
+      await consentEnforcementService.enforce({
+        requesterId: req.user.userId,
+        requesterRole: req.user.role,
+        patientId: record.patientId.toString(),
+        dataCategory: 'MEDICAL_RECORDS',
+        requestId: (req as Request & { id?: string }).id,
+      });
+      targetPatientId = record.patientId.toString();
+    }
+
+    const doc = await recordService.getRecordForDownload(targetPatientId, recordId);
 
     res.setHeader('Content-Type', doc.mimeType);
     res.setHeader(

@@ -15,3 +15,4 @@ labOrderRoutes.get('/', authorize(['PATIENT', 'DOCTOR', 'ADMIN']), labReportCont
 labOrderRoutes.get('/:orderId', authorize(['PATIENT', 'DOCTOR', 'ADMIN']), labReportController.getOrderById);
 
 export default labOrderRoutes;
+

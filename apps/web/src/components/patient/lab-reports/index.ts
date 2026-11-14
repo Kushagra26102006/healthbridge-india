@@ -10,3 +10,4 @@ export * from './LabOrderCard';
 export * from './LabOrderList';
 export * from './LabReportsSkeleton';
 export * from './LabReportsEmptyState';
+

@@ -142,3 +142,4 @@ export const useDownloadLabReport = () => {
       labReportsApi.downloadReportDocument(reportId, fileName),
   });
 };
+

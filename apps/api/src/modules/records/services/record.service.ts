@@ -663,6 +663,20 @@ HealthBridge India • Ayushman Bharat Digital Mission • One Nation One Health
       fileSize: buffer.length,
     };
   }
+
+  /**
+   * Helper to retrieve raw record document by ID
+   */
+  async getRecordDocument(recordId: string): Promise<IMedicalRecordDocument | null> {
+    if (!Types.ObjectId.isValid(recordId)) {
+      return null;
+    }
+    if (mongoose.connection.readyState === 1) {
+      return MedicalRecordModel.findById(recordId);
+    }
+    const demo = getDemoRecords('650000000000000000000000').find((r) => r._id?.toString() === recordId);
+    return (demo as unknown as IMedicalRecordDocument) || null;
+  }
 }
 
 export const recordService = new RecordService();

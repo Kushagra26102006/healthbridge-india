@@ -152,3 +152,4 @@ export const LabOrderCard: React.FC<LabOrderCardProps> = ({ order }) => {
     </Card>
   );
 };
+

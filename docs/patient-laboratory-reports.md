@@ -225,3 +225,4 @@ To uphold medical safety and regulatory standards:
 - Every page presents a permanent notice:
   > **Clinical Disclaimer**: "Laboratory results should always be reviewed with a qualified healthcare professional. Biological reference ranges and interpretation vary according to laboratory instrumentation, age, gender, and clinical context. This platform does not provide automated diagnostic decisions."
 - The system never suggests diagnoses, differential diagnoses, or drug prescriptions based on abnormal flags.
+

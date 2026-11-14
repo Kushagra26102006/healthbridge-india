@@ -34,3 +34,4 @@ export const LabReportsSkeleton: React.FC<LabReportsSkeletonProps> = ({ count = 
     </div>
   );
 };
+

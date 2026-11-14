@@ -1,100 +1,140 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, ArrowLeft, Lock, FileCheck2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import {
+  ConsentHeader,
+  ConsentSummary,
+  ActiveConsentList,
+  ConsentApprovalDialog,
+  ConsentRejectionDialog,
+  ConsentRevocationDialog,
+  ConsentSkeleton,
+} from '@/components/patient/consent';
+import {
+  useConsentSummary,
+  useActiveConsents,
+  useConsentRequests,
+  useApproveConsent,
+  useRejectConsent,
+  useRevokeConsent,
+} from '@/features/consent/hooks/use-consent';
+import { Clock, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import type { ConsentListItemDto } from '@healthbridge/shared-types';
 
 export default function PatientConsentPage() {
+  const { summary, isLoading: isSummaryLoading } = useConsentSummary();
+  const { activeConsents, isLoading: isActiveLoading } = useActiveConsents();
+  const { requests: pendingRequests } = useConsentRequests();
+
+  const approveMutation = useApproveConsent();
+  const rejectMutation = useRejectConsent();
+  const revokeMutation = useRevokeConsent();
+
+  const [activeConsentForRevoke, setActiveConsentForRevoke] = useState<ConsentListItemDto | null>(null);
+  const [activeConsentForApprove, setActiveConsentForApprove] = useState<ConsentListItemDto | null>(null);
+  const [activeConsentForReject, setActiveConsentForReject] = useState<ConsentListItemDto | null>(null);
+
+  const pendingCount = summary?.pendingRequests ?? pendingRequests.length;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Link href="/patient/dashboard">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Consent Management
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Granular, electronic consent controls under ABDM and DISHA privacy frameworks
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Page Header */}
+      <ConsentHeader />
 
-        <Badge variant="abha" className="text-xs">
-          Consent-First Architecture
-        </Badge>
-      </div>
+      {/* Summary KPI Cards */}
+      <ConsentSummary summary={summary} isLoading={isSummaryLoading} />
 
-      <Card className="border-border shadow-card bg-card">
-        <CardHeader className="pb-3 border-b border-border/60">
+      {/* Pending Access Notification Banner (if any pending) */}
+      {pendingCount > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <ShieldCheck className="h-5 w-5" />
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <Clock className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-base font-bold text-foreground">
-                Consent Control Dashboard Shell
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                View, approve, deny, or revoke electronic health record access for care providers
+              <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                You have {pendingCount} pending health data access {pendingCount === 1 ? 'request' : 'requests'}
+              </h3>
+              <p className="text-xs text-amber-700/90 dark:text-amber-300/80 mt-0.5">
+                Healthcare providers have requested permission to review portions of your electronic health records.
               </p>
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="p-6 space-y-4">
-          <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-900 dark:text-teal-200 space-y-1.5 leading-relaxed">
-            <div className="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300">
-              <Lock className="h-4 w-4" />
-              <span>Zero-Knowledge Patient Sovereignty</span>
-            </div>
-            <p>
-              Under ABDM standards, no hospital, physician, or lab can view your medical records
-              without your explicit, time-bounded digital authorization. Interactive consent
-              approvals and one-click revocation will be wired in the dedicated consent milestone.
+          <Link href="/patient/consent/requests">
+            <Button size="sm" className="rounded-xl text-xs gap-1.5 bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+              <span>Review Requests ({pendingCount})</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Active Permissions Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              <span>Currently Active Permissions</span>
+            </h2>
+            <p className="text-xs text-slate-500">
+              Authorizations currently active under ABDM consent framework
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1">
-              <span className="font-bold text-foreground block">Active Consents</span>
-              <p className="text-muted-foreground text-[11px]">
-                Currently authorized doctors and clinics.
-              </p>
-            </div>
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1">
-              <span className="font-bold text-foreground block">Pending Requests</span>
-              <p className="text-muted-foreground text-[11px]">Awaiting your approval or denial.</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 text-xs space-y-1">
-              <span className="font-bold text-foreground block">Revocation History</span>
-              <p className="text-muted-foreground text-[11px]">
-                Immutable audit trail of access changes.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex justify-between items-center border-t border-border pt-4">
-          <Link href="/patient/dashboard">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Return to Dashboard
+          <Link href="/patient/consent/history">
+            <Button variant="ghost" size="sm" className="text-xs text-teal-600 hover:text-teal-700 gap-1">
+              <span>View Audit Trail</span>
+              <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
-          <Button variant="teal" size="sm" className="text-xs gap-1.5">
-            <FileCheck2 className="h-3.5 w-3.5" />
-            Review Access Permissions
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+
+        {isActiveLoading ? (
+          <ConsentSkeleton count={2} />
+        ) : (
+          <ActiveConsentList
+            activeConsents={activeConsents}
+            onRevokeClick={(c) => setActiveConsentForRevoke(c)}
+          />
+        )}
+      </div>
+
+      {/* Revocation Dialog */}
+      <ConsentRevocationDialog
+        isOpen={Boolean(activeConsentForRevoke)}
+        onClose={() => setActiveConsentForRevoke(null)}
+        consent={activeConsentForRevoke}
+        onConfirmRevoke={async (id, reason) => {
+          await revokeMutation.mutateAsync({ consentId: id, input: { reason } });
+        }}
+        isLoading={revokeMutation.isPending}
+      />
+
+      {/* Approval Dialog */}
+      <ConsentApprovalDialog
+        isOpen={Boolean(activeConsentForApprove)}
+        onClose={() => setActiveConsentForApprove(null)}
+        consent={activeConsentForApprove}
+        onConfirmApprove={async (id, signature) => {
+          await approveMutation.mutateAsync({ consentId: id, input: { signature } });
+        }}
+        isLoading={approveMutation.isPending}
+      />
+
+      {/* Rejection Dialog */}
+      <ConsentRejectionDialog
+        isOpen={Boolean(activeConsentForReject)}
+        onClose={() => setActiveConsentForReject(null)}
+        consent={activeConsentForReject}
+        onConfirmReject={async (id, reason) => {
+          await rejectMutation.mutateAsync({ consentId: id, input: { reason } });
+        }}
+        isLoading={rejectMutation.isPending}
+      />
     </div>
   );
 }

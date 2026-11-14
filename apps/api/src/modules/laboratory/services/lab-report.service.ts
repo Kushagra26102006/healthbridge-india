@@ -927,3 +927,4 @@ export class LabReportService {
 
 export const labReportService = new LabReportService();
 export default labReportService;
+

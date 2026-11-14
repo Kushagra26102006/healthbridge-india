@@ -1,10 +1,13 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
-import { ConsentRequestStatus } from '@healthbridge/shared-types';
+import { ConsentStatus } from '@healthbridge/shared-types';
 
 export interface IConsentRequestDocument extends Document {
   patientId: Types.ObjectId;
   requesterId: Types.ObjectId;
   requesterName?: string;
+  requesterRole: string;
+  organization: string;
+  facilityId?: Types.ObjectId;
   purpose: string;
   purposeDescription?: string;
   requestedDataTypes: string[];
@@ -13,8 +16,15 @@ export interface IConsentRequestDocument extends Document {
     to: Date;
   };
   requestedAt: Date;
-  status: ConsentRequestStatus;
+  approvedAt?: Date;
+  rejectedAt?: Date;
+  revokedAt?: Date;
+  rejectionReason?: string;
+  revocationReason?: string;
+  signature?: string;
+  status: ConsentStatus | 'REQUESTED' | 'GRANTED' | 'DENIED';
   expiresAt: Date;
+  auditId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
   isExpired(): boolean;
@@ -37,6 +47,20 @@ const ConsentRequestSchema = new Schema<IConsentRequestDocument>(
     requesterName: {
       type: String,
       trim: true,
+    },
+    requesterRole: {
+      type: String,
+      default: 'DOCTOR',
+      trim: true,
+    },
+    organization: {
+      type: String,
+      default: 'HealthBridge Partner Hospital',
+      trim: true,
+    },
+    facilityId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Facility',
     },
     purpose: {
       type: String,
@@ -65,16 +89,50 @@ const ConsentRequestSchema = new Schema<IConsentRequestDocument>(
       default: Date.now,
       index: true,
     },
+    approvedAt: {
+      type: Date,
+    },
+    rejectedAt: {
+      type: Date,
+    },
+    revokedAt: {
+      type: Date,
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+    },
+    revocationReason: {
+      type: String,
+      trim: true,
+    },
+    signature: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
-      enum: ['REQUESTED', 'GRANTED', 'DENIED', 'REVOKED', 'EXPIRED'],
-      default: 'REQUESTED',
+      enum: [
+        'PENDING',
+        'APPROVED',
+        'REJECTED',
+        'REVOKED',
+        'EXPIRED',
+        'REQUESTED',
+        'GRANTED',
+        'DENIED',
+      ],
+      default: 'PENDING',
       index: true,
     },
     expiresAt: {
       type: Date,
       required: [true, 'Consent request expiration time is required'],
       index: true,
+    },
+    auditId: {
+      type: Schema.Types.ObjectId,
+      ref: 'AuditLog',
     },
   },
   {
@@ -96,8 +154,10 @@ ConsentRequestSchema.methods.isExpired = function (): boolean {
   return new Date() > this.expiresAt;
 };
 
-// Index for query: find pending consent requests for patient before expiry
+// Compound indexes for high-throughput queries
 ConsentRequestSchema.index({ patientId: 1, status: 1, expiresAt: 1 });
+ConsentRequestSchema.index({ requesterId: 1, status: 1 });
+ConsentRequestSchema.index({ patientId: 1, requestedAt: -1 });
 
 export const ConsentRequestModel: Model<IConsentRequestDocument> =
   (mongoose.models.ConsentRequest as Model<IConsentRequestDocument>) ||

@@ -134,5 +134,56 @@ export const LAB_RESULT_INTERPRETATIONS = [
   'NOT_AVAILABLE',
 ] as const;
 
+export const CONSENT_STATUSES = [
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'REVOKED',
+  'EXPIRED',
+] as const;
+
+export const CONSENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pending Review',
+  APPROVED: 'Active Permission',
+  REJECTED: 'Denied / Rejected',
+  REVOKED: 'Revoked',
+  EXPIRED: 'Expired',
+};
+
+export const CONSENT_DATA_CATEGORIES = [
+  'MEDICAL_RECORDS',
+  'PRESCRIPTIONS',
+  'LAB_REPORTS',
+  'DIAGNOSTIC_REPORTS',
+  'ENCOUNTER_INFO',
+] as const;
+
+export const CONSENT_DATA_CATEGORY_LABELS: Record<string, string> = {
+  MEDICAL_RECORDS: 'Health & Medical Records',
+  PRESCRIPTIONS: 'Prescriptions & Medications',
+  LAB_REPORTS: 'Laboratory Reports',
+  DIAGNOSTIC_REPORTS: 'Diagnostic Imaging & Tests',
+  ENCOUNTER_INFO: 'Clinical Encounters & Notes',
+};
+
+export const CONSENT_PURPOSE_CODES = [
+  'CAREMGT',
+  'BTG',
+  'PUBHLTH',
+  'HPAYMT',
+  'DSRCH',
+  'PATRQT',
+] as const;
+
+export const CONSENT_PURPOSE_LABELS: Record<string, string> = {
+  CAREMGT: 'Care Management & Clinical Treatment',
+  BTG: 'Emergency Break-the-Glass',
+  PUBHLTH: 'Public Health Surveillance',
+  HPAYMT: 'Healthcare Payment & Insurance Claims',
+  DSRCH: 'Disease-Specific Medical Research',
+  PATRQT: 'Patient-Requested Data Portability',
+};
+
+
 
 

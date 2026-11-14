@@ -59,3 +59,4 @@ export const LabReportsEmptyState: React.FC<LabReportsEmptyStateProps> = ({
     </div>
   );
 };
+

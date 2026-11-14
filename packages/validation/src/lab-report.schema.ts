@@ -54,3 +54,4 @@ export type LabReportIdParam = z.infer<typeof labReportIdParamSchema>;
 export type LabOrderIdParam = z.infer<typeof labOrderIdParamSchema>;
 export type LabReportFilterQueryInput = z.infer<typeof labReportFilterQuerySchema>;
 export type LabOrderFilterQueryInput = z.infer<typeof labOrderFilterQuerySchema>;
+

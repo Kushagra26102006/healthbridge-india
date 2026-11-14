@@ -33,7 +33,7 @@ export interface AbhaProfile {
   isKycVerified: boolean;
 }
 
-export type ConsentStatus = 'REQUESTED' | 'GRANTED' | 'DENIED' | 'REVOKED' | 'EXPIRED';
+export type AbhaConsentStatus = 'REQUESTED' | 'GRANTED' | 'DENIED' | 'REVOKED' | 'EXPIRED';
 
 export interface AbhaConsentArtifact {
   consentId: string;
@@ -42,7 +42,7 @@ export interface AbhaConsentArtifact {
   requesterName: string;
   purpose: string;
   hiTypes: string[];
-  status: ConsentStatus;
+  status: AbhaConsentStatus;
   dateRange: {
     from: string;
     to: string;

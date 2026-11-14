@@ -34,6 +34,7 @@ v1Router.use('/appointments', apiLimiter, appointmentRoutes);
 v1Router.use('/records', apiLimiter, recordRoutes);
 v1Router.use('/prescriptions', apiLimiter, prescriptionRoutes);
 v1Router.use('/consent', apiLimiter, consentRoutes);
+v1Router.use('/consents', apiLimiter, consentRoutes);
 v1Router.use('/abdm', apiLimiter, abdmRoutes);
 v1Router.use('/pharmacy', apiLimiter, pharmacyRoutes);
 v1Router.use('/laboratory', apiLimiter, laboratoryRoutes);

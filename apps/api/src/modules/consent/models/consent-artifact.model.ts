@@ -6,6 +6,7 @@ export interface IConsentArtifactDocument extends Document {
   patientId: Types.ObjectId;
   requesterId: Types.ObjectId;
   requesterName?: string;
+  organization?: string;
   purpose: string;
   permittedDataTypes: string[];
   validityPeriod: {
@@ -15,6 +16,7 @@ export interface IConsentArtifactDocument extends Document {
   consentStatus: ConsentArtifactStatus;
   approvedAt: Date;
   revokedAt?: Date;
+  revocationReason?: string;
   signature?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +43,10 @@ const ConsentArtifactSchema = new Schema<IConsentArtifactDocument>(
       index: true,
     },
     requesterName: {
+      type: String,
+      trim: true,
+    },
+    organization: {
       type: String,
       trim: true,
     },
@@ -75,6 +81,10 @@ const ConsentArtifactSchema = new Schema<IConsentArtifactDocument>(
     },
     revokedAt: {
       type: Date,
+    },
+    revocationReason: {
+      type: String,
+      trim: true,
     },
     signature: {
       type: String,

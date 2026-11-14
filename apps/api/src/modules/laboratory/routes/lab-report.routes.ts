@@ -29,3 +29,4 @@ labReportRoutes.get(
 );
 
 export default labReportRoutes;
+

@@ -304,3 +304,4 @@ describe('Laboratory Reports & Orders API & Security Isolation Integration Tests
     });
   });
 });
+

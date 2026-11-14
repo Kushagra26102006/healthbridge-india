@@ -130,3 +130,4 @@ export class LabReportController {
 
 export const labReportController = new LabReportController();
 export default labReportController;
+
