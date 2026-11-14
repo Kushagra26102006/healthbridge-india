@@ -3,6 +3,7 @@ import { doctorController } from '../controllers/doctor.controller';
 import { doctorDashboardController } from '../controllers/doctor-dashboard.controller';
 import { doctorAppointmentController } from '../controllers/doctor-appointment.controller';
 import { doctorEncounterController } from '../controllers/doctor-encounter.controller';
+import { doctorPrescriptionController } from '../controllers/doctor-prescription.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 import { validateRequest } from '../../../middleware/validate';
@@ -21,6 +22,12 @@ import {
   encounterFilterQuerySchema,
   encounterIdParamSchema,
   patientIdParamSchema,
+  createDoctorPrescriptionSchema,
+  updateDoctorPrescriptionSchema,
+  issuePrescriptionSchema,
+  discontinuePrescriptionSchema,
+  doctorPrescriptionFilterQuerySchema,
+  prescriptionIdParamSchema,
 } from '@healthbridge/validation';
 
 export const doctorRoutes = Router();
@@ -321,6 +328,105 @@ doctorRoutes.get(
   authorize(['DOCTOR']),
   validateRequest({ params: patientIdParamSchema }),
   (req, res, next) => doctorEncounterController.getPatientClinicalHistory(req, res, next)
+);
+
+/* ==========================================================================
+   E-PRESCRIPTION MANAGEMENT ENDPOINTS (DOCTOR role only)
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/doctors/prescriptions/summary
+ * @desc    Aggregate doctor prescription metrics (total, issued, draft, recent)
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/prescriptions/summary',
+  authorize(['DOCTOR']),
+  (req, res, next) => doctorPrescriptionController.getSummary(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/prescriptions
+ * @desc    List prescriptions with filters, search and pagination
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/prescriptions',
+  authorize(['DOCTOR']),
+  validateRequest({ query: doctorPrescriptionFilterQuerySchema }),
+  (req, res, next) => doctorPrescriptionController.getPrescriptions(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/prescriptions
+ * @desc    Create prescription (Draft or Issued directly)
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/prescriptions',
+  authorize(['DOCTOR']),
+  validateRequest({ body: createDoctorPrescriptionSchema }),
+  (req, res, next) => doctorPrescriptionController.createPrescription(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/prescriptions/:prescriptionId
+ * @desc    Get detailed prescription document
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/prescriptions/:prescriptionId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: prescriptionIdParamSchema }),
+  (req, res, next) => doctorPrescriptionController.getPrescriptionById(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/doctors/prescriptions/:prescriptionId
+ * @desc    Update draft prescription (Concurrency protected)
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.patch(
+  '/prescriptions/:prescriptionId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: prescriptionIdParamSchema, body: updateDoctorPrescriptionSchema }),
+  (req, res, next) => doctorPrescriptionController.updatePrescription(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/prescriptions/:prescriptionId/issue
+ * @desc    Finalize and issue e-prescription
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/prescriptions/:prescriptionId/issue',
+  authorize(['DOCTOR']),
+  validateRequest({ params: prescriptionIdParamSchema, body: issuePrescriptionSchema }),
+  (req, res, next) => doctorPrescriptionController.issuePrescription(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/prescriptions/:prescriptionId/discontinue
+ * @desc    Discontinue an active issued prescription
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/prescriptions/:prescriptionId/discontinue',
+  authorize(['DOCTOR']),
+  validateRequest({ params: prescriptionIdParamSchema, body: discontinuePrescriptionSchema }),
+  (req, res, next) => doctorPrescriptionController.discontinuePrescription(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/prescriptions/:prescriptionId/document
+ * @desc    Get structured printable digital prescription document data
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/prescriptions/:prescriptionId/document',
+  authorize(['DOCTOR']),
+  validateRequest({ params: prescriptionIdParamSchema }),
+  (req, res, next) => doctorPrescriptionController.getDocument(req, res, next)
 );
 
 /* ==========================================================================

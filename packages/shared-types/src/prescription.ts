@@ -76,6 +76,8 @@ export interface PrescriptionDetailDto {
   issuedAt: string;
   validUntil: string;
   status: PrescriptionStatus;
+  isDraft?: boolean;
+  version?: number;
   diagnosis?: string;
   instructions: string;
   followUpInstructions?: string;
@@ -116,6 +118,7 @@ export interface PrescriptionFilterQueryDto {
   status?: string;
   search?: string;
   doctorId?: string;
+  patientId?: string;
   facilityId?: string;
   startDate?: string;
   endDate?: string;
@@ -136,4 +139,84 @@ export interface CreateRefillRequestDto {
   reason: string;
   quantity?: number;
   notes?: string;
+}
+
+export interface DoctorPrescriptionSummaryDto {
+  total: number;
+  issued: number;
+  draft: number;
+  recent: number;
+}
+
+export interface MedicationCatalogItemDto {
+  id: string;
+  name: string;
+  brandName: string;
+  genericName: string;
+  dosageForm: string;
+  strength: string;
+  route: string;
+  manufacturer: string;
+  packageSize: string;
+  schedule: string;
+  therapeuticClass?: string;
+  standardDosageUnit: string;
+  isActive: boolean;
+  instructionsHint?: string;
+}
+
+export interface MedicationCatalogFilterQueryDto {
+  search?: string;
+  dosageForm?: string;
+  therapeuticClass?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateMedicationInputDto {
+  medicationCatalogId?: string;
+  name: string;
+  genericName?: string;
+  brandName?: string;
+  strength: string;
+  dosage: string;
+  route: string;
+  frequency: string;
+  duration: string;
+  quantity: number;
+  instructions?: string;
+}
+
+export interface CreateDoctorPrescriptionDto {
+  patientId: string;
+  encounterId?: string;
+  facilityId?: string;
+  diagnosis?: string;
+  instructions: string;
+  followUpInstructions?: string;
+  validUntil?: string;
+  medications: CreateMedicationInputDto[];
+  isDraft?: boolean;
+}
+
+export interface UpdateDoctorPrescriptionDto {
+  patientId?: string;
+  encounterId?: string;
+  facilityId?: string;
+  diagnosis?: string;
+  instructions?: string;
+  followUpInstructions?: string;
+  validUntil?: string;
+  medications?: CreateMedicationInputDto[];
+  isDraft?: boolean;
+  version?: number;
+}
+
+export interface IssuePrescriptionDto {
+  notes?: string;
+  confirmAttribution: boolean;
+}
+
+export interface DiscontinuePrescriptionDto {
+  reason: string;
 }

@@ -98,26 +98,54 @@ export interface IEncounter {
   updatedAt: Date | string;
 }
 
-export type PrescriptionStatus = 'ACTIVE' | 'COMPLETED' | 'DISPENSED' | 'CANCELLED' | 'EXPIRED';
+export type PrescriptionStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'DISPENSED'
+  | 'CANCELLED'
+  | 'DISCONTINUED'
+  | 'EXPIRED';
 
 export interface PrescribedMedication {
+  id?: string;
+  medicationCatalogId?: string;
   name: string;
+  genericName?: string;
+  brandName?: string;
+  strength?: string;
   dosage: string;
+  route?: string;
   frequency: string;
   duration: string;
+  quantity?: number;
   instructions?: string;
+  startDate?: Date | string;
+  endDate?: Date | string;
+  status?: 'ACTIVE' | 'COMPLETED' | 'DISCONTINUED';
 }
 
 export interface IPrescription {
   id: string;
+  prescriptionNumber?: string;
   patientId: string;
   doctorId: string;
   encounterId?: string;
+  facilityId?: string;
+  diagnosis?: string;
   medications: PrescribedMedication[];
   instructions: string;
-  issuedAt: Date | string;
+  followUpInstructions?: string;
+  issuedAt?: Date | string;
+  issuedBy?: string;
   validUntil: Date | string;
   status: PrescriptionStatus;
+  isDraft?: boolean;
+  version?: number;
+  documentUrl?: string;
+  discontinuedAt?: Date | string;
+  discontinuedBy?: string;
+  discontinuationReason?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

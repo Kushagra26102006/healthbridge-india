@@ -15,6 +15,7 @@ import { laboratoryRoutes } from '../modules/laboratory/routes/laboratory.routes
 import { labReportRoutes } from '../modules/laboratory/routes/lab-report.routes';
 import { labOrderRoutes } from '../modules/laboratory/routes/lab-order.routes';
 import { auditRoutes } from '../modules/audit/routes/audit.routes';
+import { medicationCatalogRoutes } from '../modules/healthcare/routes/medication-catalog.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
 export const v1Router = Router();
@@ -33,6 +34,7 @@ v1Router.use('/doctors', apiLimiter, doctorRoutes);
 v1Router.use('/appointments', apiLimiter, appointmentRoutes);
 v1Router.use('/records', apiLimiter, recordRoutes);
 v1Router.use('/prescriptions', apiLimiter, prescriptionRoutes);
+v1Router.use('/medication-catalog', apiLimiter, medicationCatalogRoutes);
 v1Router.use('/consent', apiLimiter, consentRoutes);
 v1Router.use('/consents', apiLimiter, consentRoutes);
 v1Router.use('/abdm', apiLimiter, abdmRoutes);

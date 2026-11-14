@@ -23,6 +23,16 @@ import type {
   CreateEncounterDto,
   UpdateEncounterDto,
   EncounterFilterQueryDto,
+  DoctorPrescriptionSummaryDto,
+  PrescriptionListItemDto,
+  PrescriptionDetailDto,
+  CreateDoctorPrescriptionDto,
+  UpdateDoctorPrescriptionDto,
+  IssuePrescriptionDto,
+  DiscontinuePrescriptionDto,
+  PrescriptionFilterQueryDto,
+  MedicationCatalogItemDto,
+  MedicationCatalogFilterQueryDto,
 } from '@healthbridge/shared-types';
 
 export const DOCTOR_KEYS = {
@@ -46,6 +56,14 @@ export const DOCTOR_KEYS = {
   encounterDetail: (id: string) => [...DOCTOR_KEYS.all, 'encounters', 'detail', id] as const,
   patientClinicalHistory: (patientId: string) =>
     [...DOCTOR_KEYS.all, 'patients', 'clinical-history', patientId] as const,
+  prescriptionSummary: () => [...DOCTOR_KEYS.all, 'prescriptions', 'summary'] as const,
+  prescriptions: (filters?: PrescriptionFilterQueryDto) =>
+    [...DOCTOR_KEYS.all, 'prescriptions', 'list', filters || {}] as const,
+  prescriptionDetail: (id: string) => [...DOCTOR_KEYS.all, 'prescriptions', 'detail', id] as const,
+  prescriptionDocument: (id: string) => [...DOCTOR_KEYS.all, 'prescriptions', 'document', id] as const,
+  medicationCatalog: (filters?: MedicationCatalogFilterQueryDto) =>
+    ['medication-catalog', 'list', filters || {}] as const,
+  medicationCatalogDetail: (id: string) => ['medication-catalog', 'detail', id] as const,
 };
 
 /**
@@ -520,6 +538,235 @@ export const usePatientClinicalHistory = (patientId?: string) => {
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
+  };
+};
+
+/* ==========================================================================
+   E-PRESCRIPTION HOOKS
+   ========================================================================== */
+
+/**
+ * Hook for doctor prescription summary metrics
+ */
+export const useDoctorPrescriptionSummary = () => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<DoctorPrescriptionSummaryDto, Error>({
+    queryKey: DOCTOR_KEYS.prescriptionSummary(),
+    queryFn: () => doctorApi.getPrescriptionSummaryCounts(),
+    enabled: isDoctor,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    summary: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for paginated doctor prescriptions
+ */
+export const useDoctorPrescriptions = (filters?: PrescriptionFilterQueryDto) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<{ items: PrescriptionListItemDto[]; meta: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.prescriptions(filters),
+    queryFn: () => doctorApi.getPrescriptions(filters),
+    enabled: isDoctor,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    prescriptions: query.data?.items || [],
+    meta: query.data?.meta,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for detailed prescription document
+ */
+export const useDoctorPrescriptionDetail = (prescriptionId?: string) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<PrescriptionDetailDto, Error>({
+    queryKey: DOCTOR_KEYS.prescriptionDetail(prescriptionId || ''),
+    queryFn: () => doctorApi.getPrescriptionById(prescriptionId!),
+    enabled: isDoctor && !!prescriptionId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    prescription: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for printable digital prescription document representation
+ */
+export const useDoctorPrescriptionDocument = (prescriptionId?: string) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<{
+    prescription: PrescriptionDetailDto;
+    facility?: any;
+    doctorRegistration?: string;
+    generatedAt: string;
+    watermarkText?: string;
+  }, Error>({
+    queryKey: DOCTOR_KEYS.prescriptionDocument(prescriptionId || ''),
+    queryFn: () => doctorApi.getPrescriptionDocument(prescriptionId!),
+    enabled: isDoctor && !!prescriptionId,
+    staleTime: 60 * 1000,
+  });
+
+  return {
+    document: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Mutation hooks for prescription actions (create, update draft, issue, discontinue)
+ */
+export const useDoctorPrescriptionActions = () => {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation<PrescriptionDetailDto, Error, CreateDoctorPrescriptionDto>({
+    mutationFn: (data) => doctorApi.createPrescription(data),
+    onSuccess: (newPrescription) => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.prescriptionSummary() });
+      queryClient.invalidateQueries({ queryKey: [...DOCTOR_KEYS.all, 'prescriptions'] });
+      queryClient.invalidateQueries({ queryKey: [...DOCTOR_KEYS.all, 'encounters'] });
+      queryClient.setQueryData(DOCTOR_KEYS.prescriptionDetail(newPrescription.id), newPrescription);
+    },
+  });
+
+  const updateMutation = useMutation<
+    PrescriptionDetailDto,
+    Error,
+    { prescriptionId: string; data: UpdateDoctorPrescriptionDto }
+  >({
+    mutationFn: ({ prescriptionId, data }) => doctorApi.updatePrescription(prescriptionId, data),
+    onSuccess: (updatedPrescription) => {
+      queryClient.setQueryData(
+        DOCTOR_KEYS.prescriptionDetail(updatedPrescription.id),
+        updatedPrescription
+      );
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.prescriptionSummary() });
+      queryClient.invalidateQueries({ queryKey: [...DOCTOR_KEYS.all, 'prescriptions'] });
+    },
+  });
+
+  const issueMutation = useMutation<
+    PrescriptionDetailDto,
+    Error,
+    { prescriptionId: string; data: IssuePrescriptionDto }
+  >({
+    mutationFn: ({ prescriptionId, data }) => doctorApi.issuePrescription(prescriptionId, data),
+    onSuccess: (issuedPrescription) => {
+      queryClient.setQueryData(
+        DOCTOR_KEYS.prescriptionDetail(issuedPrescription.id),
+        issuedPrescription
+      );
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.all });
+    },
+  });
+
+  const discontinueMutation = useMutation<
+    PrescriptionDetailDto,
+    Error,
+    { prescriptionId: string; data: DiscontinuePrescriptionDto }
+  >({
+    mutationFn: ({ prescriptionId, data }) =>
+      doctorApi.discontinuePrescription(prescriptionId, data),
+    onSuccess: (discontinuedPrescription) => {
+      queryClient.setQueryData(
+        DOCTOR_KEYS.prescriptionDetail(discontinuedPrescription.id),
+        discontinuedPrescription
+      );
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.prescriptionSummary() });
+      queryClient.invalidateQueries({ queryKey: [...DOCTOR_KEYS.all, 'prescriptions'] });
+    },
+  });
+
+  return {
+    createPrescription: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+    createError: createMutation.error,
+
+    updatePrescription: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending,
+    updateError: updateMutation.error,
+
+    issuePrescription: issueMutation.mutateAsync,
+    isIssuing: issueMutation.isPending,
+    issueError: issueMutation.error,
+
+    discontinuePrescription: discontinueMutation.mutateAsync,
+    isDiscontinuing: discontinueMutation.isPending,
+    discontinueError: discontinueMutation.error,
+  };
+};
+
+/* ==========================================================================
+   MEDICATION CATALOG HOOKS
+   ========================================================================== */
+
+/**
+ * Hook for searching medication catalog
+ */
+export const useMedicationCatalog = (filters?: MedicationCatalogFilterQueryDto) => {
+  const query = useQuery<{ items: MedicationCatalogItemDto[]; meta: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.medicationCatalog(filters),
+    queryFn: () => doctorApi.searchMedicationCatalog(filters),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    catalog: query.data?.items || [],
+    meta: query.data?.meta,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for single medication catalog item
+ */
+export const useMedicationCatalogDetail = (medicationId?: string) => {
+  const query = useQuery<MedicationCatalogItemDto, Error>({
+    queryKey: DOCTOR_KEYS.medicationCatalogDetail(medicationId || ''),
+    queryFn: () => doctorApi.getMedicationCatalogById(medicationId!),
+    enabled: !!medicationId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    medication: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
   };
 };
 

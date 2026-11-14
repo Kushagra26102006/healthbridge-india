@@ -21,6 +21,16 @@ import type {
   CreateEncounterDto,
   UpdateEncounterDto,
   EncounterFilterQueryDto,
+  DoctorPrescriptionSummaryDto,
+  PrescriptionListItemDto,
+  PrescriptionDetailDto,
+  CreateDoctorPrescriptionDto,
+  UpdateDoctorPrescriptionDto,
+  IssuePrescriptionDto,
+  DiscontinuePrescriptionDto,
+  PrescriptionFilterQueryDto,
+  MedicationCatalogItemDto,
+  MedicationCatalogFilterQueryDto,
 } from '@healthbridge/shared-types';
 
 export const doctorApi = {
@@ -408,6 +418,195 @@ export const doctorApi = {
     );
     if (!response.data.data) {
       throw new Error(response.data.message || 'Failed to fetch patient clinical history');
+    }
+    return response.data.data;
+  },
+
+  /* ==========================================================================
+     E-PRESCRIPTION & MEDICATION CATALOG ENDPOINTS
+     ========================================================================== */
+
+  /**
+   * Fetch doctor's prescription summary counts
+   */
+  async getPrescriptionSummaryCounts(): Promise<DoctorPrescriptionSummaryDto> {
+    const response = await apiClient.get<ApiResponse<DoctorPrescriptionSummaryDto>>(
+      API_ENDPOINTS.DOCTORS.PRESCRIPTIONS_SUMMARY
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch prescription summary');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch paginated list of doctor's prescriptions
+   */
+  async getPrescriptions(
+    params: PrescriptionFilterQueryDto = {}
+  ): Promise<{ items: PrescriptionListItemDto[]; meta: PaginationMeta }> {
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', params.page.toString());
+    if (params.limit) query.append('limit', params.limit.toString());
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    if (params.patientId) query.append('patientId', params.patientId);
+    if (params.startDate) query.append('startDate', params.startDate);
+    if (params.endDate) query.append('endDate', params.endDate);
+
+    const queryString = query.toString();
+    const endpoint = queryString
+      ? `${API_ENDPOINTS.DOCTORS.PRESCRIPTIONS}?${queryString}`
+      : API_ENDPOINTS.DOCTORS.PRESCRIPTIONS;
+
+    const response = await apiClient.get<ApiResponse<PrescriptionListItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      meta: (response.data.meta as unknown as PaginationMeta) || {
+        total: 0,
+        page: params.page || 1,
+        limit: params.limit || 10,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Fetch prescription details by ID
+   */
+  async getPrescriptionById(prescriptionId: string): Promise<PrescriptionDetailDto> {
+    const response = await apiClient.get<ApiResponse<PrescriptionDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.PRESCRIPTIONS}/${prescriptionId}`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch prescription details');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Create a new prescription (Draft or direct issuance)
+   */
+  async createPrescription(data: CreateDoctorPrescriptionDto): Promise<PrescriptionDetailDto> {
+    const response = await apiClient.post<ApiResponse<PrescriptionDetailDto>>(
+      API_ENDPOINTS.DOCTORS.PRESCRIPTIONS,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to create prescription');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Update draft prescription
+   */
+  async updatePrescription(
+    prescriptionId: string,
+    data: UpdateDoctorPrescriptionDto
+  ): Promise<PrescriptionDetailDto> {
+    const response = await apiClient.patch<ApiResponse<PrescriptionDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.PRESCRIPTIONS}/${prescriptionId}`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to update prescription draft');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Finalize and issue prescription
+   */
+  async issuePrescription(
+    prescriptionId: string,
+    data: IssuePrescriptionDto
+  ): Promise<PrescriptionDetailDto> {
+    const response = await apiClient.post<ApiResponse<PrescriptionDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.PRESCRIPTIONS}/${prescriptionId}/issue`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to issue prescription');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Discontinue an active issued prescription
+   */
+  async discontinuePrescription(
+    prescriptionId: string,
+    data: DiscontinuePrescriptionDto
+  ): Promise<PrescriptionDetailDto> {
+    const response = await apiClient.post<ApiResponse<PrescriptionDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.PRESCRIPTIONS}/${prescriptionId}/discontinue`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to discontinue prescription');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch digital prescription document representation
+   */
+  async getPrescriptionDocument(prescriptionId: string): Promise<{
+    prescription: PrescriptionDetailDto;
+    facility?: any;
+    doctorRegistration?: string;
+    generatedAt: string;
+    watermarkText?: string;
+  }> {
+    const response = await apiClient.get<ApiResponse<any>>(
+      `${API_ENDPOINTS.DOCTORS.PRESCRIPTIONS}/${prescriptionId}/document`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch prescription document');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Search medication catalog
+   */
+  async searchMedicationCatalog(
+    params: MedicationCatalogFilterQueryDto = {}
+  ): Promise<{ items: MedicationCatalogItemDto[]; meta: PaginationMeta }> {
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', params.page.toString());
+    if (params.limit) query.append('limit', params.limit.toString());
+    if (params.search) query.append('search', params.search);
+    if (params.dosageForm && params.dosageForm !== 'ALL') query.append('dosageForm', params.dosageForm);
+    if (params.therapeuticClass && params.therapeuticClass !== 'ALL') query.append('therapeuticClass', params.therapeuticClass);
+
+    const queryString = query.toString();
+    const endpoint = queryString
+      ? `${API_ENDPOINTS.MEDICATION_CATALOG}?${queryString}`
+      : API_ENDPOINTS.MEDICATION_CATALOG;
+
+    const response = await apiClient.get<ApiResponse<MedicationCatalogItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      meta: (response.data.meta as unknown as PaginationMeta) || {
+        total: 0,
+        page: params.page || 1,
+        limit: params.limit || 20,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Get single medication catalog item
+   */
+  async getMedicationCatalogById(medicationId: string): Promise<MedicationCatalogItemDto> {
+    const response = await apiClient.get<ApiResponse<MedicationCatalogItemDto>>(
+      `${API_ENDPOINTS.MEDICATION_CATALOG}/${medicationId}`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch medication from catalog');
     }
     return response.data.data;
   },
