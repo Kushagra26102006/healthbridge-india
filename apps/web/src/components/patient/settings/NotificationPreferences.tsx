@@ -299,3 +299,4 @@ export const NotificationPreferences: React.FC = () => {
     </Card>
   );
 };
+

@@ -335,3 +335,4 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
     </Card>
   );
 };
+

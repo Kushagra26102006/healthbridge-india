@@ -108,3 +108,4 @@ Every module enforces role-based access control (`PATIENT`), server-side identit
    - The notification preferences interface accurately marks SMS delivery as "Sandbox Preview" pending production Twilio/SMS gateway credentials.
 3. **Data Portability (Bulk Archive Export & Account Erasure)**:
    - Displayed with transparent "Coming Soon / Roadmap Feature" indicators under DPDP Act provisions.
+

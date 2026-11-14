@@ -144,7 +144,24 @@ export const updateNotificationPreferencesSchema = z.object({
   securityAlerts: channelPreferencesSchema.optional(),
 });
 
+export const updateDoctorProfileSchema = z.object({
+  bio: z.string().trim().max(2000, 'Bio cannot exceed 2000 characters').optional(),
+  languages: z.array(z.string().trim().min(2)).optional(),
+  consultationFee: z.number().min(0, 'Consultation fee cannot be negative').optional(),
+  consultationModes: z.array(z.enum(['IN_PERSON', 'TELECONSULTATION'])).optional(),
+  workingDays: z.array(z.string()).optional(),
+  workingHours: z
+    .object({
+      start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Start time must be HH:MM format'),
+      end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'End time must be HH:MM format'),
+    })
+    .optional(),
+  profileImage: z.string().max(2000000, 'Profile image payload exceeds size limit').optional(),
+});
+
 export type UpdatePatientProfileInput = z.infer<typeof updatePatientProfileSchema>;
+export type UpdateDoctorProfileInput = z.infer<typeof updateDoctorProfileSchema>;
+
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;
 

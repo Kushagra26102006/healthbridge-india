@@ -119,3 +119,4 @@ export const AccountStatusCard: React.FC<AccountStatusCardProps> = ({ profile })
     </Card>
   );
 };
+

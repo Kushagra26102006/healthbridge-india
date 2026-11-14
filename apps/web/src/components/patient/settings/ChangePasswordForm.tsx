@@ -258,3 +258,4 @@ export const ChangePasswordForm: React.FC = () => {
     </Card>
   );
 };
+

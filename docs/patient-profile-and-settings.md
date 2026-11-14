@@ -107,3 +107,4 @@ apps/web/src/components/patient/
    A patient cannot fetch or edit another patient's profile; all operations strictly derive the target user from `req.user.userId`.
 4. **Mandatory Security Notifications**:
    Critical security alerts cannot be suppressed through notification preference updates.
+

@@ -163,3 +163,4 @@ export const PersonalInformationCard: React.FC<PersonalInformationCardProps> = (
     </Card>
   );
 };
+

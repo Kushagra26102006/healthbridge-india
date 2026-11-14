@@ -13,3 +13,4 @@ export * from './consent';
 export * from './security.types';
 export * from './abha.types';
 export * from './patient-profile.types';
+export * from './doctor.types';

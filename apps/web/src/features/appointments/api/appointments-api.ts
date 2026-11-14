@@ -31,8 +31,8 @@ export const appointmentsApi = {
 
     const queryString = params.toString();
     const endpoint = queryString
-      ? `${API_ENDPOINTS.DOCTORS}?${queryString}`
-      : API_ENDPOINTS.DOCTORS;
+      ? `${API_ENDPOINTS.DOCTORS.ROOT}?${queryString}`
+      : API_ENDPOINTS.DOCTORS.ROOT;
 
     const response = await apiClient.get<ApiResponse<DoctorPublicDto[]>>(endpoint);
 
@@ -54,7 +54,7 @@ export const appointmentsApi = {
    */
   async getDoctorById(doctorId: string): Promise<DoctorPublicDto> {
     const response = await apiClient.get<ApiResponse<DoctorPublicDto>>(
-      `${API_ENDPOINTS.DOCTORS}/${doctorId}`
+      `${API_ENDPOINTS.DOCTORS.ROOT}/${doctorId}`
     );
     if (!response.data.data) {
       throw new Error(response.data.message || 'Doctor profile not found');
@@ -71,7 +71,7 @@ export const appointmentsApi = {
   ): Promise<{ date: string; slots: TimeSlotDto[] }> {
     const response = await apiClient.get<
       ApiResponse<{ date: string; slots: TimeSlotDto[] }>
-    >(`${API_ENDPOINTS.DOCTORS}/${doctorId}/availability?date=${encodeURIComponent(date)}`);
+    >(`${API_ENDPOINTS.DOCTORS.ROOT}/${doctorId}/availability?date=${encodeURIComponent(date)}`);
 
     if (!response.data.data) {
       throw new Error(response.data.message || 'Failed to fetch doctor availability');

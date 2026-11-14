@@ -128,3 +128,4 @@ export const PatientProfileHeader: React.FC<PatientProfileHeaderProps> = ({
     </div>
   );
 };
+

@@ -10,6 +10,15 @@ export interface IDoctorProfileDocument extends Document {
   verificationStatus: VerificationStatus;
   facilityId?: Types.ObjectId;
   consultationModes: ('IN_PERSON' | 'TELECONSULTATION')[];
+  bio?: string;
+  languages?: string[];
+  consultationFee?: number;
+  profileImage?: string;
+  workingDays?: string[];
+  workingHours?: {
+    start: string;
+    end: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +77,32 @@ const DoctorProfileSchema = new Schema<IDoctorProfileDocument>(
       type: [String],
       enum: ['IN_PERSON', 'TELECONSULTATION'],
       default: ['IN_PERSON', 'TELECONSULTATION'],
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Bio cannot exceed 2000 characters'],
+    },
+    languages: {
+      type: [String],
+      default: ['English', 'Hindi'],
+    },
+    consultationFee: {
+      type: Number,
+      min: [0, 'Consultation fee cannot be negative'],
+      default: 500,
+    },
+    profileImage: {
+      type: String,
+      trim: true,
+    },
+    workingDays: {
+      type: [String],
+      default: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
+    },
+    workingHours: {
+      start: { type: String, default: '09:00' },
+      end: { type: String, default: '17:00' },
     },
   },
   {

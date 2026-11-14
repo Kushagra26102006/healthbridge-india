@@ -220,3 +220,4 @@ export const PrivacySettings: React.FC = () => {
     </div>
   );
 };
+
