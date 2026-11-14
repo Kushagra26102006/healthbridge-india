@@ -1,20 +1,33 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
-import { LabOrderStatus, LabTestItem } from '@healthbridge/shared-types';
+import type { LabOrderStatus } from '@healthbridge/shared-types';
+
+export interface ILabOrderItemDocument {
+  testCode: string;
+  testName: string;
+  category?: string;
+  instructions?: string;
+}
 
 export interface ILaboratoryOrderDocument extends Document {
+  orderNumber: string;
   patientId: Types.ObjectId;
   orderedBy: Types.ObjectId;
-  tests: LabTestItem[];
+  laboratoryId?: Types.ObjectId;
+  tests: ILabOrderItemDocument[];
   status: LabOrderStatus;
+  collectionStatus?: string;
   orderedAt: Date;
+  reportId?: Types.ObjectId;
+  clinicalNotes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const LabTestItemSchema = new Schema<LabTestItem>(
+const LabTestItemSchema = new Schema<ILabOrderItemDocument>(
   {
     testCode: { type: String, required: true, trim: true },
     testName: { type: String, required: true, trim: true },
+    category: { type: String, trim: true },
     instructions: { type: String, trim: true },
   },
   { _id: false }
@@ -22,6 +35,13 @@ const LabTestItemSchema = new Schema<LabTestItem>(
 
 const LaboratoryOrderSchema = new Schema<ILaboratoryOrderDocument>(
   {
+    orderNumber: {
+      type: String,
+      required: [true, 'Order reference number is required'],
+      unique: true,
+      trim: true,
+      index: true,
+    },
     patientId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -34,11 +54,16 @@ const LaboratoryOrderSchema = new Schema<ILaboratoryOrderDocument>(
       required: [true, 'Ordering physician ID reference is required'],
       index: true,
     },
+    laboratoryId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
     tests: {
       type: [LabTestItemSchema],
       required: [true, 'At least one diagnostic test is required'],
       validate: {
-        validator: (tests: LabTestItem[]) => tests.length > 0,
+        validator: (tests: ILabOrderItemDocument[]) => tests.length > 0,
         message: 'Order must contain at least one test item',
       },
     },
@@ -48,10 +73,24 @@ const LaboratoryOrderSchema = new Schema<ILaboratoryOrderDocument>(
       default: 'ORDERED',
       index: true,
     },
+    collectionStatus: {
+      type: String,
+      enum: ['PENDING', 'COLLECTED', 'NOT_REQUIRED'],
+      default: 'PENDING',
+    },
     orderedAt: {
       type: Date,
       default: Date.now,
       index: true,
+    },
+    reportId: {
+      type: Schema.Types.ObjectId,
+      ref: 'LaboratoryReport',
+      index: true,
+    },
+    clinicalNotes: {
+      type: String,
+      trim: true,
     },
   },
   {
@@ -69,6 +108,7 @@ const LaboratoryOrderSchema = new Schema<ILaboratoryOrderDocument>(
   }
 );
 
+LaboratoryOrderSchema.index({ patientId: 1, orderedAt: -1 });
 LaboratoryOrderSchema.index({ patientId: 1, status: 1 });
 
 export const LaboratoryOrderModel: Model<ILaboratoryOrderDocument> =

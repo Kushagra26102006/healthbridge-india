@@ -12,6 +12,8 @@ import { consentRoutes } from '../modules/consent/routes/consent.routes';
 import { abdmRoutes } from '../modules/abdm/routes/abdm.routes';
 import { pharmacyRoutes } from '../modules/pharmacy/routes/pharmacy.routes';
 import { laboratoryRoutes } from '../modules/laboratory/routes/laboratory.routes';
+import { labReportRoutes } from '../modules/laboratory/routes/lab-report.routes';
+import { labOrderRoutes } from '../modules/laboratory/routes/lab-order.routes';
 import { auditRoutes } from '../modules/audit/routes/audit.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
@@ -35,4 +37,6 @@ v1Router.use('/consent', apiLimiter, consentRoutes);
 v1Router.use('/abdm', apiLimiter, abdmRoutes);
 v1Router.use('/pharmacy', apiLimiter, pharmacyRoutes);
 v1Router.use('/laboratory', apiLimiter, laboratoryRoutes);
+v1Router.use('/lab-reports', apiLimiter, labReportRoutes);
+v1Router.use('/lab-orders', apiLimiter, labOrderRoutes);
 v1Router.use('/audit', apiLimiter, auditRoutes);

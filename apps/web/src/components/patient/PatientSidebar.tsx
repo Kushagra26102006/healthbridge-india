@@ -64,6 +64,9 @@ export function PatientSidebar({
     if (href === '/patient/dashboard') {
       return pathname === '/patient/dashboard';
     }
+    if (href === '/patient/lab-reports' && pathname.startsWith('/patient/lab-orders')) {
+      return true;
+    }
     return pathname.startsWith(href);
   };
 

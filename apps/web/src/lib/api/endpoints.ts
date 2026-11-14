@@ -38,5 +38,7 @@ export const API_ENDPOINTS = {
   ABDM: '/abdm',
   PHARMACY: '/pharmacy',
   LABORATORY: '/laboratory',
+  LAB_REPORTS: '/lab-reports',
+  LAB_ORDERS: '/lab-orders',
   AUDIT: '/audit',
 } as const;

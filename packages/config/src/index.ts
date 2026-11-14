@@ -84,4 +84,55 @@ export const APPOINTMENT_CONFIG = {
   },
 } as const;
 
+export const LAB_TEST_CATEGORIES = [
+  'BLOOD_TESTS',
+  'URINE_TESTS',
+  'BIOCHEMISTRY',
+  'HEMATOLOGY',
+  'IMAGING',
+  'MICROBIOLOGY',
+  'OTHER',
+] as const;
+
+export const LAB_CATEGORY_LABELS: Record<string, string> = {
+  BLOOD_TESTS: 'Blood Tests',
+  URINE_TESTS: 'Urine Tests',
+  BIOCHEMISTRY: 'Biochemistry',
+  HEMATOLOGY: 'Hematology',
+  IMAGING: 'Imaging & Radiology',
+  MICROBIOLOGY: 'Microbiology',
+  OTHER: 'Other Diagnostic Tests',
+};
+
+export const LAB_REPORT_STATUSES = [
+  'COMPLETED',
+  'PENDING',
+  'PRELIMINARY',
+  'CANCELLED',
+] as const;
+
+export const LAB_ORDER_STATUSES = [
+  'ORDERED',
+  'SAMPLE_COLLECTED',
+  'IN_ANALYSIS',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+
+export const LAB_ORDER_STATUS_LABELS: Record<string, string> = {
+  ORDERED: 'Order Placed',
+  SAMPLE_COLLECTED: 'Sample Collected',
+  IN_ANALYSIS: 'Processing / In Analysis',
+  COMPLETED: 'Completed & Report Ready',
+  CANCELLED: 'Cancelled',
+};
+
+export const LAB_RESULT_INTERPRETATIONS = [
+  'NORMAL',
+  'ABOVE_RANGE',
+  'BELOW_RANGE',
+  'NOT_AVAILABLE',
+] as const;
+
+
 

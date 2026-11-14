@@ -7,6 +7,8 @@ export * from './user';
 export * from './auth';
 export * from './healthcare';
 export * from './appointment';
+export * from './prescription';
+export * from './lab-reports';
 export * from './consent';
 export * from './security.types';
 export * from './abha.types';

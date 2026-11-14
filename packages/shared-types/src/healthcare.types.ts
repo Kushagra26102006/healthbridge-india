@@ -98,7 +98,7 @@ export interface IEncounter {
   updatedAt: Date | string;
 }
 
-export type PrescriptionStatus = 'ACTIVE' | 'DISPENSED' | 'CANCELLED' | 'EXPIRED';
+export type PrescriptionStatus = 'ACTIVE' | 'COMPLETED' | 'DISPENSED' | 'CANCELLED' | 'EXPIRED';
 
 export interface PrescribedMedication {
   name: string;

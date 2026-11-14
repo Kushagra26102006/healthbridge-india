@@ -8,5 +8,5 @@ export * from './auth.schema';
 export * from './env.schema';
 export * from './pagination.schema';
 export * from './record.schema';
-export * from './record.schema';
+export * from './lab-report.schema';
 
