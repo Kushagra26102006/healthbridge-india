@@ -89,3 +89,4 @@ Status transitions for invoices:
 - **GRN Reception Form (`/pharmacy/purchases/[id]/receive`):** Pre-populated with remaining quantities from the PO, inputs for physical batch number, manufacturing date, expiry date, storage location (rack/shelf), and accepted vs. rejected counts.
 - **GRN Receipt Modal (`GoodsReceiptDetailsModal`):** Instant visual summary with batch tags, acceptance metrics, and download/print capabilities.
 - **Purchase Invoice Ledger (`PurchaseInvoiceTable`):** Displays pending invoices, payment due dates, reconciliation buttons, and dispute resolution dialogs.
+

@@ -192,3 +192,4 @@ GoodsReceiptSchema.index({ pharmacyId: 1, receivedDate: -1 });
 export const GoodsReceiptModel: Model<IGoodsReceiptDocument> =
   mongoose.models.GoodsReceipt ||
   mongoose.model<IGoodsReceiptDocument>('GoodsReceipt', GoodsReceiptSchema);
+

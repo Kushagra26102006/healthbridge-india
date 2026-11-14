@@ -80,3 +80,4 @@ Pharmacies can fine-tune reorder behavior per facility:
 - **Replenishment Hub (`/pharmacy/replenishment`):** KPI summary cards highlighting low-stock items, urgent shortages, and total estimated replenishment budget.
 - **Suggestions Table (`/pharmacy/replenishment/suggestions`):** Interactive data grid with stock gauges, inbound delivery indicators, preferred supplier chips, and bulk selection checkboxes.
 - **Replenishment Settings (`/pharmacy/replenishment/settings`):** Configurable sliders for lead times, reorder multipliers, and automated alert preferences.
+

@@ -127,3 +127,4 @@ Tests       74 passed (74)
 
 - **In Scope:** Supplier profiles, contracted product pricing, purchase requisitions, purchase order lifecycle, server-authoritative financials, goods receiving (GRN), inventory batch creation, transaction ledger logging, invoice three-way matching, automated reorder suggestions, and procurement metrics.
 - **Out of Scope (Preserved):** External payment gateways (UPI, Razorpay), external ERP syncing, and Day 5 Task 05 (Pharmacy Analytics & Reporting).
+

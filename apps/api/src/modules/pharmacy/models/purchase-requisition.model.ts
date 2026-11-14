@@ -160,3 +160,4 @@ PurchaseRequisitionSchema.index({ pharmacyId: 1, createdAt: -1 });
 export const PurchaseRequisitionModel: Model<IPurchaseRequisitionDocument> =
   mongoose.models.PurchaseRequisition ||
   mongoose.model<IPurchaseRequisitionDocument>('PurchaseRequisition', PurchaseRequisitionSchema);
+

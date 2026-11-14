@@ -62,6 +62,16 @@ import type {
   UpdateReplenishmentSettingsDto,
   ConvertSuggestionsToRequisitionDto,
   ProcurementMetricsDto,
+  OrderStatusEventDto,
+  CreateOrderFromPrescriptionDto,
+  OrderReviewDto,
+  OrderClarificationDto,
+  OrderFulfillmentUpdateDto,
+  MarkReadyForPickupDto,
+  VerifyPickupDto,
+  CancelOrderDto,
+  OrderFilterDto,
+  PharmacyOrderMetricsDto,
 } from '@healthbridge/shared-types';
 
 export const pharmacyApi = {
@@ -374,14 +384,9 @@ export const pharmacyApi = {
   },
 
   /**
-   * 8. Order Management Endpoints
+   * 8. Order Management & Fulfillment Endpoints (Day 5 Task 05)
    */
-  async getOrders(params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    search?: string;
-  }): Promise<{
+  async getOrders(params?: OrderFilterDto): Promise<{
     items: PharmacyOrderDto[];
     total: number;
     page: number;
@@ -420,6 +425,169 @@ export const pharmacyApi = {
     );
     if (!res.data.data) {
       throw new Error(res.data.message || 'Failed to create order');
+    }
+    return res.data.data;
+  },
+
+  async createOrderFromPrescription(dto: CreateOrderFromPrescriptionDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_FROM_PRESCRIPTION,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to create order from prescription');
+    }
+    return res.data.data;
+  },
+
+  async reviewOrder(orderId: string, dto: OrderReviewDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_REVIEW(orderId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to submit order review');
+    }
+    return res.data.data;
+  },
+
+  async requestOrderClarification(orderId: string, dto: OrderClarificationDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_CLARIFICATION(orderId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to request clarification');
+    }
+    return res.data.data;
+  },
+
+  async startProcessingOrder(orderId: string): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_PROCESS(orderId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to start processing order');
+    }
+    return res.data.data;
+  },
+
+  async updateOrderFulfillment(orderId: string, dto: OrderFulfillmentUpdateDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_FULFILLMENT(orderId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update order fulfillment');
+    }
+    return res.data.data;
+  },
+
+  async markReadyForPickup(orderId: string, dto?: MarkReadyForPickupDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_READY_FOR_PICKUP(orderId),
+      dto || {}
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to mark ready for pickup');
+    }
+    return res.data.data;
+  },
+
+  async verifyPickup(orderId: string, dto: VerifyPickupDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_VERIFY_PICKUP(orderId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to verify pickup');
+    }
+    return res.data.data;
+  },
+
+  async cancelOrder(orderId: string, dto: CancelOrderDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_CANCEL(orderId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to cancel order');
+    }
+    return res.data.data;
+  },
+
+  async getOrderTimeline(orderId: string): Promise<OrderStatusEventDto[]> {
+    const res = await apiClient.get<ApiResponse<OrderStatusEventDto[]>>(
+      API_ENDPOINTS.PHARMACY.ORDER_TIMELINE(orderId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch order timeline');
+    }
+    return res.data.data;
+  },
+
+  async getOrderMetrics(): Promise<PharmacyOrderMetricsDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyOrderMetricsDto>>(
+      API_ENDPOINTS.PHARMACY.ORDER_METRICS
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch order fulfillment metrics');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * Patient-Facing Order Endpoints
+   */
+  async getPatientOrders(params?: OrderFilterDto): Promise<{
+    items: PharmacyOrderDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const res = await apiClient.get<
+      ApiResponse<{
+        items: PharmacyOrderDto[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >(API_ENDPOINTS.PATIENTS.ORDERS, { params });
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch patient orders');
+    }
+    return res.data.data;
+  },
+
+  async getPatientOrderById(orderId: string): Promise<PharmacyOrderDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PATIENTS.ORDER_DETAIL(orderId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch patient order details');
+    }
+    return res.data.data;
+  },
+
+  async getPatientOrderTracking(orderId: string): Promise<OrderStatusEventDto[]> {
+    const res = await apiClient.get<ApiResponse<OrderStatusEventDto[]>>(
+      API_ENDPOINTS.PATIENTS.ORDER_TRACKING(orderId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch order tracking timeline');
+    }
+    return res.data.data;
+  },
+
+  async cancelPatientOrder(orderId: string, dto: CancelOrderDto): Promise<PharmacyOrderDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyOrderDto>>(
+      API_ENDPOINTS.PATIENTS.CANCEL_ORDER(orderId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to cancel patient order');
     }
     return res.data.data;
   },

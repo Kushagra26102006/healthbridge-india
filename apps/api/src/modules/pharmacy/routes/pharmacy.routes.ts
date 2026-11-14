@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pharmacyController } from '../controllers/pharmacy.controller';
 import { procurementController } from '../controllers/procurement.controller';
+import { orderFulfillmentController } from '../controllers/order-fulfillment.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 import { validateRequest } from '../../../middleware/validate';
@@ -22,9 +23,15 @@ import {
   inventoryExpiryQuerySchema,
   pharmacyPrescriptionQuerySchema,
   pharmacyPrescriptionIdParamSchema,
-  createPharmacyOrderSchema,
   pharmacyOrderQuerySchema,
   orderIdParamSchema,
+  createOrderFromPrescriptionSchema,
+  orderReviewSchema,
+  orderClarificationSchema,
+  orderFulfillmentUpdateSchema,
+  markReadyForPickupSchema,
+  verifyPickupSchema,
+  cancelOrderSchema,
   verifyPrescriptionParamSchema,
   dispensePrescriptionSchema,
   dispensingQuerySchema,
@@ -401,29 +408,54 @@ pharmacyRoutes.post(
 );
 
 /* ==========================================================================
-   PHARMACY ORDER FOUNDATION ENDPOINTS
+   DAY 5 TASK 05: PHARMACY ORDER MANAGEMENT & FULFILLMENT ENDPOINTS
    ========================================================================== */
 
 /**
+ * @route   GET /api/v1/pharmacy/orders/metrics
+ * @desc    Get order fulfillment metrics and KPIs
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/orders/metrics',
+  (req, res, next) => orderFulfillmentController.getOrderAnalytics(req, res, next)
+);
+
+/**
  * @route   GET /api/v1/pharmacy/orders
- * @desc    List pharmacy orders with status filters and search
+ * @desc    List pharmacy orders with status filters, search, and date ranges
  * @access  Private (PHARMACY role only)
  */
 pharmacyRoutes.get(
   '/orders',
   validateRequest({ query: pharmacyOrderQuerySchema }),
-  (req, res, next) => pharmacyController.getOrders(req, res, next)
+  (req, res, next) => orderFulfillmentController.getPharmacyOrders(req, res, next)
 );
 
 /**
  * @route   POST /api/v1/pharmacy/orders
- * @desc    Create new fulfillment order
+ * @desc    Create new fulfillment order (supports prescription linkage or item payload)
  * @access  Private (PHARMACY role only)
  */
 pharmacyRoutes.post(
   '/orders',
-  validateRequest({ body: createPharmacyOrderSchema }),
-  (req, res, next) => pharmacyController.createOrder(req, res, next)
+  (req, res, next) => {
+    if (req.body.prescriptionId && (!req.body.items || req.body.items.length === 0)) {
+      return orderFulfillmentController.createOrderFromPrescription(req, res, next);
+    }
+    return pharmacyController.createOrder(req, res, next);
+  }
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/from-prescription
+ * @desc    Create order from doctor-issued prescription
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/from-prescription',
+  validateRequest({ body: createOrderFromPrescriptionSchema }),
+  (req, res, next) => orderFulfillmentController.createOrderFromPrescription(req, res, next)
 );
 
 /**
@@ -434,7 +466,95 @@ pharmacyRoutes.post(
 pharmacyRoutes.get(
   '/orders/:orderId',
   validateRequest({ params: orderIdParamSchema }),
-  (req, res, next) => pharmacyController.getOrderById(req, res, next)
+  (req, res, next) => orderFulfillmentController.getPharmacyOrderById(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/review
+ * @desc    Review and Accept or Reject an order with reasons
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/review',
+  validateRequest({ params: orderIdParamSchema, body: orderReviewSchema }),
+  (req, res, next) => orderFulfillmentController.reviewOrder(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/clarification
+ * @desc    Request clinical clarification without modifying prescription instructions
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/clarification',
+  validateRequest({ params: orderIdParamSchema, body: orderClarificationSchema }),
+  (req, res, next) => orderFulfillmentController.requestClarification(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/process
+ * @desc    Transition order to PROCESSING state
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/process',
+  validateRequest({ params: orderIdParamSchema }),
+  (req, res, next) => orderFulfillmentController.startProcessing(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/fulfillment
+ * @desc    Link dispensing record with order fulfillment
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/fulfillment',
+  validateRequest({ params: orderIdParamSchema, body: orderFulfillmentUpdateSchema }),
+  (req, res, next) => orderFulfillmentController.updateOrderFulfillment(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/ready-for-pickup
+ * @desc    Mark order ready for pickup and generate secure verification reference
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/ready-for-pickup',
+  validateRequest({ params: orderIdParamSchema, body: markReadyForPickupSchema }),
+  (req, res, next) => orderFulfillmentController.markReadyForPickup(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/verify-pickup
+ * @desc    Verify pickup code, record collection timestamp and handover staff
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/verify-pickup',
+  validateRequest({ params: orderIdParamSchema, body: verifyPickupSchema }),
+  (req, res, next) => orderFulfillmentController.verifyAndCompletePickup(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/orders/:orderId/cancel
+ * @desc    Cancel order with recorded reason
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/orders/:orderId/cancel',
+  validateRequest({ params: orderIdParamSchema, body: cancelOrderSchema }),
+  (req, res, next) => orderFulfillmentController.cancelOrder(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/orders/:orderId/timeline
+ * @desc    Retrieve persisted status event timeline
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/orders/:orderId/timeline',
+  validateRequest({ params: orderIdParamSchema }),
+  (req, res, next) => orderFulfillmentController.getOrderTimeline(req, res, next)
 );
 
 /* ==========================================================================

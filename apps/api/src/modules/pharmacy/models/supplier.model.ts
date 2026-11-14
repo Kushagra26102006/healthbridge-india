@@ -201,3 +201,4 @@ SupplierSchema.index({ pharmacyId: 1, status: 1 });
 export const SupplierModel: Model<ISupplierDocument> =
   mongoose.models.Supplier ||
   mongoose.model<ISupplierDocument>('Supplier', SupplierSchema);
+

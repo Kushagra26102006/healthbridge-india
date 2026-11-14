@@ -16,11 +16,14 @@ export type InventoryStockStatus =
 
 export type PharmacyOrderStatus =
   | 'PENDING'
+  | 'UNDER_REVIEW'
   | 'ACCEPTED'
   | 'PROCESSING'
+  | 'PARTIALLY_FULFILLED'
   | 'READY_FOR_PICKUP'
   | 'DISPATCHED'
   | 'COMPLETED'
+  | 'REJECTED'
   | 'CANCELLED';
 
 export type FulfillmentType = 'IN_STORE_PICKUP' | 'HOME_DELIVERY';
@@ -496,28 +499,67 @@ export interface PharmacyPrescriptionQueueItemDto {
   instructions?: string;
 }
 
+export interface OrderStatusEventDto {
+  id?: string;
+  previousStatus?: PharmacyOrderStatus;
+  newStatus: PharmacyOrderStatus;
+  actorId?: string;
+  actorName: string;
+  actorRole: 'PHARMACY' | 'PATIENT' | 'SYSTEM' | string;
+  reason?: string;
+  timestamp: string;
+}
+
+export interface PickupRecordDto {
+  pickupReference?: string;
+  pickupInstructions?: string;
+  expiresAt?: string;
+  verificationAttempts?: number;
+  maxAttempts?: number;
+  isVerified?: boolean;
+  verifiedAt?: string;
+  handedOverBy?: string;
+  handedOverByName?: string;
+  collectedAt?: string;
+  handoverNotes?: string;
+}
+
 export interface PharmacyOrderItemDto {
   id?: string;
+  prescriptionMedicationId?: string;
   inventoryId?: string;
   medicationCatalogId?: string;
   medicationName: string;
+  genericName?: string;
+  brandName?: string;
   strength: string;
   dosageForm: string;
   quantity: number;
+  requestedQuantity?: number;
+  fulfilledQuantity?: number;
+  remainingQuantity?: number;
+  fulfillmentStatus?: 'UNFULFILLED' | 'PARTIALLY_FULFILLED' | 'FULFILLED';
   unitPrice: number;
   totalPrice: number;
   batchNumber?: string;
+  dispensingRecordId?: string;
+  instructions?: string;
 }
 
 export interface PharmacyOrderDto {
   id: string;
   orderNumber: string;
   pharmacyId: string;
+  pharmacyName?: string;
   patientId: string;
   patientName: string;
   patientPhone?: string;
   prescriptionId?: string;
   prescriptionNumber?: string;
+  doctorId?: string;
+  doctorName?: string;
+  facilityId?: string;
+  facilityName?: string;
   items: PharmacyOrderItemDto[];
   subtotal: number;
   tax: number;
@@ -532,6 +574,20 @@ export interface PharmacyOrderDto {
   };
   status: PharmacyOrderStatus;
   notes?: string;
+  internalOperationalNotes?: string;
+  clarificationRequested?: boolean;
+  clarificationNotes?: string;
+  rejectionReason?: string;
+  rejectionReasonCode?: string;
+  rejectedAt?: string;
+  rejectedByName?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledByName?: string;
+  statusHistory?: OrderStatusEventDto[];
+  pickupDetails?: PickupRecordDto;
+  dispensingRecordIds?: string[];
+  estimatedReadiness?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -540,14 +596,18 @@ export interface CreatePharmacyOrderDto {
   prescriptionId?: string;
   patientId: string;
   items: Array<{
+    prescriptionMedicationId?: string;
     inventoryId?: string;
     medicationCatalogId?: string;
     medicationName: string;
+    genericName?: string;
+    brandName?: string;
     strength: string;
     dosageForm: string;
     quantity: number;
     unitPrice: number;
     batchNumber?: string;
+    instructions?: string;
   }>;
   fulfillmentType?: FulfillmentType;
   deliveryAddress?: {
@@ -557,6 +617,90 @@ export interface CreatePharmacyOrderDto {
     postalCode: string;
   };
   notes?: string;
+  internalOperationalNotes?: string;
+}
+
+export interface CreateOrderFromPrescriptionDto {
+  prescriptionId: string;
+  pharmacyId?: string;
+  fulfillmentType?: FulfillmentType;
+  deliveryAddress?: {
+    line1: string;
+    city: string;
+    state: string;
+    postalCode: string;
+  };
+  notes?: string;
+}
+
+export interface OrderReviewDto {
+  action: 'ACCEPT' | 'REJECT';
+  reasonCode?:
+    | 'STOCK_UNAVAILABLE'
+    | 'PRESCRIPTION_EXPIRED'
+    | 'CLINICAL_CLARIFICATION_NEEDED'
+    | 'DOSAGE_DISCREPANCY'
+    | 'OTHER';
+  reason?: string;
+  notes?: string;
+  estimatedReadiness?: string;
+}
+
+export interface OrderClarificationDto {
+  notes: string;
+}
+
+export interface OrderFulfillmentUpdateDto {
+  dispensingRecordId: string;
+  items?: Array<{
+    prescriptionMedicationId: string;
+    quantityFulfilled: number;
+    inventoryId: string;
+    batchNumber: string;
+  }>;
+  notes?: string;
+}
+
+export interface MarkReadyForPickupDto {
+  pickupInstructions?: string;
+  estimatedReadiness?: string;
+}
+
+export interface VerifyPickupDto {
+  pickupCode: string;
+  handoverNotes?: string;
+}
+
+export interface CancelOrderDto {
+  reason: string;
+}
+
+export interface OrderFilterDto {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  fulfillmentType?: string;
+}
+
+export interface PharmacyOrderMetricsDto {
+  totalOrders: number;
+  pendingCount: number;
+  underReviewCount: number;
+  acceptedCount: number;
+  processingCount: number;
+  partiallyFulfilledCount: number;
+  readyForPickupCount: number;
+  completedCount: number;
+  rejectedCount: number;
+  cancelledCount: number;
+  todayOrdersCount: number;
+  todayRevenue: number;
+  averageProcessingTimeHours: number;
+  statusDistribution: Array<{ status: PharmacyOrderStatus; count: number }>;
+  dailyVolume: Array<{ date: string; count: number; amount: number }>;
 }
 
 export interface PharmacyInventoryAlertDto {

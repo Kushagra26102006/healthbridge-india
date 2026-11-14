@@ -132,3 +132,4 @@ PurchaseInvoiceSchema.index({ pharmacyId: 1, purchaseOrderId: 1 });
 export const PurchaseInvoiceModel: Model<IPurchaseInvoiceDocument> =
   mongoose.models.PurchaseInvoice ||
   mongoose.model<IPurchaseInvoiceDocument>('PurchaseInvoice', PurchaseInvoiceSchema);
+

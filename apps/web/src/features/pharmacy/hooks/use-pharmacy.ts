@@ -38,6 +38,14 @@ import type {
   ReplenishmentFilterDto,
   ConvertSuggestionsToRequisitionDto,
   UpdateReplenishmentSettingsDto,
+  CreateOrderFromPrescriptionDto,
+  OrderReviewDto,
+  OrderClarificationDto,
+  OrderFulfillmentUpdateDto,
+  MarkReadyForPickupDto,
+  VerifyPickupDto,
+  CancelOrderDto,
+  OrderFilterDto,
 } from '@healthbridge/shared-types';
 
 export const PHARMACY_QUERY_KEYS = {
@@ -62,6 +70,11 @@ export const PHARMACY_QUERY_KEYS = {
   dispensingReceipt: (id: string) => ['pharmacy', 'dispensing', id, 'receipt'] as const,
   orders: (params?: Record<string, unknown>) => ['pharmacy', 'orders', params] as const,
   orderDetail: (id: string) => ['pharmacy', 'order-detail', id] as const,
+  orderTimeline: (id: string) => ['pharmacy', 'order-timeline', id] as const,
+  orderMetrics: ['pharmacy', 'orders', 'metrics'] as const,
+  patientOrders: (params?: Record<string, unknown>) => ['patient', 'orders', params] as const,
+  patientOrderDetail: (id: string) => ['patient', 'order-detail', id] as const,
+  patientOrderTracking: (id: string) => ['patient', 'order-tracking', id] as const,
   // Day 5 Task 04: Procurement Keys
   suppliers: (filter?: SupplierFilterDto) => ['pharmacy', 'suppliers', filter] as const,
   supplierDetail: (id: string) => ['pharmacy', 'suppliers', id] as const,
@@ -333,16 +346,11 @@ export function usePharmacyPrescriptionDetail(prescriptionId?: string) {
 }
 
 /**
- * 8. Orders Hooks
+ * 8. Orders Hooks (Day 5 Task 05)
  */
-export function usePharmacyOrders(params?: {
-  page?: number;
-  limit?: number;
-  status?: string;
-  search?: string;
-}) {
+export function usePharmacyOrders(params?: OrderFilterDto) {
   return useQuery({
-    queryKey: PHARMACY_QUERY_KEYS.orders(params),
+    queryKey: PHARMACY_QUERY_KEYS.orders(params as any),
     queryFn: () => pharmacyApi.getOrders(params),
     staleTime: 30 * 1000,
   });
@@ -356,6 +364,22 @@ export function usePharmacyOrder(orderId?: string) {
   });
 }
 
+export function usePharmacyOrderTimeline(orderId?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.orderTimeline(orderId || ''),
+    queryFn: () => pharmacyApi.getOrderTimeline(orderId!),
+    enabled: Boolean(orderId),
+  });
+}
+
+export function usePharmacyOrderMetrics() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.orderMetrics,
+    queryFn: () => pharmacyApi.getOrderMetrics(),
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useCreatePharmacyOrder() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -363,6 +387,154 @@ export function useCreatePharmacyOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
       queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+export function useCreateOrderFromPrescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreateOrderFromPrescriptionDto) =>
+      pharmacyApi.createOrderFromPrescription(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['patient', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+export function useReviewPharmacyOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto: OrderReviewDto }) =>
+      pharmacyApi.reviewOrder(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+export function useRequestOrderClarification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto: OrderClarificationDto }) =>
+      pharmacyApi.requestOrderClarification(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(variables.orderId) });
+    },
+  });
+}
+
+export function useStartProcessingOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: string) => pharmacyApi.startProcessingOrder(orderId),
+    onSuccess: (_data, orderId) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(orderId) });
+    },
+  });
+}
+
+export function useUpdateOrderFulfillment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto: OrderFulfillmentUpdateDto }) =>
+      pharmacyApi.updateOrderFulfillment(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+export function useMarkReadyForPickup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto?: MarkReadyForPickupDto }) =>
+      pharmacyApi.markReadyForPickup(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+export function useVerifyPickup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto: VerifyPickupDto }) =>
+      pharmacyApi.verifyPickup(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+export function useCancelPharmacyOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto: CancelOrderDto }) =>
+      pharmacyApi.cancelOrder(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.orderTimeline(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+    },
+  });
+}
+
+/**
+ * Patient Order Hooks
+ */
+export function usePatientOrders(params?: OrderFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.patientOrders(params as any),
+    queryFn: () => pharmacyApi.getPatientOrders(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePatientOrderDetail(orderId?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.patientOrderDetail(orderId || ''),
+    queryFn: () => pharmacyApi.getPatientOrderById(orderId!),
+    enabled: Boolean(orderId),
+  });
+}
+
+export function usePatientOrderTracking(orderId?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.patientOrderTracking(orderId || ''),
+    queryFn: () => pharmacyApi.getPatientOrderTracking(orderId!),
+    enabled: Boolean(orderId),
+  });
+}
+
+export function useCancelPatientOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, dto }: { orderId: string; dto: CancelOrderDto }) =>
+      pharmacyApi.cancelPatientOrder(orderId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['patient', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.patientOrderDetail(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.patientOrderTracking(variables.orderId) });
     },
   });
 }

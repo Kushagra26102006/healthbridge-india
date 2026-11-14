@@ -103,3 +103,4 @@ Maps national medication catalogue entries to individual vendor contracts:
 - **Supplier Onboarding (`/pharmacy/suppliers/new`):** Validated wizard covering GSTIN format checks, drug license expiry verification, and IFSC validation.
 - **Supplier Profile & Catalog (`/pharmacy/suppliers/[id]`):** Tabs for General Info, Contracted Products, Purchase Order History, and Performance Analytics.
 - **Direct Catalog Linking:** Doctors/Pharmacists can directly see contracted suppliers when creating replenishment orders or browsing low-stock inventory.
+

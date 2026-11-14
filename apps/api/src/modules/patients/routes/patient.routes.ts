@@ -11,10 +11,15 @@ import { LaboratoryReportModel } from '../../healthcare/models/lab-report.model'
 import { ConsentArtifactModel } from '../../consent/models/consent-artifact.model';
 import { getDatabaseStatus } from '../../../config/database';
 import { patientProfileController } from '../controllers/patient-profile.controller';
+import { orderFulfillmentController } from '../../pharmacy/controllers/order-fulfillment.controller';
 import {
   updatePatientProfileSchema,
   changePasswordSchema,
   updateNotificationPreferencesSchema,
+  createOrderFromPrescriptionSchema,
+  patientOrderQuerySchema,
+  orderIdParamSchema,
+  cancelOrderSchema,
 } from '@healthbridge/validation';
 import type { PatientDashboardSummaryDto } from '@healthbridge/shared-types';
 
@@ -328,6 +333,77 @@ patientRoutes.patch(
   authorize(['PATIENT']),
   validateRequest(updateNotificationPreferencesSchema),
   (req, res, next) => patientProfileController.updateNotificationPreferences(req, res, next)
+);
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 05: PATIENT PHARMACY ORDERS & TRACKING
+ * ============================================================================
+ */
+
+/**
+ * @route   GET /api/v1/patients/orders
+ * @desc    List patient orders with status filtering and search
+ * @access  Private (PATIENT role only)
+ */
+patientRoutes.get(
+  '/orders',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest({ query: patientOrderQuerySchema }),
+  (req, res, next) => orderFulfillmentController.getPatientOrders(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/patients/orders
+ * @desc    Create pharmacy order from doctor-issued prescription
+ * @access  Private (PATIENT role only)
+ */
+patientRoutes.post(
+  '/orders',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest({ body: createOrderFromPrescriptionSchema }),
+  (req, res, next) => orderFulfillmentController.createOrderFromPrescription(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/patients/orders/:orderId
+ * @desc    Get patient order detail (reveals pickup code when ready)
+ * @access  Private (PATIENT role only)
+ */
+patientRoutes.get(
+  '/orders/:orderId',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest({ params: orderIdParamSchema }),
+  (req, res, next) => orderFulfillmentController.getPatientOrderById(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/patients/orders/:orderId/tracking
+ * @desc    Get order tracking timeline
+ * @access  Private (PATIENT role only)
+ */
+patientRoutes.get(
+  '/orders/:orderId/tracking',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest({ params: orderIdParamSchema }),
+  (req, res, next) => orderFulfillmentController.getOrderTimeline(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/patients/orders/:orderId/cancel
+ * @desc    Cancel order prior to fulfillment processing
+ * @access  Private (PATIENT role only)
+ */
+patientRoutes.post(
+  '/orders/:orderId/cancel',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest({ params: orderIdParamSchema, body: cancelOrderSchema }),
+  (req, res, next) => orderFulfillmentController.cancelOrder(req, res, next)
 );
 
 export default patientRoutes;

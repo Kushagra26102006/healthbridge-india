@@ -118,3 +118,4 @@ SupplierProductSchema.index({ pharmacyId: 1, medicationCatalogId: 1 });
 export const SupplierProductModel: Model<ISupplierProductDocument> =
   mongoose.models.SupplierProduct ||
   mongoose.model<ISupplierProductDocument>('SupplierProduct', SupplierProductSchema);
+

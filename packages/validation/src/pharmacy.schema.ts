@@ -37,11 +37,14 @@ export const inventoryTransactionTypeEnum = z.enum([
 
 export const pharmacyOrderStatusEnum = z.enum([
   'PENDING',
+  'UNDER_REVIEW',
   'ACCEPTED',
   'PROCESSING',
+  'PARTIALLY_FULFILLED',
   'READY_FOR_PICKUP',
   'DISPATCHED',
   'COMPLETED',
+  'REJECTED',
   'CANCELLED',
 ]);
 
@@ -299,10 +302,104 @@ export const pharmacyOrderQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z
-    .enum(['ALL', 'PENDING', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'DISPATCHED', 'COMPLETED', 'CANCELLED'])
+    .enum([
+      'ALL',
+      'PENDING',
+      'UNDER_REVIEW',
+      'ACCEPTED',
+      'PROCESSING',
+      'PARTIALLY_FULFILLED',
+      'READY_FOR_PICKUP',
+      'DISPATCHED',
+      'COMPLETED',
+      'REJECTED',
+      'CANCELLED',
+    ])
     .optional()
     .default('ALL'),
   search: z.string().trim().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  fulfillmentType: z.string().optional(),
+});
+
+export const patientOrderQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z
+    .enum([
+      'ALL',
+      'PENDING',
+      'UNDER_REVIEW',
+      'ACCEPTED',
+      'PROCESSING',
+      'PARTIALLY_FULFILLED',
+      'READY_FOR_PICKUP',
+      'DISPATCHED',
+      'COMPLETED',
+      'REJECTED',
+      'CANCELLED',
+    ])
+    .optional()
+    .default('ALL'),
+  search: z.string().trim().optional(),
+});
+
+export const createOrderFromPrescriptionSchema = z.object({
+  prescriptionId: z.string().regex(objectIdRegex, 'Invalid prescription ID format'),
+  pharmacyId: z.string().regex(objectIdRegex, 'Invalid pharmacy ID format').optional(),
+  fulfillmentType: fulfillmentTypeEnum.optional().default('IN_STORE_PICKUP'),
+  deliveryAddress: pharmacyAddressSchema.optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const orderReviewSchema = z.object({
+  action: z.enum(['ACCEPT', 'REJECT']),
+  reasonCode: z
+    .enum([
+      'STOCK_UNAVAILABLE',
+      'PRESCRIPTION_EXPIRED',
+      'CLINICAL_CLARIFICATION_NEEDED',
+      'DOSAGE_DISCREPANCY',
+      'OTHER',
+    ])
+    .optional(),
+  reason: z.string().trim().max(1000).optional(),
+  notes: z.string().trim().max(1000).optional(),
+  estimatedReadiness: z.string().optional(),
+});
+
+export const orderClarificationSchema = z.object({
+  notes: z.string().trim().min(3, 'Clarification note must be at least 3 characters').max(1000),
+});
+
+export const orderFulfillmentUpdateSchema = z.object({
+  dispensingRecordId: z.string().regex(objectIdRegex, 'Invalid dispensing record ID format'),
+  items: z
+    .array(
+      z.object({
+        prescriptionMedicationId: z.string().trim().min(1),
+        quantityFulfilled: z.number().int().min(1),
+        inventoryId: z.string().regex(objectIdRegex),
+        batchNumber: z.string().trim().min(1),
+      })
+    )
+    .optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const markReadyForPickupSchema = z.object({
+  pickupInstructions: z.string().trim().max(1000).optional(),
+  estimatedReadiness: z.string().optional(),
+});
+
+export const verifyPickupSchema = z.object({
+  pickupCode: z.string().trim().min(4, 'Pickup verification code is required').max(30),
+  handoverNotes: z.string().trim().max(1000).optional(),
+});
+
+export const cancelOrderSchema = z.object({
+  reason: z.string().trim().min(3, 'Cancellation reason must be at least 3 characters').max(1000),
 });
 
 export const inventoryIdParamSchema = z.object({
@@ -770,5 +867,13 @@ export type InvoiceIdParamInput = z.infer<typeof invoiceIdParamSchema>;
 export type ReplenishmentQueryInput = z.infer<typeof replenishmentQuerySchema>;
 export type UpdateReplenishmentSettingsInput = z.infer<typeof updateReplenishmentSettingsSchema>;
 export type ConvertSuggestionsToRequisitionInput = z.infer<typeof convertSuggestionsToRequisitionSchema>;
+export type CreateOrderFromPrescriptionInput = z.infer<typeof createOrderFromPrescriptionSchema>;
+export type OrderReviewInput = z.infer<typeof orderReviewSchema>;
+export type OrderClarificationInput = z.infer<typeof orderClarificationSchema>;
+export type OrderFulfillmentUpdateInput = z.infer<typeof orderFulfillmentUpdateSchema>;
+export type MarkReadyForPickupInput = z.infer<typeof markReadyForPickupSchema>;
+export type VerifyPickupInput = z.infer<typeof verifyPickupSchema>;
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
+export type PatientOrderQueryInput = z.infer<typeof patientOrderQuerySchema>;
 
 

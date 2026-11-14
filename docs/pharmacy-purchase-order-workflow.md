@@ -105,3 +105,4 @@ To prevent tampering and floating-point errors, clients are never permitted to d
 - **PO Dashboard (`/pharmacy/purchases`):** Real-time status breakdown, quick filters for actionable orders (`PENDING_APPROVAL`, `SENT_TO_SUPPLIER`).
 - **Order Form Wizard (`/pharmacy/purchases/new`):** Dynamic line-item manager, interactive supplier selector, instant catalog autocomplete, and automated MOQ and pricing validation.
 - **Order Management & Detail (`/pharmacy/purchases/[id]`):** Approval workflow controls, status transitions, printable PDF PO generation, and links to Goods Receiving.
+
