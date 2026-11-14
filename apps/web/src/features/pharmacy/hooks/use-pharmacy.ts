@@ -5,14 +5,29 @@ import type {
   PharmacyInventoryFilterDto,
   CreatePharmacyInventoryItemDto,
   CreatePharmacyOrderDto,
+  MedicineCatalogFilterDto,
+  CreateMedicineCatalogDto,
+  UpdateMedicineCatalogDto,
+  PharmacyStockInDto,
+  PharmacyStockAdjustmentDto,
+  QuarantineBatchDto,
+  ReleaseBatchDto,
+  InventoryTransactionFilterDto,
 } from '@healthbridge/shared-types';
 
 export const PHARMACY_QUERY_KEYS = {
   profile: ['pharmacy', 'profile'] as const,
   dashboardSummary: ['pharmacy', 'dashboard-summary'] as const,
+  medicines: (filter?: MedicineCatalogFilterDto) => ['pharmacy', 'medicines', filter] as const,
+  medicineDetail: (id: string) => ['pharmacy', 'medicine-detail', id] as const,
   inventory: (filter?: PharmacyInventoryFilterDto) => ['pharmacy', 'inventory', filter] as const,
   inventoryDetail: (id: string) => ['pharmacy', 'inventory-detail', id] as const,
   inventoryAlerts: ['pharmacy', 'inventory-alerts'] as const,
+  alertsSummary: ['pharmacy', 'alerts-summary'] as const,
+  inventoryAnalytics: ['pharmacy', 'inventory-analytics'] as const,
+  expiryReport: (params?: Record<string, unknown>) => ['pharmacy', 'expiry-report', params] as const,
+  transactions: (filter?: InventoryTransactionFilterDto) => ['pharmacy', 'transactions', filter] as const,
+  transactionDetail: (id: string) => ['pharmacy', 'transaction-detail', id] as const,
   prescriptions: (params?: Record<string, unknown>) => ['pharmacy', 'prescriptions', params] as const,
   prescriptionDetail: (id: string) => ['pharmacy', 'prescription-detail', id] as const,
   orders: (params?: Record<string, unknown>) => ['pharmacy', 'orders', params] as const,
@@ -53,7 +68,48 @@ export function usePharmacyDashboardSummary() {
 }
 
 /**
- * 3. Inventory Management Hooks
+ * 3. Medicine Catalogue Hooks
+ */
+export function usePharmacyMedicines(filter?: MedicineCatalogFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.medicines(filter),
+    queryFn: () => pharmacyApi.getMedicines(filter),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function usePharmacyMedicine(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.medicineDetail(id || ''),
+    queryFn: () => pharmacyApi.getMedicineById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreatePharmacyMedicine() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreateMedicineCatalogDto) => pharmacyApi.createMedicine(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'medicines'] });
+    },
+  });
+}
+
+export function useUpdatePharmacyMedicine() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateMedicineCatalogDto }) =>
+      pharmacyApi.updateMedicine(id, dto),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'medicines'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.medicineDetail(variables.id) });
+    },
+  });
+}
+
+/**
+ * 4. Inventory Management Hooks
  */
 export function usePharmacyInventory(filter?: PharmacyInventoryFilterDto) {
   return useQuery({
@@ -79,10 +135,96 @@ export function useCreatePharmacyInventoryItem() {
       queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
       queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
       queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAlerts });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.alertsSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics });
     },
   });
 }
 
+export function usePharmacyStockIn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: PharmacyStockInDto) => pharmacyApi.receiveStock(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAlerts });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.alertsSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'expiry-report'] });
+    },
+  });
+}
+
+export function usePharmacyStockAdjustment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: PharmacyStockAdjustmentDto) => pharmacyApi.adjustStock(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAlerts });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.alertsSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'expiry-report'] });
+    },
+  });
+}
+
+export function useQuarantineBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ inventoryId, dto }: { inventoryId: string; dto: QuarantineBatchDto }) =>
+      pharmacyApi.quarantineBatch(inventoryId, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.alertsSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics });
+    },
+  });
+}
+
+export function useReleaseBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ inventoryId, dto }: { inventoryId: string; dto: ReleaseBatchDto }) =>
+      pharmacyApi.releaseBatch(inventoryId, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.alertsSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics });
+    },
+  });
+}
+
+/**
+ * 5. Inventory Transaction Ledger Hooks
+ */
+export function usePharmacyTransactions(filter?: InventoryTransactionFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.transactions(filter),
+    queryFn: () => pharmacyApi.getTransactions(filter),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePharmacyTransaction(transactionId?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.transactionDetail(transactionId || ''),
+    queryFn: () => pharmacyApi.getTransactionById(transactionId!),
+    enabled: Boolean(transactionId),
+  });
+}
+
+/**
+ * 6. Analytics, Alerts & Expiry Hooks
+ */
 export function usePharmacyInventoryAlerts() {
   return useQuery({
     queryKey: PHARMACY_QUERY_KEYS.inventoryAlerts,
@@ -91,8 +233,37 @@ export function usePharmacyInventoryAlerts() {
   });
 }
 
+export function usePharmacyAlertsSummary() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.alertsSummary,
+    queryFn: () => pharmacyApi.getAlertsSummary(),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function usePharmacyInventoryAnalytics() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.inventoryAnalytics,
+    queryFn: () => pharmacyApi.getInventoryAnalytics(),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function usePharmacyExpiryReport(params?: {
+  horizon?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.expiryReport(params as Record<string, unknown>),
+    queryFn: () => pharmacyApi.getExpiryReport(params),
+    staleTime: 60 * 1000,
+  });
+}
+
 /**
- * 4. Prescription Queue Hooks
+ * 7. Prescription Queue Hooks
  */
 export function usePharmacyPrescriptionQueue(params?: {
   page?: number;
@@ -116,7 +287,7 @@ export function usePharmacyPrescriptionDetail(prescriptionId?: string) {
 }
 
 /**
- * 5. Orders Hooks
+ * 8. Orders Hooks
  */
 export function usePharmacyOrders(params?: {
   page?: number;
@@ -149,4 +320,3 @@ export function useCreatePharmacyOrder() {
     },
   });
 }
-

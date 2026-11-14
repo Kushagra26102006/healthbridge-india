@@ -10,7 +10,10 @@ export interface IPharmacyInventoryDocument extends Document {
   dosageForm: string;
   strength: string;
   manufacturer?: string;
+  supplier?: string;
+  invoiceNumber?: string;
   batchNumber: string;
+  receivedQuantity?: number;
   availableQuantity: number;
   reservedQuantity: number;
   reorderLevel: number;
@@ -21,6 +24,8 @@ export interface IPharmacyInventoryDocument extends Document {
   expiryDate: Date;
   status: InventoryStockStatus;
   rackLocation?: string;
+  isQuarantined?: boolean;
+  quarantineReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,12 +74,25 @@ const PharmacyInventorySchema = new Schema<IPharmacyInventoryDocument>(
       type: String,
       trim: true,
     },
+    supplier: {
+      type: String,
+      trim: true,
+    },
+    invoiceNumber: {
+      type: String,
+      trim: true,
+    },
     batchNumber: {
       type: String,
       required: [true, 'Batch reference number is required'],
       trim: true,
       uppercase: true,
       index: true,
+    },
+    receivedQuantity: {
+      type: Number,
+      min: [0, 'Received quantity cannot be negative'],
+      default: 0,
     },
     availableQuantity: {
       type: Number,
@@ -115,11 +133,29 @@ const PharmacyInventorySchema = new Schema<IPharmacyInventoryDocument>(
     },
     status: {
       type: String,
-      enum: ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'EXPIRED', 'DISCONTINUED'],
+      enum: [
+        'ACTIVE',
+        'IN_STOCK',
+        'LOW_STOCK',
+        'OUT_OF_STOCK',
+        'NEAR_EXPIRY',
+        'EXPIRED',
+        'QUARANTINED',
+        'DISCONTINUED',
+      ],
       default: 'IN_STOCK',
       index: true,
     },
     rackLocation: {
+      type: String,
+      trim: true,
+    },
+    isQuarantined: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    quarantineReason: {
       type: String,
       trim: true,
     },

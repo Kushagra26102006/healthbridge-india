@@ -12,6 +12,19 @@ import type {
   PharmacyPrescriptionQueueItemDto,
   PharmacyOrderDto,
   CreatePharmacyOrderDto,
+  MedicineCatalogItemDto,
+  CreateMedicineCatalogDto,
+  UpdateMedicineCatalogDto,
+  MedicineCatalogFilterDto,
+  PharmacyStockInDto,
+  PharmacyStockAdjustmentDto,
+  QuarantineBatchDto,
+  ReleaseBatchDto,
+  PharmacyInventoryTransactionDto,
+  InventoryTransactionFilterDto,
+  PharmacyExpiryReportSummaryDto,
+  PharmacyAlertsSummaryDto,
+  PharmacyInventoryAnalyticsDto,
 } from '@healthbridge/shared-types';
 
 export const pharmacyApi = {
@@ -53,7 +66,64 @@ export const pharmacyApi = {
   },
 
   /**
-   * 3. Inventory Endpoints
+   * 3. Medicine Catalogue Management Endpoints
+   */
+  async getMedicines(filter?: MedicineCatalogFilterDto): Promise<{
+    items: MedicineCatalogItemDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const res = await apiClient.get<
+      ApiResponse<{
+        items: MedicineCatalogItemDto[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >(API_ENDPOINTS.PHARMACY.MEDICINES, { params: filter });
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch medication catalogue');
+    }
+    return res.data.data;
+  },
+
+  async getMedicineById(id: string): Promise<MedicineCatalogItemDto> {
+    const res = await apiClient.get<ApiResponse<MedicineCatalogItemDto>>(
+      API_ENDPOINTS.PHARMACY.MEDICINE_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch medication details');
+    }
+    return res.data.data;
+  },
+
+  async createMedicine(dto: CreateMedicineCatalogDto): Promise<MedicineCatalogItemDto> {
+    const res = await apiClient.post<ApiResponse<MedicineCatalogItemDto>>(
+      API_ENDPOINTS.PHARMACY.MEDICINES,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to create medication catalogue item');
+    }
+    return res.data.data;
+  },
+
+  async updateMedicine(id: string, dto: UpdateMedicineCatalogDto): Promise<MedicineCatalogItemDto> {
+    const res = await apiClient.patch<ApiResponse<MedicineCatalogItemDto>>(
+      API_ENDPOINTS.PHARMACY.MEDICINE_DETAIL(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update medication catalogue item');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * 4. Inventory & Batch Management Endpoints
    */
   async getInventory(filter?: PharmacyInventoryFilterDto): Promise<{
     items: PharmacyInventoryItemDto[];
@@ -98,6 +168,88 @@ export const pharmacyApi = {
     return res.data.data;
   },
 
+  async receiveStock(dto: PharmacyStockInDto): Promise<PharmacyInventoryItemDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyInventoryItemDto>>(
+      API_ENDPOINTS.PHARMACY.STOCK_IN,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to record stock intake');
+    }
+    return res.data.data;
+  },
+
+  async adjustStock(dto: PharmacyStockAdjustmentDto): Promise<PharmacyInventoryItemDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyInventoryItemDto>>(
+      API_ENDPOINTS.PHARMACY.STOCK_ADJUSTMENT,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to adjust stock');
+    }
+    return res.data.data;
+  },
+
+  async quarantineBatch(inventoryId: string, dto: QuarantineBatchDto): Promise<PharmacyInventoryItemDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyInventoryItemDto>>(
+      API_ENDPOINTS.PHARMACY.QUARANTINE_BATCH(inventoryId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to quarantine batch');
+    }
+    return res.data.data;
+  },
+
+  async releaseBatch(inventoryId: string, dto: ReleaseBatchDto): Promise<PharmacyInventoryItemDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyInventoryItemDto>>(
+      API_ENDPOINTS.PHARMACY.RELEASE_BATCH(inventoryId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to release batch from quarantine');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * 5. Inventory Transaction Ledger (Append-Only)
+   */
+  async getTransactions(filter?: InventoryTransactionFilterDto): Promise<{
+    items: PharmacyInventoryTransactionDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const res = await apiClient.get<
+      ApiResponse<{
+        items: PharmacyInventoryTransactionDto[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >(API_ENDPOINTS.PHARMACY.TRANSACTIONS, { params: filter });
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch inventory transactions');
+    }
+    return res.data.data;
+  },
+
+  async getTransactionById(transactionId: string): Promise<PharmacyInventoryTransactionDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyInventoryTransactionDto>>(
+      API_ENDPOINTS.PHARMACY.TRANSACTION_DETAIL(transactionId)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch transaction detail');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * 6. Analytics, Alerts & Expiry Monitoring
+   */
   async getInventoryAlerts(): Promise<PharmacyInventoryAlertDto[]> {
     const res = await apiClient.get<ApiResponse<PharmacyInventoryAlertDto[]>>(
       API_ENDPOINTS.PHARMACY.INVENTORY_ALERTS
@@ -108,8 +260,44 @@ export const pharmacyApi = {
     return res.data.data;
   },
 
+  async getAlertsSummary(): Promise<PharmacyAlertsSummaryDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyAlertsSummaryDto>>(
+      API_ENDPOINTS.PHARMACY.ALERTS_SUMMARY
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch alerts summary');
+    }
+    return res.data.data;
+  },
+
+  async getInventoryAnalytics(): Promise<PharmacyInventoryAnalyticsDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyInventoryAnalyticsDto>>(
+      API_ENDPOINTS.PHARMACY.ANALYTICS
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch inventory analytics');
+    }
+    return res.data.data;
+  },
+
+  async getExpiryReport(params?: {
+    horizon?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PharmacyExpiryReportSummaryDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyExpiryReportSummaryDto>>(
+      API_ENDPOINTS.PHARMACY.EXPIRY_REPORT,
+      { params }
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch inventory expiry report');
+    }
+    return res.data.data;
+  },
+
   /**
-   * 4. Prescription Queue Endpoints
+   * 7. Prescription Queue Endpoints
    */
   async getPrescriptions(params?: {
     page?: number;
@@ -149,7 +337,7 @@ export const pharmacyApi = {
   },
 
   /**
-   * 5. Order Management Endpoints
+   * 8. Order Management Endpoints
    */
   async getOrders(params?: {
     page?: number;

@@ -9,6 +9,7 @@ import {
   PharmacyOrderModel,
   PrescriptionModel,
   PatientProfileModel,
+  PharmacyInventoryTransactionModel,
   AuditLogModel,
 } from '../../src/database/models';
 import { Types } from 'mongoose';
@@ -172,9 +173,10 @@ describe('Pharmacy Dashboard, Profile, Inventory & Prescription Queue Tests (Day
       })
     );
 
-    // 7. Mock AuditLogModel
+    // 7. Mock AuditLogModel & TransactionModel
     vi.spyOn(AuditLogModel, 'create').mockResolvedValue({} as any);
     vi.spyOn(AuditLogModel, 'find').mockImplementation(() => createQueryMock([]));
+    vi.spyOn(PharmacyInventoryTransactionModel, 'create').mockResolvedValue({} as any);
   });
 
   // =========================================================================

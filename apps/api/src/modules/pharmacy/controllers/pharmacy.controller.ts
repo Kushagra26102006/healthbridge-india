@@ -7,6 +7,14 @@ import type {
   CreatePharmacyInventoryItemDto,
   PharmacyInventoryFilterDto,
   CreatePharmacyOrderDto,
+  CreateMedicineCatalogDto,
+  UpdateMedicineCatalogDto,
+  MedicineCatalogFilterDto,
+  PharmacyStockInDto,
+  PharmacyStockAdjustmentDto,
+  QuarantineBatchDto,
+  ReleaseBatchDto,
+  InventoryTransactionFilterDto,
 } from '@healthbridge/shared-types';
 
 export class PharmacyController {
@@ -52,6 +60,69 @@ export class PharmacyController {
     }
   }
 
+  /* ==========================================================================
+     MEDICINE CATALOGUE MANAGEMENT
+     ========================================================================== */
+
+  /**
+   * GET /api/v1/pharmacy/medicines
+   */
+  async getMedicines(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await pharmacyService.getMedicines(
+        req.query as unknown as MedicineCatalogFilterDto
+      );
+      sendSuccess(res, result, 'Medication catalogue retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/medicines/:id
+   */
+  async getMedicineById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await pharmacyService.getMedicineById(req.params.id as string);
+      sendSuccess(res, item, 'Medication catalogue item retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/medicines
+   */
+  async createMedicine(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await pharmacyService.createMedicine(
+        req.body as CreateMedicineCatalogDto
+      );
+      sendSuccess(res, item, 'Medication catalogue item created successfully', HttpStatus.CREATED);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/pharmacy/medicines/:id
+   */
+  async updateMedicine(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await pharmacyService.updateMedicine(
+        req.params.id as string,
+        req.body as UpdateMedicineCatalogDto
+      );
+      sendSuccess(res, item, 'Medication catalogue item updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     INVENTORY & BATCH MANAGEMENT
+     ========================================================================== */
+
   /**
    * GET /api/v1/pharmacy/inventory
    */
@@ -76,6 +147,48 @@ export class PharmacyController {
       const userId = req.user!.userId;
       const summary = await pharmacyService.getDashboardSummary(userId);
       sendSuccess(res, summary.inventoryAlerts, 'Inventory alerts retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/inventory/alerts-summary
+   */
+  async getAlertsSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const summary = await pharmacyService.getAlertsSummary(userId);
+      sendSuccess(res, summary, 'Detailed inventory alerts retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/inventory/analytics
+   */
+  async getInventoryAnalytics(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const analytics = await pharmacyService.getInventoryAnalytics(userId);
+      sendSuccess(res, analytics, 'Inventory analytics retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/inventory/expiry-report
+   */
+  async getExpiryReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const report = await pharmacyService.getExpiryReport(
+        userId,
+        req.query as any
+      );
+      sendSuccess(res, report, 'Inventory expiry report retrieved successfully');
     } catch (error) {
       next(error);
     }
@@ -112,6 +225,112 @@ export class PharmacyController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/v1/pharmacy/inventory/stock-in
+   */
+  async receiveStock(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const item = await pharmacyService.receiveStock(
+        userId,
+        req.body as PharmacyStockInDto
+      );
+      sendSuccess(res, item, 'Stock received and inventory updated successfully', HttpStatus.CREATED);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/inventory/stock-adjustment
+   */
+  async adjustStock(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const item = await pharmacyService.adjustStock(
+        userId,
+        req.body as PharmacyStockAdjustmentDto
+      );
+      sendSuccess(res, item, 'Inventory stock adjusted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/inventory/batches/:inventoryId/quarantine
+   */
+  async quarantineBatch(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const item = await pharmacyService.quarantineBatch(
+        userId,
+        req.params.inventoryId as string,
+        req.body as QuarantineBatchDto
+      );
+      sendSuccess(res, item, 'Batch quarantined successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/inventory/batches/:inventoryId/release
+   */
+  async releaseBatch(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const item = await pharmacyService.releaseQuarantinedBatch(
+        userId,
+        req.params.inventoryId as string,
+        req.body as ReleaseBatchDto
+      );
+      sendSuccess(res, item, 'Batch released from quarantine successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     INVENTORY TRANSACTION LEDGER
+     ========================================================================== */
+
+  /**
+   * GET /api/v1/pharmacy/inventory/transactions
+   */
+  async getTransactions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const transactions = await pharmacyService.getTransactions(
+        userId,
+        req.query as unknown as InventoryTransactionFilterDto
+      );
+      sendSuccess(res, transactions, 'Inventory transaction ledger retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/inventory/transactions/:transactionId
+   */
+  async getTransactionById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const transaction = await pharmacyService.getTransactionById(
+        userId,
+        req.params.transactionId as string
+      );
+      sendSuccess(res, transaction, 'Transaction detail retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     PRESCRIPTIONS & ORDERS
+     ========================================================================== */
 
   /**
    * GET /api/v1/pharmacy/prescriptions

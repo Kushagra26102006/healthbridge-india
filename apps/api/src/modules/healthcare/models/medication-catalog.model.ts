@@ -8,11 +8,17 @@ export interface IMedicationCatalogDocument extends Document {
   strength: string;
   route: string;
   manufacturer: string;
+  category?: string;
+  composition?: string;
+  packSize?: string;
+  unitOfMeasurement?: string;
   packageSize: string;
   schedule: string;
   therapeuticClass?: string;
   standardDosageUnit: string;
+  description?: string;
   instructionsHint?: string;
+  requiresPrescription: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -76,6 +82,34 @@ const MedicationCatalogSchema = new Schema<IMedicationCatalogDocument>(
       trim: true,
       index: true,
     },
+    category: {
+      type: String,
+      trim: true,
+      default: 'General',
+      index: true,
+    },
+    composition: {
+      type: String,
+      trim: true,
+    },
+    packSize: {
+      type: String,
+      trim: true,
+    },
+    unitOfMeasurement: {
+      type: String,
+      default: 'tablet',
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    requiresPrescription: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
     standardDosageUnit: {
       type: String,
       default: 'tablet',
@@ -107,6 +141,7 @@ const MedicationCatalogSchema = new Schema<IMedicationCatalogDocument>(
 );
 
 MedicationCatalogSchema.index({ genericName: 1, brandName: 1 });
+MedicationCatalogSchema.index({ brandName: 1, strength: 1, dosageForm: 1, manufacturer: 1 }, { unique: true });
 MedicationCatalogSchema.index({ dosageForm: 1, isActive: 1 });
 
 export const MedicationCatalogModel: Model<IMedicationCatalogDocument> =

@@ -1,104 +1,229 @@
 'use client';
 
 import React, { useState } from 'react';
-import { usePharmacyInventory } from '@/features/pharmacy/hooks/use-pharmacy';
-import { InventoryTable, CreateInventoryModal } from '@/components/pharmacy';
+import Link from 'next/link';
 import {
   Package,
-  Plus,
   RefreshCw,
+  BookOpen,
+  Boxes,
+  ArrowDownToLine,
+  SlidersHorizontal,
+  History,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
+import {
+  usePharmacyInventory,
+  usePharmacyInventoryAnalytics,
+  useQuarantineBatch,
+  useReleaseBatch,
+} from '@/features/pharmacy/hooks/use-pharmacy';
+import {
+  InventorySummaryCards,
+  InventoryAnalyticsCharts,
+  BatchTable,
+  BatchDetailsModal,
+  StockAdjustmentForm,
+} from '@/components/pharmacy';
+import { Button } from '@/components/ui/button';
+import type { PharmacyInventoryItemDto } from '@healthbridge/shared-types';
 
 export default function PharmacyInventoryPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { data: inventory, isLoading, refetch } = usePharmacyInventory();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [selectedBatch, setSelectedBatch] = useState<PharmacyInventoryItemDto | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [adjustBatchId, setAdjustBatchId] = useState<string | undefined>();
 
-  const items = inventory?.items || [];
-  const inStockCount = items.filter((i) => i.status === 'IN_STOCK').length;
-  const lowStockCount = items.filter((i) => i.status === 'LOW_STOCK').length;
-  const expiredCount = items.filter((i) => i.isExpired || i.status === 'EXPIRED').length;
+  const { data: analytics, isLoading: isAnalyticsLoading, refetch: refetchAnalytics } =
+    usePharmacyInventoryAnalytics();
+
+  const { data: inventory, isLoading: isInventoryLoading, refetch: refetchInventory } =
+    usePharmacyInventory({
+      page,
+      limit: 10,
+      search: search || undefined,
+      status: status !== 'ALL' ? (status as any) : undefined,
+    });
+
+  const quarantineMutation = useQuarantineBatch();
+  const releaseMutation = useReleaseBatch();
+
+  const handleRefresh = () => {
+    refetchAnalytics();
+    refetchInventory();
+  };
+
+  const handleSelectBatch = (batch: PharmacyInventoryItemDto) => {
+    setSelectedBatch(batch);
+    setIsDetailOpen(true);
+  };
+
+  const handleAdjustBatch = (batch: PharmacyInventoryItemDto) => {
+    setAdjustBatchId(batch.id);
+    setIsAdjustModalOpen(true);
+  };
+
+  const handleQuarantine = async (batch: PharmacyInventoryItemDto) => {
+    const reason = prompt(`Enter quarantine reason for batch ${batch.batchNumber}:`, 'Quality investigation hold');
+    if (reason && reason.trim().length >= 3) {
+      await quarantineMutation.mutateAsync({
+        inventoryId: batch.id,
+        dto: { reason: reason.trim() },
+      });
+      handleRefresh();
+    }
+  };
+
+  const handleRelease = async (batch: PharmacyInventoryItemDto) => {
+    const reason = prompt(`Enter release authorization reason for batch ${batch.batchNumber}:`, 'Quality clearance verified');
+    if (reason && reason.trim().length >= 3) {
+      await releaseMutation.mutateAsync({
+        inventoryId: batch.id,
+        dto: { reason: reason.trim() },
+      });
+      handleRefresh();
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sky-600 mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1">
             <Package className="w-3.5 h-3.5" />
-            <span>Medication Supply Chain</span>
+            <span>Medication Inventory &amp; Supply Chain</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Pharmacy Inventory & Batch Control
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+            Pharmacy Inventory Management
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Maintain accurate batch records, monitor expiry horizons, and prevent stockouts under CDSCO standards.
+            CDSCO compliant batch tracking, automated valuation, shelf-life monitoring, and immutable ledger control.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => refetch()}
-            className="p-2 border border-slate-300 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors cursor-pointer"
-            title="Refresh Inventory"
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="text-xs h-9 gap-1.5"
+            title="Refresh inventory metrics"
           >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Add Stock Batch
-          </button>
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </Button>
+          <Link href="/pharmacy/inventory/stock-adjustment">
+            <Button variant="outline" size="sm" className="text-xs h-9 gap-1.5">
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust Stock
+            </Button>
+          </Link>
+          <Link href="/pharmacy/inventory/stock-in">
+            <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-9 gap-1.5">
+              <ArrowDownToLine className="w-3.5 h-3.5" /> Stock-In
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Metric Highlights */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-medium text-slate-500">Total Batches</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">
-            {items.length}
+      {/* Quick Navigation Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+        <Link href="/pharmacy/inventory/medicines">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-teal-500 hover:text-teal-600 transition-colors shrink-0">
+            <BookOpen className="w-3.5 h-3.5 text-teal-500" /> Medicine Catalogue
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Tracked units</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-medium text-slate-500">In Stock</div>
-          <div className="text-xl font-bold text-emerald-600 mt-1">
-            {inStockCount}
+        </Link>
+        <Link href="/pharmacy/inventory/batches">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-teal-500 hover:text-teal-600 transition-colors shrink-0">
+            <Boxes className="w-3.5 h-3.5 text-blue-500" /> All Batches
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Adequate supply</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-medium text-slate-500">Low Stock</div>
-          <div className="text-xl font-bold text-amber-600 mt-1">
-            {lowStockCount}
+        </Link>
+        <Link href="/pharmacy/inventory/expiry">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-teal-500 hover:text-teal-600 transition-colors shrink-0">
+            <Clock className="w-3.5 h-3.5 text-amber-500" /> Expiry Horizons
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Needs reorder</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-medium text-slate-500">Expired Batches</div>
-          <div className="text-xl font-bold text-rose-600 mt-1">
-            {expiredCount}
+        </Link>
+        <Link href="/pharmacy/inventory/alerts">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-teal-500 hover:text-teal-600 transition-colors shrink-0">
+            <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Stock Alerts
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Non-dispensable</div>
-        </div>
+        </Link>
+        <Link href="/pharmacy/inventory/transactions">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-teal-500 hover:text-teal-600 transition-colors shrink-0">
+            <History className="w-3.5 h-3.5 text-purple-500" /> Audit Ledger
+          </div>
+        </Link>
       </div>
 
-      {/* Main Inventory Table */}
-      <InventoryTable
-        items={items}
-        isLoading={isLoading}
-        onRefresh={() => refetch()}
-        onOpenCreate={() => setIsModalOpen(true)}
+      {/* 8 Summary Metric Cards */}
+      <InventorySummaryCards analytics={analytics} isLoading={isAnalyticsLoading} />
+
+      {/* Financial Valuation & Distribution Charts */}
+      <InventoryAnalyticsCharts analytics={analytics} isLoading={isAnalyticsLoading} />
+
+      {/* Main Batches Table Preview */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Boxes className="w-4 h-4 text-teal-600" />
+            Inventory Batch Explorer
+          </h2>
+          <Link href="/pharmacy/inventory/batches" className="text-xs text-teal-600 hover:underline font-medium">
+            View All Batches →
+          </Link>
+        </div>
+
+        <BatchTable
+          batches={inventory?.items || []}
+          total={inventory?.total || 0}
+          page={page}
+          limit={10}
+          isLoading={isInventoryLoading}
+          search={search}
+          status={status}
+          onSearchChange={(val) => {
+            setSearch(val);
+            setPage(1);
+          }}
+          onStatusChange={(st) => {
+            setStatus(st);
+            setPage(1);
+          }}
+          onPageChange={(p) => setPage(p)}
+          onSelectBatch={handleSelectBatch}
+          onAdjustBatch={handleAdjustBatch}
+          onQuarantineBatch={handleQuarantine}
+          onReleaseBatch={handleRelease}
+        />
+      </div>
+
+      {/* Batch Details Modal */}
+      <BatchDetailsModal
+        batch={selectedBatch}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onAdjust={handleAdjustBatch}
+        onQuarantine={handleQuarantine}
+        onRelease={handleRelease}
       />
 
-      {/* Create Modal */}
-      <CreateInventoryModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => refetch()}
-      />
+      {/* Stock Adjustment Modal */}
+      {isAdjustModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <StockAdjustmentForm
+              initialInventoryId={adjustBatchId}
+              onSuccess={() => {
+                setIsAdjustModalOpen(false);
+                handleRefresh();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -126,3 +126,4 @@ The integration test suite in `apps/api/tests/integration/pharmacy-dashboard.tes
 
 ### 5. Scope Boundary Compliance
 Day 5 Task 01 is strictly bounded to the pharmacy portal foundation, dashboard architecture, statutory profile management, inventory catalog overview, prescription queue viewing, and initial order foundations. As directed, detailed dispensing workflows, barcode scanning, and external payment gateway integrations have not been started and are reserved for Day 5 Task 02.
+

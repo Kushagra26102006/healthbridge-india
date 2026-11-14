@@ -7,6 +7,13 @@ import {
   LayoutDashboard,
   Pill,
   Package,
+  BookOpen,
+  Boxes,
+  ArrowDownToLine,
+  SlidersHorizontal,
+  History,
+  Clock,
+  AlertTriangle,
   ShoppingCart,
   CheckCircle2,
   Bell,
@@ -27,17 +34,40 @@ export interface PharmacyNavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  section?: string;
 }
 
-export const PHARMACY_NAV_ITEMS: PharmacyNavItem[] = [
-  { label: 'Dashboard', href: '/pharmacy/dashboard', icon: LayoutDashboard },
-  { label: 'Prescription Queue', href: '/pharmacy/prescriptions', icon: Pill },
-  { label: 'Inventory', href: '/pharmacy/inventory', icon: Package },
-  { label: 'Orders & Fulfillment', href: '/pharmacy/orders', icon: ShoppingCart },
-  { label: 'Dispensing Records', href: '/pharmacy/dispensing', icon: CheckCircle2 },
-  { label: 'Notifications', href: '/pharmacy/notifications', icon: Bell },
-  { label: 'Pharmacy Profile', href: '/pharmacy/profile', icon: Building2 },
-  { label: 'Settings', href: '/pharmacy/settings', icon: Settings },
+export const PHARMACY_NAV_SECTIONS = [
+  {
+    title: 'Clinical Operations',
+    items: [
+      { label: 'Dashboard', href: '/pharmacy/dashboard', icon: LayoutDashboard },
+      { label: 'Prescription Queue', href: '/pharmacy/prescriptions', icon: Pill },
+      { label: 'Orders & Fulfillment', href: '/pharmacy/orders', icon: ShoppingCart },
+      { label: 'Dispensing Records', href: '/pharmacy/dispensing', icon: CheckCircle2 },
+    ],
+  },
+  {
+    title: 'Inventory & Stock Management',
+    items: [
+      { label: 'Inventory Overview', href: '/pharmacy/inventory', icon: Package },
+      { label: 'Medicine Catalogue', href: '/pharmacy/inventory/medicines', icon: BookOpen },
+      { label: 'Batch Management', href: '/pharmacy/inventory/batches', icon: Boxes },
+      { label: 'Stock-In / Receiving', href: '/pharmacy/inventory/stock-in', icon: ArrowDownToLine },
+      { label: 'Stock Adjustment', href: '/pharmacy/inventory/stock-adjustment', icon: SlidersHorizontal },
+      { label: 'Transaction Ledger', href: '/pharmacy/inventory/transactions', icon: History },
+      { label: 'Expiry Tracking', href: '/pharmacy/inventory/expiry', icon: Clock },
+      { label: 'Stock Alerts', href: '/pharmacy/inventory/alerts', icon: AlertTriangle },
+    ],
+  },
+  {
+    title: 'Organization & Account',
+    items: [
+      { label: 'Notifications', href: '/pharmacy/notifications', icon: Bell },
+      { label: 'Pharmacy Profile', href: '/pharmacy/profile', icon: Building2 },
+      { label: 'Settings', href: '/pharmacy/settings', icon: Settings },
+    ],
+  },
 ];
 
 export interface PharmacySidebarProps {
@@ -62,13 +92,16 @@ export function PharmacySidebar({
     if (href === '/pharmacy/dashboard') {
       return pathname === '/pharmacy/dashboard' || pathname === '/pharmacy';
     }
+    if (href === '/pharmacy/inventory') {
+      return pathname === '/pharmacy/inventory';
+    }
     return pathname.startsWith(href);
   };
 
   const navContent = (
     <div className="flex flex-col h-full bg-slate-900 text-slate-100 border-r border-slate-800">
       {/* Brand Header */}
-      <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800">
+      <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800 shrink-0">
         <Link href="/pharmacy/dashboard" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform">
             <Pill className="w-5 h-5 text-slate-950" />
@@ -97,7 +130,7 @@ export function PharmacySidebar({
 
       {/* Verified Badge Pill */}
       {!collapsed && (
-        <div className="px-4 py-3 border-b border-slate-800/80 bg-slate-950/40">
+        <div className="px-4 py-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0">
           <div className="flex items-center gap-2 text-xs text-slate-300">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className="truncate font-medium">{user?.name || 'Verified Pharmacy'}</span>
@@ -112,43 +145,47 @@ export function PharmacySidebar({
       )}
 
       {/* Nav Menu Items */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800">
-        {PHARMACY_NAV_ITEMS.map((item) => {
-          const active = isLinkActive(item.href);
-          const Icon = item.icon;
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
+        {PHARMACY_NAV_SECTIONS.map((section, sIdx) => (
+          <div key={sIdx} className="space-y-1">
+            {!collapsed && (
+              <p className="px-3 text-[10px] font-semibold tracking-wider uppercase text-slate-400/90 mb-1.5">
+                {section.title}
+              </p>
+            )}
+            {section.items.map((item) => {
+              const active = isLinkActive(item.href);
+              const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onCloseMobile}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 group',
-                active
-                  ? 'bg-gradient-to-r from-teal-500/20 to-teal-500/5 text-teal-300 border-l-4 border-teal-400 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-              )}
-              title={collapsed ? item.label : undefined}
-            >
-              <Icon
-                className={cn(
-                  'w-5 h-5 shrink-0 transition-colors',
-                  active ? 'text-teal-400' : 'text-slate-400 group-hover:text-slate-200'
-                )}
-              />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-              {!collapsed && item.badge && (
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-mono">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onCloseMobile}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-xs md:text-sm transition-all duration-150 group',
+                    active
+                      ? 'bg-gradient-to-r from-teal-500/20 to-teal-500/5 text-teal-300 border-l-4 border-teal-400 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                  )}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon
+                    className={cn(
+                      'w-4 h-4 shrink-0 transition-colors',
+                      active ? 'text-teal-400' : 'text-slate-400 group-hover:text-slate-200'
+                    )}
+                  />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Bottom Footer Area */}
-      <div className="p-3 border-t border-slate-800 space-y-2">
+      <div className="p-3 border-t border-slate-800 space-y-2 shrink-0">
         {onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
@@ -214,4 +251,3 @@ export function PharmacySidebar({
   );
 }
 export default PharmacySidebar;
-

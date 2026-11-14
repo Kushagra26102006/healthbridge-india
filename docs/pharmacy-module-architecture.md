@@ -145,3 +145,4 @@ The Pharmacy Portal interface is built using Next.js App Router, Tailwind CSS, L
   - `/pharmacy/dispensing` -> Foundation console explaining batch deduction workflows and preparing for Task 02.
   - `/pharmacy/notifications` -> Real-time alert list highlighting near-expiry batches and stock deficits.
   - `/pharmacy/settings` -> Configuration hub linking to profile, notifications, and central IAM authentication.
+
