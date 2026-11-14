@@ -145,3 +145,4 @@ New test file `apps/api/tests/integration/pharmacy-dispensing-workflow.test.ts` 
 4. **Append-Only Financial & Stock Ledger:**
    - Every stock deduction creates an un-editable ledger transaction with previous quantity, new quantity, dispensing number, and timestamp.
    - Cancellations do not delete records; they append compensating transactions.
+

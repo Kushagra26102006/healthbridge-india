@@ -24,6 +24,9 @@ import {
   ChevronRight,
   X,
   ShieldCheck,
+  Truck,
+  FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +62,15 @@ export const PHARMACY_NAV_SECTIONS = [
       { label: 'Transaction Ledger', href: '/pharmacy/inventory/transactions', icon: History },
       { label: 'Expiry Tracking', href: '/pharmacy/inventory/expiry', icon: Clock },
       { label: 'Stock Alerts', href: '/pharmacy/inventory/alerts', icon: AlertTriangle },
+    ],
+  },
+  {
+    title: 'Procurement & Purchasing',
+    items: [
+      { label: 'Suppliers', href: '/pharmacy/suppliers', icon: Truck },
+      { label: 'Purchase Orders', href: '/pharmacy/purchases', icon: FileSpreadsheet },
+      { label: 'Goods Receipts (GRN)', href: '/pharmacy/purchases/history', icon: ArrowDownToLine },
+      { label: 'Stock Replenishment', href: '/pharmacy/replenishment', icon: RefreshCw },
     ],
   },
   {

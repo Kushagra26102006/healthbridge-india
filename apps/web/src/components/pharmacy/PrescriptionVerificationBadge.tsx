@@ -129,3 +129,4 @@ export function PrescriptionVerificationBadge({
 }
 
 export default PrescriptionVerificationBadge;
+

@@ -325,3 +325,4 @@ DispensingRecordSchema.index({ pharmacyId: 1, idempotencyKey: 1 }, { unique: tru
 export const DispensingRecordModel: Model<IDispensingRecordDocument> =
   mongoose.models.DispensingRecord ||
   mongoose.model<IDispensingRecordDocument>('DispensingRecord', DispensingRecordSchema);
+

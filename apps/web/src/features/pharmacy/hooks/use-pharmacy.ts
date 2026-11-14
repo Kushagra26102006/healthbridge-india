@@ -16,6 +16,28 @@ import type {
   DispensePrescriptionDto,
   DispensingFilterDto,
   CancelDispensingDto,
+  SupplierFilterDto,
+  CreateSupplierDto,
+  UpdateSupplierDto,
+  SupplierProductFilterDto,
+  CreateSupplierProductDto,
+  UpdateSupplierProductDto,
+  RequisitionFilterDto,
+  CreatePurchaseRequisitionDto,
+  UpdatePurchaseRequisitionDto,
+  PurchaseOrderFilterDto,
+  CreatePurchaseOrderDto,
+  UpdatePurchaseOrderDto,
+  ApprovePurchaseOrderDto,
+  RejectPurchaseOrderDto,
+  GoodsReceiptFilterDto,
+  ReceiveGoodsDto,
+  InvoiceFilterDto,
+  CreatePurchaseInvoiceDto,
+  UpdatePurchaseInvoiceDto,
+  ReplenishmentFilterDto,
+  ConvertSuggestionsToRequisitionDto,
+  UpdateReplenishmentSettingsDto,
 } from '@healthbridge/shared-types';
 
 export const PHARMACY_QUERY_KEYS = {
@@ -40,6 +62,22 @@ export const PHARMACY_QUERY_KEYS = {
   dispensingReceipt: (id: string) => ['pharmacy', 'dispensing', id, 'receipt'] as const,
   orders: (params?: Record<string, unknown>) => ['pharmacy', 'orders', params] as const,
   orderDetail: (id: string) => ['pharmacy', 'order-detail', id] as const,
+  // Day 5 Task 04: Procurement Keys
+  suppliers: (filter?: SupplierFilterDto) => ['pharmacy', 'suppliers', filter] as const,
+  supplierDetail: (id: string) => ['pharmacy', 'suppliers', id] as const,
+  supplierHistory: (id: string) => ['pharmacy', 'suppliers', id, 'history'] as const,
+  supplierProducts: (filter?: SupplierProductFilterDto) => ['pharmacy', 'supplier-products', filter] as const,
+  requisitions: (filter?: RequisitionFilterDto) => ['pharmacy', 'requisitions', filter] as const,
+  requisitionDetail: (id: string) => ['pharmacy', 'requisitions', id] as const,
+  purchases: (filter?: PurchaseOrderFilterDto) => ['pharmacy', 'purchases', filter] as const,
+  purchaseDetail: (id: string) => ['pharmacy', 'purchases', id] as const,
+  goodsReceipts: (filter?: GoodsReceiptFilterDto) => ['pharmacy', 'goods-receipts', filter] as const,
+  goodsReceiptDetail: (id: string) => ['pharmacy', 'goods-receipts', id] as const,
+  invoices: (filter?: InvoiceFilterDto) => ['pharmacy', 'invoices', filter] as const,
+  invoiceDetail: (id: string) => ['pharmacy', 'invoices', id] as const,
+  replenishmentSuggestions: (filter?: ReplenishmentFilterDto) => ['pharmacy', 'replenishment-suggestions', filter] as const,
+  replenishmentSettings: ['pharmacy', 'replenishment-settings'] as const,
+  procurementMetrics: ['pharmacy', 'procurement-metrics'] as const,
 };
 
 /**
@@ -400,5 +438,420 @@ export function useCancelPharmacyDispensing() {
       queryClient.invalidateQueries({ queryKey: ['pharmacy', 'prescriptions'] });
       queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
     },
+  });
+}
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 04: SUPPLIER MANAGEMENT HOOKS
+ * ============================================================================
+ */
+
+export function useSuppliers(params?: SupplierFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.suppliers(params),
+    queryFn: () => pharmacyApi.getSuppliers(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useSupplier(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.supplierDetail(id || ''),
+    queryFn: () => pharmacyApi.getSupplierById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreateSupplierDto) => pharmacyApi.createSupplier(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'suppliers'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useUpdateSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateSupplierDto }) =>
+      pharmacyApi.updateSupplier(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'suppliers'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.supplierDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useSupplierPurchaseHistory(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.supplierHistory(id || ''),
+    queryFn: () => pharmacyApi.getSupplierPurchaseHistory(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useSupplierProducts(params?: SupplierProductFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.supplierProducts(params),
+    queryFn: () => pharmacyApi.getSupplierProducts(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useAddSupplierProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreateSupplierProductDto) => pharmacyApi.addSupplierProduct(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'supplier-products'] });
+    },
+  });
+}
+
+export function useUpdateSupplierProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, dto }: { productId: string; dto: UpdateSupplierProductDto }) =>
+      pharmacyApi.updateSupplierProduct(productId, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'supplier-products'] });
+    },
+  });
+}
+
+export function useDeleteSupplierProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (productId: string) => pharmacyApi.deleteSupplierProduct(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'supplier-products'] });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * PURCHASE REQUISITIONS HOOKS
+ * ============================================================================
+ */
+
+export function useRequisitions(params?: RequisitionFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.requisitions(params),
+    queryFn: () => pharmacyApi.getRequisitions(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useRequisition(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.requisitionDetail(id || ''),
+    queryFn: () => pharmacyApi.getRequisitionById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateRequisition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreatePurchaseRequisitionDto) => pharmacyApi.createRequisition(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'requisitions'] });
+    },
+  });
+}
+
+export function useUpdateRequisition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdatePurchaseRequisitionDto }) =>
+      pharmacyApi.updateRequisition(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'requisitions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.requisitionDetail(variables.id) });
+    },
+  });
+}
+
+export function useApproveRequisition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, approvalNotes }: { id: string; approvalNotes?: string }) =>
+      pharmacyApi.approveRequisition(id, approvalNotes),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'requisitions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.requisitionDetail(variables.id) });
+    },
+  });
+}
+
+export function useConvertRequisitionToPO() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, supplierId }: { id: string; supplierId: string }) =>
+      pharmacyApi.convertRequisitionToPO(id, supplierId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'requisitions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.requisitionDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * PURCHASE ORDER HOOKS
+ * ============================================================================
+ */
+
+export function usePurchaseOrders(params?: PurchaseOrderFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.purchases(params),
+    queryFn: () => pharmacyApi.getPurchaseOrders(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePurchaseOrder(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(id || ''),
+    queryFn: () => pharmacyApi.getPurchaseOrderById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreatePurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreatePurchaseOrderDto) => pharmacyApi.createPurchaseOrder(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useUpdatePurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdatePurchaseOrderDto }) =>
+      pharmacyApi.updatePurchaseOrder(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(variables.id) });
+    },
+  });
+}
+
+export function useSubmitPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pharmacyApi.submitPOForApproval(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useApprovePurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto?: ApprovePurchaseOrderDto }) =>
+      pharmacyApi.approvePurchaseOrder(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useRejectPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: RejectPurchaseOrderDto }) =>
+      pharmacyApi.rejectPurchaseOrder(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useSendPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pharmacyApi.sendPurchaseOrderToSupplier(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useCancelPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      pharmacyApi.cancelPurchaseOrder(id, reason),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * GOODS RECEIVING (GRN) HOOKS
+ * ============================================================================
+ */
+
+export function useGoodsReceipts(params?: GoodsReceiptFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.goodsReceipts(params),
+    queryFn: () => pharmacyApi.getGoodsReceipts(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useGoodsReceipt(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.goodsReceiptDetail(id || ''),
+    queryFn: () => pharmacyApi.getGoodsReceiptById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useReceiveGoods() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ poId, dto }: { poId: string; dto: ReceiveGoodsDto }) =>
+      pharmacyApi.receiveGoods(poId, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'goods-receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'purchases'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.purchaseDetail(variables.poId) });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * PURCHASE INVOICE HOOKS
+ * ============================================================================
+ */
+
+export function usePurchaseInvoices(params?: InvoiceFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.invoices(params),
+    queryFn: () => pharmacyApi.getPurchaseInvoices(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePurchaseInvoice(id?: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.invoiceDetail(id || ''),
+    queryFn: () => pharmacyApi.getPurchaseInvoiceById(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreatePurchaseInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreatePurchaseInvoiceDto) => pharmacyApi.createPurchaseInvoice(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'invoices'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+export function useUpdatePurchaseInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdatePurchaseInvoiceDto }) =>
+      pharmacyApi.updatePurchaseInvoice(id, dto),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'invoices'] });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.invoiceDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.procurementMetrics });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * STOCK REPLENISHMENT & SETTINGS HOOKS
+ * ============================================================================
+ */
+
+export function useReplenishmentSuggestions(params?: ReplenishmentFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.replenishmentSuggestions(params),
+    queryFn: () => pharmacyApi.getReplenishmentSuggestions(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useConvertSuggestionsToRequisition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: ConvertSuggestionsToRequisitionDto) =>
+      pharmacyApi.convertSuggestionsToRequisition(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'requisitions'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'replenishment-suggestions'] });
+    },
+  });
+}
+
+export function useReplenishmentSettings() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.replenishmentSettings,
+    queryFn: () => pharmacyApi.getReplenishmentSettings(),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdateReplenishmentSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: UpdateReplenishmentSettingsDto) => pharmacyApi.updateReplenishmentSettings(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.replenishmentSettings });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'replenishment-suggestions'] });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * PROCUREMENT METRICS HOOK
+ * ============================================================================
+ */
+
+export function useProcurementMetrics() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.procurementMetrics,
+    queryFn: () => pharmacyApi.getProcurementMetrics(),
+    staleTime: 30 * 1000,
   });
 }

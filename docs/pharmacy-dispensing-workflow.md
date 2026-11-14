@@ -134,3 +134,4 @@ If a patient cancels an order or returns medication prior to physical departure:
   - If `quarantineRestoredStock: true`, tags batch as `QUARANTINED` with `quarantineReason: reason` for QA inspection.
   - Appends `STOCK_ADJUSTED` or `STOCK_QUARANTINED` ledger entry.
 - Resets prescription status back to `'ACTIVE'` if previously marked `'DISPENSED'`.
+

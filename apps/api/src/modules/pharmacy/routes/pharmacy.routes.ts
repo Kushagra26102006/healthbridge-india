@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { pharmacyController } from '../controllers/pharmacy.controller';
+import { procurementController } from '../controllers/procurement.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 import { validateRequest } from '../../../middleware/validate';
@@ -29,6 +30,34 @@ import {
   dispensingQuerySchema,
   dispensingIdParamSchema,
   cancelDispensingSchema,
+  createSupplierSchema,
+  updateSupplierSchema,
+  supplierQuerySchema,
+  supplierIdParamSchema,
+  createSupplierProductSchema,
+  updateSupplierProductSchema,
+  supplierProductQuerySchema,
+  supplierProductIdParamSchema,
+  createPurchaseRequisitionSchema,
+  updatePurchaseRequisitionSchema,
+  requisitionQuerySchema,
+  requisitionIdParamSchema,
+  createPurchaseOrderSchema,
+  updatePurchaseOrderSchema,
+  purchaseOrderQuerySchema,
+  purchaseOrderIdParamSchema,
+  approvePurchaseOrderSchema,
+  rejectPurchaseOrderSchema,
+  receiveGoodsSchema,
+  goodsReceiptQuerySchema,
+  goodsReceiptIdParamSchema,
+  createPurchaseInvoiceSchema,
+  updatePurchaseInvoiceSchema,
+  invoiceQuerySchema,
+  invoiceIdParamSchema,
+  replenishmentQuerySchema,
+  updateReplenishmentSettingsSchema,
+  convertSuggestionsToRequisitionSchema,
 } from '@healthbridge/validation';
 
 export const pharmacyRoutes = Router();
@@ -406,6 +435,390 @@ pharmacyRoutes.get(
   '/orders/:orderId',
   validateRequest({ params: orderIdParamSchema }),
   (req, res, next) => pharmacyController.getOrderById(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: SUPPLIER MANAGEMENT ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/suppliers
+ * @desc    List suppliers with search, status and type filtering
+ */
+pharmacyRoutes.get(
+  '/suppliers',
+  validateRequest({ query: supplierQuerySchema }),
+  (req, res, next) => procurementController.getSuppliers(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/suppliers
+ * @desc    Create new supplier
+ */
+pharmacyRoutes.post(
+  '/suppliers',
+  validateRequest({ body: createSupplierSchema }),
+  (req, res, next) => procurementController.createSupplier(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/suppliers/products
+ * @desc    List supplier product catalog items
+ */
+pharmacyRoutes.get(
+  '/suppliers/products',
+  validateRequest({ query: supplierProductQuerySchema }),
+  (req, res, next) => procurementController.getSupplierProducts(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/suppliers/products
+ * @desc    Add supplier product mapping
+ */
+pharmacyRoutes.post(
+  '/suppliers/products',
+  validateRequest({ body: createSupplierProductSchema }),
+  (req, res, next) => procurementController.addSupplierProduct(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/suppliers/products/:productId
+ * @desc    Update supplier product pricing or details
+ */
+pharmacyRoutes.patch(
+  '/suppliers/products/:productId',
+  validateRequest({ params: supplierProductIdParamSchema, body: updateSupplierProductSchema }),
+  (req, res, next) => procurementController.updateSupplierProduct(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/pharmacy/suppliers/products/:productId
+ * @desc    Delete supplier product mapping
+ */
+pharmacyRoutes.delete(
+  '/suppliers/products/:productId',
+  validateRequest({ params: supplierProductIdParamSchema }),
+  (req, res, next) => procurementController.deleteSupplierProduct(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/suppliers/:id
+ * @desc    Get detailed supplier info
+ */
+pharmacyRoutes.get(
+  '/suppliers/:id',
+  validateRequest({ params: supplierIdParamSchema }),
+  (req, res, next) => procurementController.getSupplierById(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/suppliers/:id
+ * @desc    Update supplier details
+ */
+pharmacyRoutes.patch(
+  '/suppliers/:id',
+  validateRequest({ params: supplierIdParamSchema, body: updateSupplierSchema }),
+  (req, res, next) => procurementController.updateSupplier(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/suppliers/:id/history
+ * @desc    Get purchase history with supplier
+ */
+pharmacyRoutes.get(
+  '/suppliers/:id/history',
+  validateRequest({ params: supplierIdParamSchema }),
+  (req, res, next) => procurementController.getSupplierPurchaseHistory(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: PURCHASE REQUISITION ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/requisitions
+ * @desc    List purchase requisitions
+ */
+pharmacyRoutes.get(
+  '/requisitions',
+  validateRequest({ query: requisitionQuerySchema }),
+  (req, res, next) => procurementController.getRequisitions(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/requisitions
+ * @desc    Create purchase requisition
+ */
+pharmacyRoutes.post(
+  '/requisitions',
+  validateRequest({ body: createPurchaseRequisitionSchema }),
+  (req, res, next) => procurementController.createRequisition(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/requisitions/:id
+ * @desc    Get purchase requisition by ID
+ */
+pharmacyRoutes.get(
+  '/requisitions/:id',
+  validateRequest({ params: requisitionIdParamSchema }),
+  (req, res, next) => procurementController.getRequisitionById(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/requisitions/:id
+ * @desc    Update purchase requisition
+ */
+pharmacyRoutes.patch(
+  '/requisitions/:id',
+  validateRequest({ params: requisitionIdParamSchema, body: updatePurchaseRequisitionSchema }),
+  (req, res, next) => procurementController.updateRequisition(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/requisitions/:id/approve
+ * @desc    Approve purchase requisition
+ */
+pharmacyRoutes.post(
+  '/requisitions/:id/approve',
+  validateRequest({ params: requisitionIdParamSchema }),
+  (req, res, next) => procurementController.approveRequisition(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/requisitions/:id/convert-to-po
+ * @desc    Convert approved requisition to purchase order
+ */
+pharmacyRoutes.post(
+  '/requisitions/:id/convert-to-po',
+  validateRequest({ params: requisitionIdParamSchema }),
+  (req, res, next) => procurementController.convertRequisitionToPO(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: PURCHASE ORDER ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/purchases
+ * @desc    List purchase orders
+ */
+pharmacyRoutes.get(
+  '/purchases',
+  validateRequest({ query: purchaseOrderQuerySchema }),
+  (req, res, next) => procurementController.getPurchaseOrders(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases
+ * @desc    Create purchase order
+ */
+pharmacyRoutes.post(
+  '/purchases',
+  validateRequest({ body: createPurchaseOrderSchema }),
+  (req, res, next) => procurementController.createPurchaseOrder(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/purchases/:id
+ * @desc    Get purchase order details
+ */
+pharmacyRoutes.get(
+  '/purchases/:id',
+  validateRequest({ params: purchaseOrderIdParamSchema }),
+  (req, res, next) => procurementController.getPurchaseOrderById(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/purchases/:id
+ * @desc    Update draft/pending purchase order
+ */
+pharmacyRoutes.patch(
+  '/purchases/:id',
+  validateRequest({ params: purchaseOrderIdParamSchema, body: updatePurchaseOrderSchema }),
+  (req, res, next) => procurementController.updatePurchaseOrder(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases/:id/submit
+ * @desc    Submit draft purchase order for approval
+ */
+pharmacyRoutes.post(
+  '/purchases/:id/submit',
+  validateRequest({ params: purchaseOrderIdParamSchema }),
+  (req, res, next) => procurementController.submitPOForApproval(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases/:id/approve
+ * @desc    Approve purchase order
+ */
+pharmacyRoutes.post(
+  '/purchases/:id/approve',
+  validateRequest({ params: purchaseOrderIdParamSchema, body: approvePurchaseOrderSchema }),
+  (req, res, next) => procurementController.approvePurchaseOrder(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases/:id/reject
+ * @desc    Reject purchase order
+ */
+pharmacyRoutes.post(
+  '/purchases/:id/reject',
+  validateRequest({ params: purchaseOrderIdParamSchema, body: rejectPurchaseOrderSchema }),
+  (req, res, next) => procurementController.rejectPurchaseOrder(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases/:id/send
+ * @desc    Send approved purchase order to supplier
+ */
+pharmacyRoutes.post(
+  '/purchases/:id/send',
+  validateRequest({ params: purchaseOrderIdParamSchema }),
+  (req, res, next) => procurementController.sendPOToSupplier(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases/:id/cancel
+ * @desc    Cancel purchase order
+ */
+pharmacyRoutes.post(
+  '/purchases/:id/cancel',
+  validateRequest({ params: purchaseOrderIdParamSchema }),
+  (req, res, next) => procurementController.cancelPurchaseOrder(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: GOODS RECEIVING (GRN) ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   POST /api/v1/pharmacy/purchases/:id/receive
+ * @desc    Receive goods against purchase order (GRN + Stock allocation + Ledger)
+ */
+pharmacyRoutes.post(
+  '/purchases/:id/receive',
+  validateRequest({ params: purchaseOrderIdParamSchema, body: receiveGoodsSchema }),
+  (req, res, next) => procurementController.receiveGoods(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/goods-receipts
+ * @desc    List goods receipt notes
+ */
+pharmacyRoutes.get(
+  '/goods-receipts',
+  validateRequest({ query: goodsReceiptQuerySchema }),
+  (req, res, next) => procurementController.getGoodsReceipts(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/goods-receipts/:id
+ * @desc    Get goods receipt note by ID
+ */
+pharmacyRoutes.get(
+  '/goods-receipts/:id',
+  validateRequest({ params: goodsReceiptIdParamSchema }),
+  (req, res, next) => procurementController.getGoodsReceiptById(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: PURCHASE INVOICE & RECONCILIATION ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/invoices
+ * @desc    List purchase invoices
+ */
+pharmacyRoutes.get(
+  '/invoices',
+  validateRequest({ query: invoiceQuerySchema }),
+  (req, res, next) => procurementController.getPurchaseInvoices(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/invoices
+ * @desc    Record purchase invoice
+ */
+pharmacyRoutes.post(
+  '/invoices',
+  validateRequest({ body: createPurchaseInvoiceSchema }),
+  (req, res, next) => procurementController.createPurchaseInvoice(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/invoices/:id
+ * @desc    Get purchase invoice by ID
+ */
+pharmacyRoutes.get(
+  '/invoices/:id',
+  validateRequest({ params: invoiceIdParamSchema }),
+  (req, res, next) => procurementController.getPurchaseInvoiceById(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/invoices/:id
+ * @desc    Update invoice reconciliation status
+ */
+pharmacyRoutes.patch(
+  '/invoices/:id',
+  validateRequest({ params: invoiceIdParamSchema, body: updatePurchaseInvoiceSchema }),
+  (req, res, next) => procurementController.updatePurchaseInvoice(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: STOCK REPLENISHMENT ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/replenishment/suggestions
+ * @desc    Get automated reorder suggestions based on net stock and reorder thresholds
+ */
+pharmacyRoutes.get(
+  '/replenishment/suggestions',
+  validateRequest({ query: replenishmentQuerySchema }),
+  (req, res, next) => procurementController.getReplenishmentSuggestions(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/replenishment/convert-to-requisition
+ * @desc    Convert reorder suggestions to a purchase requisition
+ */
+pharmacyRoutes.post(
+  '/replenishment/convert-to-requisition',
+  validateRequest({ body: convertSuggestionsToRequisitionSchema }),
+  (req, res, next) => procurementController.convertSuggestionsToRequisition(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/replenishment/settings
+ * @desc    Get replenishment settings
+ */
+pharmacyRoutes.get('/replenishment/settings', (req, res, next) =>
+  procurementController.getReplenishmentSettings(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/replenishment/settings
+ * @desc    Update replenishment thresholds and policies
+ */
+pharmacyRoutes.patch(
+  '/replenishment/settings',
+  validateRequest({ body: updateReplenishmentSettingsSchema }),
+  (req, res, next) => procurementController.updateReplenishmentSettings(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 04: PROCUREMENT METRICS ENDPOINT
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/procurement/metrics
+ * @desc    Aggregated procurement summary statistics
+ */
+pharmacyRoutes.get('/procurement/metrics', (req, res, next) =>
+  procurementController.getProcurementMetrics(req, res, next)
 );
 
 export default pharmacyRoutes;

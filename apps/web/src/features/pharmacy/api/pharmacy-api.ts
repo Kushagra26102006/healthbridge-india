@@ -31,6 +31,37 @@ import type {
   DispensingRecordDto,
   DispensingFilterDto,
   CancelDispensingDto,
+  SupplierDto,
+  CreateSupplierDto,
+  UpdateSupplierDto,
+  SupplierFilterDto,
+  SupplierProductDto,
+  CreateSupplierProductDto,
+  UpdateSupplierProductDto,
+  SupplierProductFilterDto,
+  PurchaseRequisitionDto,
+  CreatePurchaseRequisitionDto,
+  UpdatePurchaseRequisitionDto,
+  RequisitionFilterDto,
+  PurchaseOrderDto,
+  CreatePurchaseOrderDto,
+  UpdatePurchaseOrderDto,
+  ApprovePurchaseOrderDto,
+  RejectPurchaseOrderDto,
+  PurchaseOrderFilterDto,
+  GoodsReceiptDto,
+  ReceiveGoodsDto,
+  GoodsReceiptFilterDto,
+  PurchaseInvoiceDto,
+  CreatePurchaseInvoiceDto,
+  UpdatePurchaseInvoiceDto,
+  InvoiceFilterDto,
+  ReplenishmentSuggestionDto,
+  ReplenishmentFilterDto,
+  ReplenishmentSettingsDto,
+  UpdateReplenishmentSettingsDto,
+  ConvertSuggestionsToRequisitionDto,
+  ProcurementMetricsDto,
 } from '@healthbridge/shared-types';
 
 export const pharmacyApi = {
@@ -493,5 +524,467 @@ export const pharmacyApi = {
       throw new Error(res.data.message || 'Failed to cancel dispensing record');
     }
     return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 04: SUPPLIER MANAGEMENT ENDPOINTS
+   * ============================================================================
+   */
+
+  async getSuppliers(params?: SupplierFilterDto): Promise<{
+    data: SupplierDto[];
+    meta?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const res = await apiClient.get<ApiResponse<SupplierDto[]>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIERS,
+      { params }
+    );
+    return {
+      data: res.data.data || [],
+      meta: (res.data as any).meta,
+    };
+  },
+
+  async createSupplier(dto: CreateSupplierDto): Promise<SupplierDto> {
+    const res = await apiClient.post<ApiResponse<SupplierDto>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIERS,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to create supplier');
+    }
+    return res.data.data;
+  },
+
+  async getSupplierById(id: string): Promise<SupplierDto> {
+    const res = await apiClient.get<ApiResponse<SupplierDto>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIER_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch supplier');
+    }
+    return res.data.data;
+  },
+
+  async updateSupplier(id: string, dto: UpdateSupplierDto): Promise<SupplierDto> {
+    const res = await apiClient.patch<ApiResponse<SupplierDto>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIER_DETAIL(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update supplier');
+    }
+    return res.data.data;
+  },
+
+  async getSupplierPurchaseHistory(id: string): Promise<PurchaseOrderDto[]> {
+    const res = await apiClient.get<ApiResponse<PurchaseOrderDto[]>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIER_HISTORY(id)
+    );
+    return res.data.data || [];
+  },
+
+  async getSupplierProducts(params?: SupplierProductFilterDto): Promise<{
+    data: SupplierProductDto[];
+    meta?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const res = await apiClient.get<ApiResponse<SupplierProductDto[]>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIER_PRODUCTS,
+      { params }
+    );
+    return {
+      data: res.data.data || [],
+      meta: (res.data as any).meta,
+    };
+  },
+
+  async addSupplierProduct(dto: CreateSupplierProductDto): Promise<SupplierProductDto> {
+    const res = await apiClient.post<ApiResponse<SupplierProductDto>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIER_PRODUCTS,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to add supplier product');
+    }
+    return res.data.data;
+  },
+
+  async updateSupplierProduct(
+    productId: string,
+    dto: UpdateSupplierProductDto
+  ): Promise<SupplierProductDto> {
+    const res = await apiClient.patch<ApiResponse<SupplierProductDto>>(
+      API_ENDPOINTS.PHARMACY.SUPPLIER_PRODUCT_DETAIL(productId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update supplier product');
+    }
+    return res.data.data;
+  },
+
+  async deleteSupplierProduct(productId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.PHARMACY.SUPPLIER_PRODUCT_DETAIL(productId));
+  },
+
+  /**
+   * ============================================================================
+   * PURCHASE REQUISITIONS
+   * ============================================================================
+   */
+
+  async getRequisitions(params?: RequisitionFilterDto): Promise<{
+    data: PurchaseRequisitionDto[];
+    meta?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const res = await apiClient.get<ApiResponse<PurchaseRequisitionDto[]>>(
+      API_ENDPOINTS.PHARMACY.REQUISITIONS,
+      { params }
+    );
+    return {
+      data: res.data.data || [],
+      meta: (res.data as any).meta,
+    };
+  },
+
+  async createRequisition(dto: CreatePurchaseRequisitionDto): Promise<PurchaseRequisitionDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseRequisitionDto>>(
+      API_ENDPOINTS.PHARMACY.REQUISITIONS,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to create requisition');
+    }
+    return res.data.data;
+  },
+
+  async getRequisitionById(id: string): Promise<PurchaseRequisitionDto> {
+    const res = await apiClient.get<ApiResponse<PurchaseRequisitionDto>>(
+      API_ENDPOINTS.PHARMACY.REQUISITION_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch requisition');
+    }
+    return res.data.data;
+  },
+
+  async updateRequisition(
+    id: string,
+    dto: UpdatePurchaseRequisitionDto
+  ): Promise<PurchaseRequisitionDto> {
+    const res = await apiClient.patch<ApiResponse<PurchaseRequisitionDto>>(
+      API_ENDPOINTS.PHARMACY.REQUISITION_DETAIL(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update requisition');
+    }
+    return res.data.data;
+  },
+
+  async approveRequisition(id: string, approvalNotes?: string): Promise<PurchaseRequisitionDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseRequisitionDto>>(
+      API_ENDPOINTS.PHARMACY.APPROVE_REQUISITION(id),
+      { approvalNotes }
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to approve requisition');
+    }
+    return res.data.data;
+  },
+
+  async convertRequisitionToPO(id: string, supplierId: string): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.CONVERT_REQUISITION_TO_PO(id),
+      { supplierId }
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to convert requisition to purchase order');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * PURCHASE ORDERS
+   * ============================================================================
+   */
+
+  async getPurchaseOrders(params?: PurchaseOrderFilterDto): Promise<{
+    data: PurchaseOrderDto[];
+    meta?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const res = await apiClient.get<ApiResponse<PurchaseOrderDto[]>>(
+      API_ENDPOINTS.PHARMACY.PURCHASES,
+      { params }
+    );
+    return {
+      data: res.data.data || [],
+      meta: (res.data as any).meta,
+    };
+  },
+
+  async createPurchaseOrder(dto: CreatePurchaseOrderDto): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.PURCHASES,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to create purchase order');
+    }
+    return res.data.data;
+  },
+
+  async getPurchaseOrderById(id: string): Promise<PurchaseOrderDto> {
+    const res = await apiClient.get<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.PURCHASE_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch purchase order');
+    }
+    return res.data.data;
+  },
+
+  async updatePurchaseOrder(id: string, dto: UpdatePurchaseOrderDto): Promise<PurchaseOrderDto> {
+    const res = await apiClient.patch<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.PURCHASE_DETAIL(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update purchase order');
+    }
+    return res.data.data;
+  },
+
+  async submitPOForApproval(id: string): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.SUBMIT_PURCHASE(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to submit purchase order');
+    }
+    return res.data.data;
+  },
+
+  async approvePurchaseOrder(id: string, dto?: ApprovePurchaseOrderDto): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.APPROVE_PURCHASE(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to approve purchase order');
+    }
+    return res.data.data;
+  },
+
+  async rejectPurchaseOrder(id: string, dto: RejectPurchaseOrderDto): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.REJECT_PURCHASE(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to reject purchase order');
+    }
+    return res.data.data;
+  },
+
+  async sendPurchaseOrderToSupplier(id: string): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.SEND_PURCHASE(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to dispatch purchase order');
+    }
+    return res.data.data;
+  },
+
+  async cancelPurchaseOrder(id: string, reason: string): Promise<PurchaseOrderDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseOrderDto>>(
+      API_ENDPOINTS.PHARMACY.CANCEL_PURCHASE(id),
+      { reason }
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to cancel purchase order');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * GOODS RECEIVING (GRN)
+   * ============================================================================
+   */
+
+  async receiveGoods(poId: string, dto: ReceiveGoodsDto): Promise<GoodsReceiptDto> {
+    const res = await apiClient.post<ApiResponse<GoodsReceiptDto>>(
+      API_ENDPOINTS.PHARMACY.RECEIVE_GOODS(poId),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to receive goods');
+    }
+    return res.data.data;
+  },
+
+  async getGoodsReceipts(params?: GoodsReceiptFilterDto): Promise<{
+    data: GoodsReceiptDto[];
+    meta?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const res = await apiClient.get<ApiResponse<GoodsReceiptDto[]>>(
+      API_ENDPOINTS.PHARMACY.GOODS_RECEIPTS,
+      { params }
+    );
+    return {
+      data: res.data.data || [],
+      meta: (res.data as any).meta,
+    };
+  },
+
+  async getGoodsReceiptById(id: string): Promise<GoodsReceiptDto> {
+    const res = await apiClient.get<ApiResponse<GoodsReceiptDto>>(
+      API_ENDPOINTS.PHARMACY.GOODS_RECEIPT_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch goods receipt note');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * PURCHASE INVOICES
+   * ============================================================================
+   */
+
+  async getPurchaseInvoices(params?: InvoiceFilterDto): Promise<{
+    data: PurchaseInvoiceDto[];
+    meta?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const res = await apiClient.get<ApiResponse<PurchaseInvoiceDto[]>>(
+      API_ENDPOINTS.PHARMACY.INVOICES,
+      { params }
+    );
+    return {
+      data: res.data.data || [],
+      meta: (res.data as any).meta,
+    };
+  },
+
+  async createPurchaseInvoice(dto: CreatePurchaseInvoiceDto): Promise<PurchaseInvoiceDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseInvoiceDto>>(
+      API_ENDPOINTS.PHARMACY.INVOICES,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to record purchase invoice');
+    }
+    return res.data.data;
+  },
+
+  async getPurchaseInvoiceById(id: string): Promise<PurchaseInvoiceDto> {
+    const res = await apiClient.get<ApiResponse<PurchaseInvoiceDto>>(
+      API_ENDPOINTS.PHARMACY.INVOICE_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch purchase invoice');
+    }
+    return res.data.data;
+  },
+
+  async updatePurchaseInvoice(
+    id: string,
+    dto: UpdatePurchaseInvoiceDto
+  ): Promise<PurchaseInvoiceDto> {
+    const res = await apiClient.patch<ApiResponse<PurchaseInvoiceDto>>(
+      API_ENDPOINTS.PHARMACY.INVOICE_DETAIL(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update purchase invoice');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * STOCK REPLENISHMENT & SETTINGS
+   * ============================================================================
+   */
+
+  async getReplenishmentSuggestions(
+    params?: ReplenishmentFilterDto
+  ): Promise<ReplenishmentSuggestionDto[]> {
+    const res = await apiClient.get<ApiResponse<ReplenishmentSuggestionDto[]>>(
+      API_ENDPOINTS.PHARMACY.REPLENISHMENT_SUGGESTIONS,
+      { params }
+    );
+    return res.data.data || [];
+  },
+
+  async convertSuggestionsToRequisition(
+    dto: ConvertSuggestionsToRequisitionDto
+  ): Promise<PurchaseRequisitionDto> {
+    const res = await apiClient.post<ApiResponse<PurchaseRequisitionDto>>(
+      API_ENDPOINTS.PHARMACY.CONVERT_SUGGESTIONS_TO_REQUISITION,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to convert suggestions to requisition');
+    }
+    return res.data.data;
+  },
+
+  async getReplenishmentSettings(): Promise<ReplenishmentSettingsDto> {
+    const res = await apiClient.get<ApiResponse<ReplenishmentSettingsDto>>(
+      API_ENDPOINTS.PHARMACY.REPLENISHMENT_SETTINGS
+    );
+    return (
+      res.data.data || {
+        defaultReorderMultiplier: 2,
+        defaultSafetyStockDays: 7,
+        autoGenerateRequisitions: false,
+        notifyOnThreshold: true,
+      }
+    );
+  },
+
+  async updateReplenishmentSettings(
+    dto: UpdateReplenishmentSettingsDto
+  ): Promise<ReplenishmentSettingsDto> {
+    const res = await apiClient.patch<ApiResponse<ReplenishmentSettingsDto>>(
+      API_ENDPOINTS.PHARMACY.REPLENISHMENT_SETTINGS,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update replenishment settings');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * PROCUREMENT METRICS
+   * ============================================================================
+   */
+
+  async getProcurementMetrics(): Promise<ProcurementMetricsDto> {
+    const res = await apiClient.get<ApiResponse<ProcurementMetricsDto>>(
+      API_ENDPOINTS.PHARMACY.PROCUREMENT_METRICS
+    );
+    return (
+      res.data.data || {
+        totalSuppliers: 0,
+        activeSuppliers: 0,
+        pendingSuppliers: 0,
+        openPurchaseOrders: 0,
+        pendingApprovalOrders: 0,
+        partiallyReceivedOrders: 0,
+        monthlySpendTotal: 0,
+        pendingInvoicesCount: 0,
+        pendingInvoicesAmount: 0,
+        replenishmentSuggestionsCount: 0,
+      }
+    );
   },
 };

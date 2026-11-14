@@ -13,6 +13,12 @@ export * from '../modules/pharmacy/models/pharmacy-inventory.model';
 export * from '../modules/pharmacy/models/pharmacy-inventory-transaction.model';
 export * from '../modules/pharmacy/models/pharmacy-order.model';
 export * from '../modules/pharmacy/models/dispensing-record.model';
+export * from '../modules/pharmacy/models/supplier.model';
+export * from '../modules/pharmacy/models/supplier-product.model';
+export * from '../modules/pharmacy/models/purchase-requisition.model';
+export * from '../modules/pharmacy/models/purchase-order.model';
+export * from '../modules/pharmacy/models/goods-receipt.model';
+export * from '../modules/pharmacy/models/purchase-invoice.model';
 
 export * from '../modules/healthcare/models/facility.model';
 export * from '../modules/healthcare/models/medical-record.model';

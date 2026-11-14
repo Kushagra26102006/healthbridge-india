@@ -146,3 +146,4 @@ To prevent expired medication accumulation and comply with CDSCO Good Pharmacy P
 
 ### 2. Match Prescription Inventory
 `GET /api/v1/pharmacy/prescriptions/:prescriptionId/match-inventory`
+

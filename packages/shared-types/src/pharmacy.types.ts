@@ -796,3 +796,600 @@ export interface CancelDispensingDto {
   quarantineRestoredStock?: boolean;
 }
 
+/**
+ * ============================================================================
+ * DAY 5 TASK 04: SUPPLIER MANAGEMENT, PURCHASE ORDERS & STOCK REPLENISHMENT
+ * ============================================================================
+ */
+
+export type SupplierType =
+  | 'MANUFACTURER'
+  | 'DISTRIBUTOR'
+  | 'WHOLESALER'
+  | 'IMPORTER'
+  | 'OTHER';
+
+export type SupplierStatus =
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'SUSPENDED'
+  | 'PENDING_VERIFICATION';
+
+export type SupplierVerificationStatus =
+  | 'UNVERIFIED'
+  | 'VERIFIED'
+  | 'REJECTED';
+
+export interface SupplierContactDto {
+  name: string;
+  email: string;
+  phone: string;
+  designation?: string;
+  isPrimary?: boolean;
+}
+
+export interface SupplierBankDetailsDto {
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  branchName?: string;
+}
+
+export interface SupplierDto {
+  id: string;
+  pharmacyId: string;
+  supplierCode: string;
+  name: string;
+  legalName?: string;
+  supplierType: SupplierType;
+  status: SupplierStatus;
+  verificationStatus: SupplierVerificationStatus;
+  taxId?: string; // GSTIN
+  panNumber?: string;
+  drugLicenseNumber?: string;
+  email: string;
+  phone: string;
+  alternatePhone?: string;
+  address: PharmacyAddressDto;
+  contactPersons: SupplierContactDto[];
+  paymentTermsDays: number;
+  leadTimeDays: number;
+  rating: number;
+  bankDetails?: SupplierBankDetailsDto;
+  notes?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSupplierDto {
+  name: string;
+  legalName?: string;
+  supplierType?: SupplierType;
+  taxId?: string;
+  panNumber?: string;
+  drugLicenseNumber?: string;
+  email: string;
+  phone: string;
+  alternatePhone?: string;
+  address: PharmacyAddressDto;
+  contactPersons?: SupplierContactDto[];
+  paymentTermsDays?: number;
+  leadTimeDays?: number;
+  bankDetails?: SupplierBankDetailsDto;
+  notes?: string;
+}
+
+export interface UpdateSupplierDto {
+  name?: string;
+  legalName?: string;
+  supplierType?: SupplierType;
+  status?: SupplierStatus;
+  taxId?: string;
+  panNumber?: string;
+  drugLicenseNumber?: string;
+  email?: string;
+  phone?: string;
+  alternatePhone?: string;
+  address?: Partial<PharmacyAddressDto>;
+  contactPersons?: SupplierContactDto[];
+  paymentTermsDays?: number;
+  leadTimeDays?: number;
+  rating?: number;
+  bankDetails?: Partial<SupplierBankDetailsDto>;
+  notes?: string;
+}
+
+export interface SupplierFilterDto {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'ALL' | SupplierStatus;
+  supplierType?: 'ALL' | SupplierType;
+  verificationStatus?: 'ALL' | SupplierVerificationStatus;
+}
+
+export interface SupplierProductDto {
+  id: string;
+  pharmacyId: string;
+  supplierId: string;
+  supplierName: string;
+  medicationCatalogId: string;
+  medicationName: string;
+  genericName?: string;
+  brandName?: string;
+  dosageForm: string;
+  strength: string;
+  supplierProductCode?: string;
+  purchasePrice: number;
+  mrp?: number;
+  minimumOrderQuantity: number;
+  packSize?: string;
+  leadTimeDays?: number;
+  isAvailable: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSupplierProductDto {
+  supplierId: string;
+  medicationCatalogId: string;
+  supplierProductCode?: string;
+  purchasePrice: number;
+  mrp?: number;
+  minimumOrderQuantity?: number;
+  packSize?: string;
+  leadTimeDays?: number;
+  isAvailable?: boolean;
+  notes?: string;
+}
+
+export interface UpdateSupplierProductDto {
+  supplierProductCode?: string;
+  purchasePrice?: number;
+  mrp?: number;
+  minimumOrderQuantity?: number;
+  packSize?: string;
+  leadTimeDays?: number;
+  isAvailable?: boolean;
+  notes?: string;
+}
+
+export interface SupplierProductFilterDto {
+  page?: number;
+  limit?: number;
+  supplierId?: string;
+  medicationCatalogId?: string;
+  search?: string;
+  isAvailable?: boolean;
+}
+
+export type RequisitionStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CONVERTED_TO_PURCHASE_ORDER'
+  | 'CANCELLED';
+
+export type RequisitionPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface RequisitionItemDto {
+  id: string;
+  medicationCatalogId: string;
+  medicationName: string;
+  genericName?: string;
+  brandName?: string;
+  dosageForm: string;
+  strength: string;
+  requestedQuantity: number;
+  approvedQuantity?: number;
+  unitOfMeasure?: string;
+  estimatedUnitPrice: number;
+  estimatedTotalPrice: number;
+  preferredSupplierId?: string;
+  preferredSupplierName?: string;
+  reasonForRequest?: string;
+  notes?: string;
+}
+
+export interface PurchaseRequisitionDto {
+  id: string;
+  requisitionNumber: string;
+  pharmacyId: string;
+  requestedBy: string;
+  requestedByName: string;
+  status: RequisitionStatus;
+  priority: RequisitionPriority;
+  items: RequisitionItemDto[];
+  totalEstimatedAmount: number;
+  requiredByDate?: string;
+  notes?: string;
+  approvalNotes?: string;
+  rejectionReason?: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  approvedAt?: string;
+  convertedPurchaseOrderId?: string;
+  convertedPurchaseOrderNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePurchaseRequisitionItemDto {
+  medicationCatalogId: string;
+  requestedQuantity: number;
+  unitOfMeasure?: string;
+  estimatedUnitPrice: number;
+  preferredSupplierId?: string;
+  reasonForRequest?: string;
+  notes?: string;
+}
+
+export interface CreatePurchaseRequisitionDto {
+  priority?: RequisitionPriority;
+  items: CreatePurchaseRequisitionItemDto[];
+  requiredByDate?: string;
+  notes?: string;
+}
+
+export interface UpdatePurchaseRequisitionDto {
+  priority?: RequisitionPriority;
+  items?: CreatePurchaseRequisitionItemDto[];
+  requiredByDate?: string;
+  notes?: string;
+  status?: RequisitionStatus;
+}
+
+export interface RequisitionFilterDto {
+  page?: number;
+  limit?: number;
+  status?: 'ALL' | RequisitionStatus;
+  priority?: 'ALL' | RequisitionPriority;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export type PurchaseOrderStatus =
+  | 'DRAFT'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'SENT_TO_SUPPLIER'
+  | 'PARTIALLY_RECEIVED'
+  | 'FULLY_RECEIVED'
+  | 'CANCELLED'
+  | 'REJECTED';
+
+export interface PurchaseOrderItemDto {
+  id: string;
+  medicationCatalogId: string;
+  medicationName: string;
+  genericName?: string;
+  brandName?: string;
+  dosageForm: string;
+  strength: string;
+  orderedQuantity: number;
+  receivedQuantity: number;
+  remainingQuantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
+  itemSubtotal: number;
+  itemTax: number;
+  itemTotal: number;
+  packSize?: string;
+  supplierProductCode?: string;
+  notes?: string;
+}
+
+export interface PurchaseOrderDto {
+  id: string;
+  poNumber: string;
+  pharmacyId: string;
+  requisitionId?: string;
+  requisitionNumber?: string;
+  supplierId: string;
+  supplierName: string;
+  supplierCode: string;
+  supplierGstin?: string;
+  supplierDrugLicense?: string;
+  supplierEmail?: string;
+  supplierPhone?: string;
+  status: PurchaseOrderStatus;
+  orderDate: string;
+  expectedDeliveryDate?: string;
+  paymentTermsDays: number;
+  deliveryAddress: PharmacyAddressDto;
+  items: PurchaseOrderItemDto[];
+  subtotal: number;
+  taxTotal: number;
+  discountTotal: number;
+  grandTotal: number;
+  notes?: string;
+  termsAndConditions?: string;
+  approvalDetails?: {
+    approvedBy: string;
+    approverName: string;
+    approvedAt: string;
+    comments?: string;
+    rejectedReason?: string;
+  };
+  cancellationDetails?: {
+    cancelledBy: string;
+    cancelledByName: string;
+    cancelledAt: string;
+    reason: string;
+  };
+  sentToSupplierAt?: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePurchaseOrderItemDto {
+  medicationCatalogId: string;
+  orderedQuantity: number;
+  unitPrice: number;
+  discountPercent?: number;
+  taxPercent?: number;
+  packSize?: string;
+  supplierProductCode?: string;
+  notes?: string;
+}
+
+export interface CreatePurchaseOrderDto {
+  supplierId: string;
+  requisitionId?: string;
+  expectedDeliveryDate?: string;
+  paymentTermsDays?: number;
+  deliveryAddress?: PharmacyAddressDto;
+  items: CreatePurchaseOrderItemDto[];
+  notes?: string;
+  termsAndConditions?: string;
+}
+
+export interface UpdatePurchaseOrderDto {
+  supplierId?: string;
+  expectedDeliveryDate?: string;
+  paymentTermsDays?: number;
+  deliveryAddress?: PharmacyAddressDto;
+  items?: CreatePurchaseOrderItemDto[];
+  notes?: string;
+  termsAndConditions?: string;
+}
+
+export interface ApprovePurchaseOrderDto {
+  comments?: string;
+}
+
+export interface RejectPurchaseOrderDto {
+  reason: string;
+}
+
+export interface PurchaseOrderFilterDto {
+  page?: number;
+  limit?: number;
+  supplierId?: string;
+  status?: 'ALL' | PurchaseOrderStatus;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export type GoodsReceiptStatus = 'CONFIRMED' | 'ADJUSTED' | 'CANCELLED';
+
+export interface GoodsReceiptItemDto {
+  id: string;
+  purchaseOrderItemId: string;
+  medicationCatalogId: string;
+  medicationName: string;
+  dosageForm: string;
+  strength: string;
+  batchNumber: string;
+  manufacturingDate: string;
+  expiryDate: string;
+  orderedQuantity: number;
+  receivedQuantity: number;
+  rejectedQuantity: number;
+  acceptedQuantity: number;
+  unitPurchasePrice: number;
+  sellingPrice: number;
+  mrp?: number;
+  taxPercent: number;
+  itemTotal: number;
+  storageLocation?: string;
+  remarks?: string;
+}
+
+export interface GoodsReceiptDto {
+  id: string;
+  grnNumber: string;
+  pharmacyId: string;
+  purchaseOrderId: string;
+  poNumber: string;
+  supplierId: string;
+  supplierName: string;
+  supplierInvoiceNumber: string;
+  supplierInvoiceDate: string;
+  receivedDate: string;
+  receivedBy: string;
+  receiverName: string;
+  status: GoodsReceiptStatus;
+  items: GoodsReceiptItemDto[];
+  totalItemsCount: number;
+  totalReceivedQuantity: number;
+  totalAcceptedQuantity: number;
+  totalRejectedQuantity: number;
+  totalAmount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReceiveGoodsItemDto {
+  purchaseOrderItemId: string;
+  batchNumber: string;
+  manufacturingDate: string;
+  expiryDate: string;
+  receivedQuantity: number;
+  rejectedQuantity?: number;
+  unitPurchasePrice: number;
+  sellingPrice: number;
+  mrp?: number;
+  taxPercent?: number;
+  storageLocation?: string;
+  remarks?: string;
+}
+
+export interface ReceiveGoodsDto {
+  supplierInvoiceNumber: string;
+  supplierInvoiceDate: string;
+  items: ReceiveGoodsItemDto[];
+  notes?: string;
+}
+
+export interface GoodsReceiptFilterDto {
+  page?: number;
+  limit?: number;
+  purchaseOrderId?: string;
+  supplierId?: string;
+  status?: 'ALL' | GoodsReceiptStatus;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export type PurchaseInvoiceStatus =
+  | 'PENDING'
+  | 'PARTIALLY_RECONCILED'
+  | 'RECONCILED'
+  | 'DISPUTED'
+  | 'CANCELLED';
+
+export interface PurchaseInvoiceDto {
+  id: string;
+  invoiceNumber: string;
+  pharmacyId: string;
+  supplierId: string;
+  supplierName: string;
+  purchaseOrderId: string;
+  poNumber: string;
+  goodsReceiptIds: string[];
+  grnNumbers: string[];
+  invoiceDate: string;
+  dueDate: string;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  status: PurchaseInvoiceStatus;
+  notes?: string;
+  reconciliationNotes?: string;
+  disputedReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePurchaseInvoiceDto {
+  invoiceNumber: string;
+  supplierId: string;
+  purchaseOrderId: string;
+  goodsReceiptIds?: string[];
+  invoiceDate: string;
+  dueDate?: string;
+  subtotal: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  totalAmount: number;
+  paidAmount?: number;
+  notes?: string;
+}
+
+export interface UpdatePurchaseInvoiceDto {
+  status?: PurchaseInvoiceStatus;
+  paidAmount?: number;
+  notes?: string;
+  reconciliationNotes?: string;
+  disputedReason?: string;
+}
+
+export interface InvoiceFilterDto {
+  page?: number;
+  limit?: number;
+  supplierId?: string;
+  status?: 'ALL' | PurchaseInvoiceStatus;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface ReplenishmentSuggestionDto {
+  medicationCatalogId: string;
+  medicationName: string;
+  genericName?: string;
+  brandName?: string;
+  dosageForm: string;
+  strength: string;
+  currentStock: number;
+  reservedStock: number;
+  netAvailableStock: number;
+  reorderLevel: number;
+  safetyStock: number;
+  maxStockLevel: number;
+  pendingInboundQuantity: number;
+  suggestedOrderQuantity: number;
+  unit: string;
+  preferredSupplierId?: string;
+  preferredSupplierName?: string;
+  estimatedCost: number;
+}
+
+export interface ReplenishmentFilterDto {
+  search?: string;
+  category?: string;
+  onlyBelowReorderLevel?: boolean;
+  supplierId?: string;
+}
+
+export interface ReplenishmentSettingsDto {
+  defaultReorderMultiplier: number;
+  defaultSafetyStockDays: number;
+  autoGenerateRequisitions: boolean;
+  notifyOnThreshold: boolean;
+}
+
+export interface UpdateReplenishmentSettingsDto {
+  defaultReorderMultiplier?: number;
+  defaultSafetyStockDays?: number;
+  autoGenerateRequisitions?: boolean;
+  notifyOnThreshold?: boolean;
+}
+
+export interface ConvertSuggestionsToRequisitionDto {
+  items: {
+    medicationCatalogId: string;
+    quantity: number;
+    preferredSupplierId?: string;
+  }[];
+  priority?: RequisitionPriority;
+  notes?: string;
+}
+
+export interface ProcurementMetricsDto {
+  totalSuppliers: number;
+  activeSuppliers: number;
+  pendingSuppliers: number;
+  openPurchaseOrders: number;
+  pendingApprovalOrders: number;
+  partiallyReceivedOrders: number;
+  monthlySpendTotal: number;
+  pendingInvoicesCount: number;
+  pendingInvoicesAmount: number;
+  replenishmentSuggestionsCount: number;
+}
+
