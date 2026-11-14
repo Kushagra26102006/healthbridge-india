@@ -71,3 +71,80 @@ export type PatientProfileInput = z.infer<typeof patientProfileSchema>;
 export type DoctorProfileInput = z.infer<typeof doctorProfileSchema>;
 export type PharmacyProfileInput = z.infer<typeof pharmacyProfileSchema>;
 export type LaboratoryProfileInput = z.infer<typeof laboratoryProfileSchema>;
+
+export const updateAddressSchema = z.object({
+  line1: z.string().trim().optional(),
+  city: z.string().trim().min(2, 'City is required').optional(),
+  district: z.string().trim().min(2, 'District is required').optional(),
+  state: z.string().trim().min(2, 'State is required').optional(),
+  postalCode: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Postal code must be a 6-digit Indian PIN code')
+    .optional(),
+});
+
+export const updateEmergencyContactSchema = z.object({
+  name: z.string().trim().min(2, 'Contact name is required').optional(),
+  relationship: z.string().trim().min(2, 'Relationship is required').optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[6-9]\d{9}$/, 'Contact phone must be a valid 10-digit Indian mobile number')
+    .optional(),
+});
+
+export const updatePatientProfileSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
+  dateOfBirth: z.coerce.date().optional(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
+  profileImage: z.string().max(2000000, 'Profile image payload exceeds size limit').optional(),
+  address: updateAddressSchema.optional(),
+  emergencyContact: updateEmergencyContactSchema.optional(),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters long')
+      .max(128, 'Password cannot exceed 128 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one numeric digit')
+      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.confirmPassword !== undefined && data.confirmPassword !== null) {
+        return data.newPassword === data.confirmPassword;
+      }
+      return true;
+    },
+    {
+      message: 'Passwords do not match',
+      path: ['confirmPassword'],
+    }
+  );
+
+export const channelPreferencesSchema = z.object({
+  inApp: z.boolean().optional(),
+  email: z.boolean().optional(),
+  sms: z.boolean().optional(),
+});
+
+export const updateNotificationPreferencesSchema = z.object({
+  appointmentUpdates: channelPreferencesSchema.optional(),
+  prescriptionUpdates: channelPreferencesSchema.optional(),
+  labReportAlerts: channelPreferencesSchema.optional(),
+  consentRequests: channelPreferencesSchema.optional(),
+  securityAlerts: channelPreferencesSchema.optional(),
+});
+
+export type UpdatePatientProfileInput = z.infer<typeof updatePatientProfileSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;
+

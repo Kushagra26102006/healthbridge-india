@@ -1,42 +1,65 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Sun, Bell, LogOut, KeyRound } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import {
+  Sun,
+  KeyRound,
+  Laptop,
+  Bell,
+  ShieldCheck,
+  LogOut,
+  ArrowRight,
+  CheckCircle2,
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { SettingsNav } from '@/components/patient/settings';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function PatientSettingsPage() {
-  const { logout, logoutAll, isLoading } = useAuth();
+  const { logoutAll, isLoading } = useAuth();
+  const [logoutNotice, setLogoutNotice] = useState<string | null>(null);
+
+  const handleLogoutAll = async () => {
+    try {
+      await logoutAll();
+      setLogoutNotice('All active sessions have been revoked. Redirecting to login...');
+    } catch {
+      setLogoutNotice('Failed to revoke sessions. Please try again.');
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Link href="/patient/dashboard">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Account Settings & Preferences
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Security settings, session management, and interface configurations
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          Account Settings & Security
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Configure security credentials, active sessions, notification alerts, and data privacy
+        </p>
       </div>
 
+      {/* Settings Navigation Tabs */}
+      <SettingsNav />
+
+      {logoutNotice && (
+        <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-800 dark:text-teal-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-600" />
+          <span>{logoutNotice}</span>
+        </div>
+      )}
+
+      {/* Settings Sections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 1. Appearance & Theme */}
-        <Card className="border-border shadow-card bg-card">
+        {/* 1. Theme & Appearance */}
+        <Card className="border-border/80 shadow-sm bg-card rounded-2xl overflow-hidden">
           <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <Sun className="h-4 w-4" />
               </div>
               <CardTitle className="text-sm font-bold text-foreground">
@@ -44,92 +67,149 @@ export default function PatientSettingsPage() {
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-5 space-y-4">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Choose between light, dark, or system preference mode for your patient dashboard.
+          <CardContent className="p-5 space-y-4 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Switch between light, dark, or system preference modes for high-contrast clinical viewing.
             </p>
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-border/60">
-              <span className="text-xs font-semibold text-foreground">Toggle Interface Theme</span>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/60">
+              <span className="font-semibold text-foreground">Toggle Interface Theme</span>
               <ThemeToggle />
             </div>
           </CardContent>
         </Card>
 
-        {/* 2. Notifications */}
-        <Card className="border-border shadow-card bg-card">
+        {/* 2. Security & Password */}
+        <Card className="border-border/80 shadow-sm bg-card rounded-2xl overflow-hidden flex flex-col justify-between">
           <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                <Bell className="h-4 w-4" />
+              <div className="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                <KeyRound className="h-4 w-4" />
               </div>
-              <CardTitle className="text-sm font-bold text-foreground">Healthcare Alerts</CardTitle>
+              <CardTitle className="text-sm font-bold text-foreground">
+                Password & Authentication
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-5 space-y-3 text-xs">
             <p className="text-muted-foreground leading-relaxed">
-              Configure how you receive prescription alerts, consultation reminders, and consent
-              requests.
+              Maintain a high-entropy password with uppercase, lowercase, numeric, and symbol complexity.
             </p>
-            <div className="p-3 rounded-2xl bg-muted/30 border border-border/60 flex items-center justify-between">
-              <span className="font-medium text-foreground">Email Notifications</span>
-              <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400">
-                Enabled
-              </span>
+            <div className="pt-2">
+              <Link href="/patient/settings/security">
+                <Button size="sm" variant="outline" className="w-full text-xs rounded-xl gap-1.5 border-border">
+                  <span>Change Password</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* 3. Session Security */}
-        <Card className="border-border shadow-card bg-card md:col-span-2">
+        {/* 3. Active Sessions */}
+        <Card className="border-border/80 shadow-sm bg-card rounded-2xl overflow-hidden flex flex-col justify-between">
           <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
-                <KeyRound className="h-4 w-4" />
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Laptop className="h-4 w-4" />
               </div>
               <CardTitle className="text-sm font-bold text-foreground">
-                Active Session & Device Security
+                Active Devices & Sessions
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-5 space-y-4">
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-xs font-bold text-foreground">
-                  Sign out across all devices
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Invalidates all active refresh token families stored on any browser or mobile app.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logoutAll()}
-                disabled={isLoading}
-                className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30 shrink-0"
-              >
-                <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                Logout All Devices
-              </Button>
+          <CardContent className="p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Review browsers, mobile devices, and active IP addresses authorized to access your patient portal.
+            </p>
+            <div className="pt-2">
+              <Link href="/patient/settings/sessions">
+                <Button size="sm" variant="outline" className="w-full text-xs rounded-xl gap-1.5 border-border">
+                  <span>View Active Sessions</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between items-center border-t border-border pt-4">
-            <Link href="/patient/dashboard">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Return to Dashboard
+        </Card>
+
+        {/* 4. Notification Preferences */}
+        <Card className="border-border/80 shadow-sm bg-card rounded-2xl overflow-hidden flex flex-col justify-between">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <Bell className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-sm font-bold text-foreground">
+                Notification Alerts & Channels
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Customize delivery channels (email, in-app, SMS) for appointments, lab results, and prescriptions.
+            </p>
+            <div className="pt-2">
+              <Link href="/patient/settings/notifications">
+                <Button size="sm" variant="outline" className="w-full text-xs rounded-xl gap-1.5 border-border">
+                  <span>Configure Notifications</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 5. Privacy & Data Portability */}
+        <Card className="border-border/80 shadow-sm bg-card rounded-2xl overflow-hidden flex flex-col justify-between md:col-span-2">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-sm font-bold text-foreground">
+                Privacy, Consent Management & ABDM
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+            <p className="text-muted-foreground leading-relaxed max-w-xl">
+              Inspect active health data authorizations, audit access history, review the Privacy Policy,
+              or configure DPDP-compliant data settings.
+            </p>
+            <Link href="/patient/settings/privacy" className="shrink-0">
+              <Button size="sm" className="text-xs rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5">
+                <span>Privacy Dashboard</span>
+                <ArrowRight className="h-3 w-3" />
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+
+        {/* 6. Emergency Revocation / Logout All */}
+        <Card className="border-destructive/30 bg-destructive/5 rounded-2xl overflow-hidden md:col-span-2">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-destructive font-bold">
+                <LogOut className="h-4 w-4" />
+                <span>Emergency Sign Out Across All Devices</span>
+              </div>
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                Immediately terminates all active sessions and invalidates all cryptographic refresh tokens.
+                You will need to sign in again on all devices.
+              </p>
+            </div>
+
             <Button
-              variant="outline"
               size="sm"
-              onClick={() => logout()}
+              variant="outline"
+              onClick={handleLogoutAll}
               disabled={isLoading}
-              className="text-xs text-destructive hover:bg-destructive/10"
+              className="text-xs rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0 gap-1.5"
             >
-              Sign Out of This Session
+              <LogOut className="h-3.5 w-3.5" />
+              <span>{isLoading ? 'Signing out...' : 'Sign Out Everywhere'}</span>
             </Button>
-          </CardFooter>
+          </CardContent>
         </Card>
       </div>
     </div>

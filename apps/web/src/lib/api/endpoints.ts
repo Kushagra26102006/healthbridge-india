@@ -28,7 +28,11 @@ export const API_ENDPOINTS = {
   PATIENTS: {
     ROOT: '/patients',
     DASHBOARD_SUMMARY: '/patients/dashboard-summary',
-    PROFILE: '/patients/profile',
+    PROFILE: '/patients/me',
+    CHANGE_PASSWORD: '/patients/me/change-password',
+    SESSIONS: '/patients/me/sessions',
+    REVOKE_OTHERS: '/patients/me/sessions/revoke-others',
+    NOTIFICATION_PREFERENCES: '/patients/me/notification-preferences',
   },
   DOCTORS: '/doctors',
   APPOINTMENTS: '/appointments',

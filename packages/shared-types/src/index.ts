@@ -12,3 +12,4 @@ export * from './lab-reports';
 export * from './consent';
 export * from './security.types';
 export * from './abha.types';
+export * from './patient-profile.types';

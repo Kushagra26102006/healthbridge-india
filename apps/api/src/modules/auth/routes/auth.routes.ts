@@ -14,7 +14,9 @@ import {
   resetPasswordValidationSchema,
   verifyEmailValidationSchema,
   resendVerificationValidationSchema,
+  changePasswordSchema,
 } from '@healthbridge/validation';
+import { patientProfileController } from '../../patients/controllers/patient-profile.controller';
 
 const router: Router = Router();
 
@@ -109,6 +111,45 @@ router.post(
   passwordResetRateLimiter,
   validateRequest(resendVerificationValidationSchema),
   (req, res, next) => authController.resendVerification(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/auth/change-password
+ * @desc    Change password for authenticated user
+ * @access  Private
+ */
+router.post(
+  '/change-password',
+  authenticate,
+  validateRequest(changePasswordSchema),
+  (req, res, next) => patientProfileController.changePassword(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/auth/sessions
+ * @desc    List active sessions for authenticated user
+ * @access  Private
+ */
+router.get('/sessions', authenticate, (req, res, next) =>
+  patientProfileController.getSessions(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/auth/sessions/:sessionId
+ * @desc    Revoke specific active session
+ * @access  Private
+ */
+router.delete('/sessions/:sessionId', authenticate, (req, res, next) =>
+  patientProfileController.revokeSession(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/auth/logout-others
+ * @desc    Revoke all sessions except current
+ * @access  Private
+ */
+router.post('/logout-others', authenticate, (req, res, next) =>
+  patientProfileController.revokeOtherSessions(req, res, next)
 );
 
 export const authRoutes: Router = router;

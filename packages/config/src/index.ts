@@ -184,6 +184,25 @@ export const CONSENT_PURPOSE_LABELS: Record<string, string> = {
   PATRQT: 'Patient-Requested Data Portability',
 };
 
+export const BLOOD_GROUPS = [
+  'A+',
+  'A-',
+  'B+',
+  'B-',
+  'AB+',
+  'AB-',
+  'O+',
+  'O-',
+] as const;
+
+export const DEFAULT_NOTIFICATION_PREFERENCES = {
+  appointmentUpdates: { inApp: true, email: true, sms: true },
+  prescriptionUpdates: { inApp: true, email: true, sms: false },
+  labReportAlerts: { inApp: true, email: true, sms: false },
+  consentRequests: { inApp: true, email: true, sms: true },
+  securityAlerts: { inApp: true, email: true, sms: true },
+} as const;
+
 
 
 

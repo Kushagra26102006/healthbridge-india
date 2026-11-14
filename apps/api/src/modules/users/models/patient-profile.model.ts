@@ -1,15 +1,26 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
-import { Gender, AbhaLinkageStatus, Address, EmergencyContact } from '@healthbridge/shared-types';
+import {
+  Gender,
+  AbhaLinkageStatus,
+  Address,
+  EmergencyContact,
+  BloodGroup,
+  NotificationPreferencesDto,
+} from '@healthbridge/shared-types';
+import { DEFAULT_NOTIFICATION_PREFERENCES } from '@healthbridge/config';
 
 export interface IPatientProfileDocument extends Document {
   userId: Types.ObjectId;
   dateOfBirth: Date;
   gender: Gender;
+  bloodGroup?: BloodGroup;
+  profileImage?: string;
   address: Address;
   emergencyContact: EmergencyContact;
   abhaLinkageStatus: AbhaLinkageStatus;
   abhaAddress?: string;
   abhaNumber?: string;
+  notificationPreferences?: NotificationPreferencesDto;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +55,41 @@ const EmergencyContactSchema = new Schema<EmergencyContact>(
   { _id: false }
 );
 
+const ChannelPrefSchema = new Schema(
+  {
+    inApp: { type: Boolean, default: true },
+    email: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const NotificationPreferencesSchema = new Schema(
+  {
+    appointmentUpdates: {
+      type: ChannelPrefSchema,
+      default: () => ({ ...DEFAULT_NOTIFICATION_PREFERENCES.appointmentUpdates }),
+    },
+    prescriptionUpdates: {
+      type: ChannelPrefSchema,
+      default: () => ({ ...DEFAULT_NOTIFICATION_PREFERENCES.prescriptionUpdates }),
+    },
+    labReportAlerts: {
+      type: ChannelPrefSchema,
+      default: () => ({ ...DEFAULT_NOTIFICATION_PREFERENCES.labReportAlerts }),
+    },
+    consentRequests: {
+      type: ChannelPrefSchema,
+      default: () => ({ ...DEFAULT_NOTIFICATION_PREFERENCES.consentRequests }),
+    },
+    securityAlerts: {
+      type: ChannelPrefSchema,
+      default: () => ({ ...DEFAULT_NOTIFICATION_PREFERENCES.securityAlerts }),
+    },
+  },
+  { _id: false }
+);
+
 const PatientProfileSchema = new Schema<IPatientProfileDocument>(
   {
     userId: {
@@ -64,6 +110,14 @@ const PatientProfileSchema = new Schema<IPatientProfileDocument>(
         message: '{VALUE} is not a valid gender value',
       },
       required: [true, 'Gender is required'],
+    },
+    bloodGroup: {
+      type: String,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+    },
+    profileImage: {
+      type: String,
+      trim: true,
     },
     address: {
       type: AddressSchema,
@@ -91,6 +145,10 @@ const PatientProfileSchema = new Schema<IPatientProfileDocument>(
       trim: true,
       sparse: true,
       index: true,
+    },
+    notificationPreferences: {
+      type: NotificationPreferencesSchema,
+      default: () => ({ ...DEFAULT_NOTIFICATION_PREFERENCES }),
     },
   },
   {

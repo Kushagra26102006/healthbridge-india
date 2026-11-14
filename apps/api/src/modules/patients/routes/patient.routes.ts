@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
+import { validateRequest } from '../../../middleware/validate';
 import { sendSuccess } from '../../../utils/api-response';
 import { PatientProfileModel } from '../../users/models/patient-profile.model';
 import { MedicalRecordModel } from '../../healthcare/models/medical-record.model';
@@ -8,8 +9,13 @@ import { AppointmentModel } from '../../healthcare/models/appointment.model';
 import { PrescriptionModel } from '../../healthcare/models/prescription.model';
 import { LaboratoryReportModel } from '../../healthcare/models/lab-report.model';
 import { ConsentArtifactModel } from '../../consent/models/consent-artifact.model';
-import { UserModel } from '../../users/models/user.model';
 import { getDatabaseStatus } from '../../../config/database';
+import { patientProfileController } from '../controllers/patient-profile.controller';
+import {
+  updatePatientProfileSchema,
+  changePasswordSchema,
+  updateNotificationPreferencesSchema,
+} from '@healthbridge/validation';
 import type { PatientDashboardSummaryDto } from '@healthbridge/shared-types';
 
 export const patientRoutes = Router();
@@ -183,32 +189,145 @@ patientRoutes.get(
 );
 
 /**
- * @route   GET /api/v1/patients/profile
- * @desc    Fetch detailed profile for the authenticated patient
- * @access  Private (PATIENT role only)
+ * Patient Profile Endpoints
+ * GET /api/v1/patients/me & GET /api/v1/patients/profile
  */
+patientRoutes.get(
+  '/me',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.getProfile(req, res, next)
+);
 patientRoutes.get(
   '/profile',
   authenticate,
   authorize(['PATIENT']),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const patientId = req.user?.userId;
-      const profile = await PatientProfileModel.findOne({ userId: patientId });
-      const user = await UserModel.findById(patientId);
+  (req, res, next) => patientProfileController.getProfile(req, res, next)
+);
 
-      sendSuccess(
-        res,
-        {
-          user: user ? user.toJSON() : null,
-          profile: profile ? profile.toJSON() : null,
-        },
-        'Patient profile retrieved successfully'
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
+/**
+ * Update Patient Profile
+ * PATCH /api/v1/patients/me & PATCH /api/v1/patients/profile
+ */
+patientRoutes.patch(
+  '/me',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest(updatePatientProfileSchema),
+  (req, res, next) => patientProfileController.updateProfile(req, res, next)
+);
+patientRoutes.patch(
+  '/profile',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest(updatePatientProfileSchema),
+  (req, res, next) => patientProfileController.updateProfile(req, res, next)
+);
+
+/**
+ * Change Password
+ * POST /api/v1/patients/me/change-password & POST /api/v1/patients/change-password
+ */
+patientRoutes.post(
+  '/me/change-password',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest(changePasswordSchema),
+  (req, res, next) => patientProfileController.changePassword(req, res, next)
+);
+patientRoutes.post(
+  '/change-password',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest(changePasswordSchema),
+  (req, res, next) => patientProfileController.changePassword(req, res, next)
+);
+
+/**
+ * Active Sessions Management
+ * GET /api/v1/patients/me/sessions & GET /api/v1/patients/sessions
+ */
+patientRoutes.get(
+  '/me/sessions',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.getSessions(req, res, next)
+);
+patientRoutes.get(
+  '/sessions',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.getSessions(req, res, next)
+);
+
+/**
+ * Revoke Individual Session
+ * DELETE /api/v1/patients/me/sessions/:sessionId & DELETE /api/v1/patients/sessions/:sessionId
+ */
+patientRoutes.delete(
+  '/me/sessions/:sessionId',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.revokeSession(req, res, next)
+);
+patientRoutes.delete(
+  '/sessions/:sessionId',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.revokeSession(req, res, next)
+);
+
+/**
+ * Revoke Other Sessions
+ * POST /api/v1/patients/me/sessions/revoke-others & POST /api/v1/patients/sessions/revoke-others
+ */
+patientRoutes.post(
+  '/me/sessions/revoke-others',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.revokeOtherSessions(req, res, next)
+);
+patientRoutes.post(
+  '/sessions/revoke-others',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.revokeOtherSessions(req, res, next)
+);
+
+/**
+ * Notification Preferences
+ * GET /api/v1/patients/me/notification-preferences & GET /api/v1/patients/notification-preferences
+ */
+patientRoutes.get(
+  '/me/notification-preferences',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.getNotificationPreferences(req, res, next)
+);
+patientRoutes.get(
+  '/notification-preferences',
+  authenticate,
+  authorize(['PATIENT']),
+  (req, res, next) => patientProfileController.getNotificationPreferences(req, res, next)
+);
+
+/**
+ * Update Notification Preferences
+ * PATCH /api/v1/patients/me/notification-preferences & PATCH /api/v1/patients/notification-preferences
+ */
+patientRoutes.patch(
+  '/me/notification-preferences',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest(updateNotificationPreferencesSchema),
+  (req, res, next) => patientProfileController.updateNotificationPreferences(req, res, next)
+);
+patientRoutes.patch(
+  '/notification-preferences',
+  authenticate,
+  authorize(['PATIENT']),
+  validateRequest(updateNotificationPreferencesSchema),
+  (req, res, next) => patientProfileController.updateNotificationPreferences(req, res, next)
 );
 
 export default patientRoutes;
