@@ -157,10 +157,56 @@ export const updateDoctorProfileSchema = z.object({
     })
     .optional(),
   profileImage: z.string().max(2000000, 'Profile image payload exceeds size limit').optional(),
+  professionalInterests: z.array(z.string().trim().min(2)).optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[6-9]\d{9}$/, 'Phone number must be a valid 10-digit Indian mobile number')
+    .optional(),
+});
+
+export const updateDoctorPracticeSettingsSchema = z.object({
+  facilityId: z.string().optional(),
+  consultationModes: z.array(z.enum(['IN_PERSON', 'TELECONSULTATION'])).min(1).optional(),
+  consultationFee: z.number().min(0, 'Consultation fee cannot be negative').optional(),
+  slotDurationMinutes: z.number().min(10).max(120).optional(),
+  bufferMinutes: z.number().min(0).max(60).optional(),
+  autoConfirmAppointments: z.boolean().optional(),
+  maxDailyPatients: z.number().min(1).max(200).optional(),
+  teleconsultationLink: z.string().url('Must be a valid consultation URL').optional().or(z.literal('')),
+});
+
+export const updateDoctorNotificationPreferencesSchema = z.object({
+  newAppointmentRequests: channelPreferencesSchema.optional(),
+  appointmentChanges: channelPreferencesSchema.optional(),
+  patientCheckIns: channelPreferencesSchema.optional(),
+  consultationReminders: channelPreferencesSchema.optional(),
+  clinicalWorkflowAlerts: channelPreferencesSchema.optional(),
+  securityAlerts: channelPreferencesSchema.optional(),
+});
+
+export const doctorUploadDocumentSchema = z.object({
+  documentType: z.enum([
+    'MEDICAL_REGISTRATION',
+    'QUALIFICATION',
+    'IDENTITY',
+    'EXPERIENCE_CERTIFICATE',
+    'OTHER',
+  ]),
+  title: z.string().trim().min(2, 'Document title is required').max(150),
+  fileName: z.string().trim().min(3, 'File name is required').max(200),
+  fileData: z.string().optional(),
+  mimeType: z.enum(['application/pdf', 'image/jpeg', 'image/png'], {
+    errorMap: () => ({ message: 'Only PDF, JPEG, and PNG document formats are supported' }),
+  }),
+  fileSize: z.number().min(1).max(10485760, 'File size cannot exceed 10MB'),
 });
 
 export type UpdatePatientProfileInput = z.infer<typeof updatePatientProfileSchema>;
 export type UpdateDoctorProfileInput = z.infer<typeof updateDoctorProfileSchema>;
+export type UpdateDoctorPracticeSettingsInput = z.infer<typeof updateDoctorPracticeSettingsSchema>;
+export type UpdateDoctorNotificationPreferencesInput = z.infer<typeof updateDoctorNotificationPreferencesSchema>;
+export type DoctorUploadDocumentInput = z.infer<typeof doctorUploadDocumentSchema>;
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;

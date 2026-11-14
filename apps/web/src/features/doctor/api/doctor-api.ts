@@ -48,6 +48,14 @@ import type {
   BlockDateRequestDto,
   BlockDateResultDto,
   TimeSlotDto,
+  DoctorPracticeSettingsDto,
+  UpdateDoctorPracticeSettingsDto,
+  DoctorNotificationPreferencesDto,
+  UpdateDoctorNotificationPreferencesDto,
+  DoctorCredentialDocumentDto,
+  UploadDoctorDocumentDto,
+  UserSessionItemDto,
+  ChangePasswordDto,
 } from '@healthbridge/shared-types';
 
 export const doctorApi = {
@@ -958,5 +966,112 @@ export const doctorApi = {
       throw new Error(response.data.message || 'Failed to fetch medication from catalog');
     }
     return response.data.data;
+  },
+
+  /**
+   * Practice settings
+   */
+  async getPracticeSettings(): Promise<DoctorPracticeSettingsDto> {
+    const response = await apiClient.get<ApiResponse<DoctorPracticeSettingsDto>>(
+      API_ENDPOINTS.DOCTORS.PRACTICE_SETTINGS
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch practice settings');
+    }
+    return response.data.data;
+  },
+
+  async updatePracticeSettings(data: UpdateDoctorPracticeSettingsDto): Promise<DoctorPracticeSettingsDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorPracticeSettingsDto>>(
+      API_ENDPOINTS.DOCTORS.PRACTICE_SETTINGS,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to update practice settings');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Notification preferences
+   */
+  async getNotificationPreferences(): Promise<DoctorNotificationPreferencesDto> {
+    const response = await apiClient.get<ApiResponse<DoctorNotificationPreferencesDto>>(
+      API_ENDPOINTS.DOCTORS.NOTIFICATION_PREFERENCES
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch notification preferences');
+    }
+    return response.data.data;
+  },
+
+  async updateNotificationPreferences(
+    data: UpdateDoctorNotificationPreferencesDto
+  ): Promise<DoctorNotificationPreferencesDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorNotificationPreferencesDto>>(
+      API_ENDPOINTS.DOCTORS.NOTIFICATION_PREFERENCES,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to update notification preferences');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Credential documents
+   */
+  async getDocuments(): Promise<DoctorCredentialDocumentDto[]> {
+    const response = await apiClient.get<ApiResponse<DoctorCredentialDocumentDto[]>>(
+      API_ENDPOINTS.DOCTORS.DOCUMENTS
+    );
+    return response.data.data || [];
+  },
+
+  async uploadDocument(data: UploadDoctorDocumentDto): Promise<DoctorCredentialDocumentDto> {
+    const response = await apiClient.post<ApiResponse<DoctorCredentialDocumentDto>>(
+      API_ENDPOINTS.DOCTORS.DOCUMENTS,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to upload credential document');
+    }
+    return response.data.data;
+  },
+
+  async deleteDocument(docId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.DOCTORS.DOCUMENT_DETAIL(docId));
+  },
+
+  /**
+   * Active sessions
+   */
+  async getSessions(): Promise<UserSessionItemDto[]> {
+    const response = await apiClient.get<ApiResponse<UserSessionItemDto[]>>(
+      API_ENDPOINTS.DOCTORS.SESSIONS
+    );
+    return response.data.data || [];
+  },
+
+  async revokeSession(sessionId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.DOCTORS.SESSION_DETAIL(sessionId));
+  },
+
+  async revokeOtherSessions(): Promise<{ revokedCount: number }> {
+    const response = await apiClient.post<ApiResponse<{ revokedCount: number }>>(
+      API_ENDPOINTS.DOCTORS.REVOKE_OTHER_SESSIONS
+    );
+    return response.data.data || { revokedCount: 0 };
+  },
+
+  /**
+   * Change password
+   */
+  async changePassword(data: ChangePasswordDto): Promise<{ message: string }> {
+    const response = await apiClient.post<ApiResponse<{ message: string }>>(
+      API_ENDPOINTS.DOCTORS.CHANGE_PASSWORD,
+      data
+    );
+    return response.data.data || { message: 'Password changed successfully' };
   },
 };

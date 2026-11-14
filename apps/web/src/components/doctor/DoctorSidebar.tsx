@@ -16,6 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  ListOrdered,
+  Database,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -31,10 +33,12 @@ export interface DoctorNavItem {
 export const DOCTOR_NAV_ITEMS: DoctorNavItem[] = [
   { label: 'Clinical Overview', href: '/doctor/dashboard', icon: LayoutDashboard },
   { label: 'Appointments', href: '/doctor/appointments', icon: Calendar },
+  { label: 'Patient Queue', href: '/doctor/queue', icon: ListOrdered },
   { label: 'My Patients', href: '/doctor/patients', icon: Users },
   { label: 'Schedule & Availability', href: '/doctor/schedule', icon: Clock },
   { label: 'Clinical Encounters', href: '/doctor/encounters', icon: Stethoscope },
   { label: 'Prescriptions', href: '/doctor/prescriptions', icon: Pill },
+  { label: 'Medication Catalog', href: '/doctor/medications', icon: Database },
   { label: 'Professional Profile', href: '/doctor/profile', icon: UserCheck },
   { label: 'Practice Settings', href: '/doctor/settings', icon: Settings },
 ];

@@ -1,6 +1,21 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import { VerificationStatus } from '@healthbridge/shared-types';
 
+export interface IDoctorCredentialDocument {
+  id?: string;
+  _id?: Types.ObjectId;
+  documentType: 'MEDICAL_REGISTRATION' | 'QUALIFICATION' | 'IDENTITY' | 'EXPERIENCE_CERTIFICATE' | 'OTHER';
+  title: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  fileSize: number;
+  verificationStatus: VerificationStatus;
+  uploadedAt: Date;
+  verifiedAt?: Date;
+  rejectionReason?: string;
+}
+
 export interface IDoctorProfileDocument extends Document {
   userId: Types.ObjectId;
   registrationNumber: string;
@@ -26,6 +41,21 @@ export interface IDoctorProfileDocument extends Document {
     endTime: string;
     reason?: string;
   }>;
+  professionalInterests?: string[];
+  documents?: IDoctorCredentialDocument[];
+  notificationPreferences?: {
+    newAppointmentRequests: { inApp: boolean; email: boolean; sms: boolean };
+    appointmentChanges: { inApp: boolean; email: boolean; sms: boolean };
+    patientCheckIns: { inApp: boolean; email: boolean; sms: boolean };
+    consultationReminders: { inApp: boolean; email: boolean; sms: boolean };
+    clinicalWorkflowAlerts: { inApp: boolean; email: boolean; sms: boolean };
+    securityAlerts: { inApp: boolean; email: boolean; sms: boolean };
+  };
+  practiceSettings?: {
+    autoConfirmAppointments: boolean;
+    maxDailyPatients?: number;
+    teleconsultationLink?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -125,6 +155,69 @@ const DoctorProfileSchema = new Schema<IDoctorProfileDocument>(
         reason: { type: String, trim: true },
       },
     ],
+    professionalInterests: {
+      type: [String],
+      default: [],
+    },
+    documents: [
+      {
+        documentType: {
+          type: String,
+          enum: ['MEDICAL_REGISTRATION', 'QUALIFICATION', 'IDENTITY', 'EXPERIENCE_CERTIFICATE', 'OTHER'],
+          required: true,
+        },
+        title: { type: String, required: true, trim: true },
+        fileName: { type: String, required: true, trim: true },
+        fileUrl: { type: String, required: true, trim: true },
+        mimeType: { type: String, required: true },
+        fileSize: { type: Number, required: true },
+        verificationStatus: {
+          type: String,
+          enum: ['PENDING', 'VERIFIED', 'REJECTED'],
+          default: 'PENDING',
+        },
+        uploadedAt: { type: Date, default: Date.now },
+        verifiedAt: { type: Date },
+        rejectionReason: { type: String, trim: true },
+      },
+    ],
+    notificationPreferences: {
+      newAppointmentRequests: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+      },
+      appointmentChanges: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+      },
+      patientCheckIns: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        sms: { type: Boolean, default: false },
+      },
+      consultationReminders: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+      },
+      clinicalWorkflowAlerts: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        sms: { type: Boolean, default: false },
+      },
+      securityAlerts: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: true },
+      },
+    },
+    practiceSettings: {
+      autoConfirmAppointments: { type: Boolean, default: false },
+      maxDailyPatients: { type: Number, default: 30 },
+      teleconsultationLink: { type: String, trim: true },
+    },
   },
   {
     timestamps: true,

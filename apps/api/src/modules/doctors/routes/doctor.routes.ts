@@ -14,6 +14,10 @@ import {
   doctorIdParamSchema,
   doctorAvailabilityQuerySchema,
   updateDoctorProfileSchema,
+  updateDoctorPracticeSettingsSchema,
+  updateDoctorNotificationPreferencesSchema,
+  doctorUploadDocumentSchema,
+  changePasswordSchema,
   updateDoctorScheduleSchema,
   updateDoctorWeeklyScheduleSchema,
   blockDateRequestSchema,
@@ -86,6 +90,162 @@ doctorRoutes.patch(
   authorize(['DOCTOR']),
   validateRequest(updateDoctorProfileSchema),
   (req, res, next) => doctorDashboardController.updateProfile(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/me/settings/practice & GET /api/v1/doctors/settings/practice
+ * @desc    Get practice settings
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get('/me/settings/practice', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getPracticeSettings(req, res, next)
+);
+doctorRoutes.get('/settings/practice', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getPracticeSettings(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/doctors/me/settings/practice & PATCH /api/v1/doctors/settings/practice
+ * @desc    Update practice settings
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.patch(
+  '/me/settings/practice',
+  authorize(['DOCTOR']),
+  validateRequest(updateDoctorPracticeSettingsSchema),
+  (req, res, next) => doctorDashboardController.updatePracticeSettings(req, res, next)
+);
+doctorRoutes.patch(
+  '/settings/practice',
+  authorize(['DOCTOR']),
+  validateRequest(updateDoctorPracticeSettingsSchema),
+  (req, res, next) => doctorDashboardController.updatePracticeSettings(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/me/settings/notifications & GET /api/v1/doctors/settings/notifications
+ * @desc    Get notification preferences
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get('/me/settings/notifications', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getNotificationPreferences(req, res, next)
+);
+doctorRoutes.get('/settings/notifications', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getNotificationPreferences(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/doctors/me/settings/notifications & PATCH /api/v1/doctors/settings/notifications
+ * @desc    Update notification preferences
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.patch(
+  '/me/settings/notifications',
+  authorize(['DOCTOR']),
+  validateRequest(updateDoctorNotificationPreferencesSchema),
+  (req, res, next) => doctorDashboardController.updateNotificationPreferences(req, res, next)
+);
+doctorRoutes.patch(
+  '/settings/notifications',
+  authorize(['DOCTOR']),
+  validateRequest(updateDoctorNotificationPreferencesSchema),
+  (req, res, next) => doctorDashboardController.updateNotificationPreferences(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/me/documents & GET /api/v1/doctors/documents
+ * @desc    List uploaded professional credentials
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get('/me/documents', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getDocuments(req, res, next)
+);
+doctorRoutes.get('/documents', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getDocuments(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/me/documents & POST /api/v1/doctors/documents
+ * @desc    Upload credential document for review
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/me/documents',
+  authorize(['DOCTOR']),
+  validateRequest(doctorUploadDocumentSchema),
+  (req, res, next) => doctorDashboardController.uploadDocument(req, res, next)
+);
+doctorRoutes.post(
+  '/documents',
+  authorize(['DOCTOR']),
+  validateRequest(doctorUploadDocumentSchema),
+  (req, res, next) => doctorDashboardController.uploadDocument(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/doctors/me/documents/:docId & DELETE /api/v1/doctors/documents/:docId
+ * @desc    Delete unverified credential document
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.delete('/me/documents/:docId', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.deleteDocument(req, res, next)
+);
+doctorRoutes.delete('/documents/:docId', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.deleteDocument(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/me/sessions & GET /api/v1/doctors/sessions
+ * @desc    List active doctor sessions
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get('/me/sessions', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getSessions(req, res, next)
+);
+doctorRoutes.get('/sessions', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.getSessions(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/doctors/me/sessions/:sessionId & DELETE /api/v1/doctors/sessions/:sessionId
+ * @desc    Revoke specific session
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.delete('/me/sessions/:sessionId', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.revokeSession(req, res, next)
+);
+doctorRoutes.delete('/sessions/:sessionId', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.revokeSession(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/me/sessions/revoke-others & POST /api/v1/doctors/sessions/revoke-others
+ * @desc    Revoke all other active sessions
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post('/me/sessions/revoke-others', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.revokeOtherSessions(req, res, next)
+);
+doctorRoutes.post('/sessions/revoke-others', authorize(['DOCTOR']), (req, res, next) =>
+  doctorDashboardController.revokeOtherSessions(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/me/change-password & POST /api/v1/doctors/change-password
+ * @desc    Change doctor account password
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/me/change-password',
+  authorize(['DOCTOR']),
+  validateRequest(changePasswordSchema),
+  (req, res, next) => doctorDashboardController.changePassword(req, res, next)
+);
+doctorRoutes.post(
+  '/change-password',
+  authorize(['DOCTOR']),
+  validateRequest(changePasswordSchema),
+  (req, res, next) => doctorDashboardController.changePassword(req, res, next)
 );
 
 /**

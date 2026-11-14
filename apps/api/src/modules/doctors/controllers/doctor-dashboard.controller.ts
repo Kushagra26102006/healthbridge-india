@@ -75,6 +75,120 @@ export class DoctorDashboardController {
       next(error);
     }
   }
+
+  async getPracticeSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const settings = await doctorDashboardService.getPracticeSettings(userId);
+      sendSuccess(res, settings, 'Practice settings retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updatePracticeSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const updated = await doctorDashboardService.updatePracticeSettings(userId, req.body, req.requestId);
+      sendSuccess(res, updated, 'Practice settings updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getNotificationPreferences(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const prefs = await doctorDashboardService.getNotificationPreferences(userId);
+      sendSuccess(res, prefs, 'Doctor notification preferences retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateNotificationPreferences(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const updated = await doctorDashboardService.updateNotificationPreferences(userId, req.body, req.requestId);
+      sendSuccess(res, updated, 'Doctor notification preferences updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const docs = await doctorDashboardService.getDocuments(userId);
+      sendSuccess(res, docs, 'Doctor credential documents retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const doc = await doctorDashboardService.uploadDocument(userId, req.body, req.requestId);
+      sendSuccess(res, doc, 'Credential document uploaded for verification', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const docId = req.params.docId as string;
+      const result = await doctorDashboardService.deleteDocument(userId, docId, req.requestId);
+      sendSuccess(res, result, 'Credential document removed successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const tokenHash = (req as any).tokenHash || req.cookies?.hb_refresh_hash;
+      const sessions = await doctorDashboardService.getSessions(userId, tokenHash);
+      sendSuccess(res, sessions, 'Active doctor sessions retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async revokeSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const sessionId = req.params.sessionId as string;
+      const result = await doctorDashboardService.revokeSession(userId, sessionId, req.requestId);
+      sendSuccess(res, result, 'Session terminated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async revokeOtherSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const tokenHash = (req as any).tokenHash || req.cookies?.hb_refresh_hash;
+      const result = await doctorDashboardService.revokeOtherSessions(userId, tokenHash, req.requestId);
+      sendSuccess(res, result, 'All other sessions revoked successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await doctorDashboardService.changePassword(userId, req.body, req.requestId);
+      sendSuccess(res, result, 'Password changed successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const doctorDashboardController = new DoctorDashboardController();

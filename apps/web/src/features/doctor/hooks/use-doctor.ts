@@ -50,6 +50,14 @@ import type {
   BlockDateRequestDto,
   BlockDateResultDto,
   TimeSlotDto,
+  DoctorPracticeSettingsDto,
+  UpdateDoctorPracticeSettingsDto,
+  DoctorNotificationPreferencesDto,
+  UpdateDoctorNotificationPreferencesDto,
+  DoctorCredentialDocumentDto,
+  UploadDoctorDocumentDto,
+  UserSessionItemDto,
+  ChangePasswordDto,
 } from '@healthbridge/shared-types';
 
 export const DOCTOR_KEYS = {
@@ -103,6 +111,10 @@ export const DOCTOR_KEYS = {
   medicationCatalog: (filters?: MedicationCatalogFilterQueryDto) =>
     ['medication-catalog', 'list', filters || {}] as const,
   medicationCatalogDetail: (id: string) => ['medication-catalog', 'detail', id] as const,
+  practiceSettings: () => [...DOCTOR_KEYS.all, 'practice-settings'] as const,
+  notificationPreferences: () => [...DOCTOR_KEYS.all, 'notification-preferences'] as const,
+  documents: () => [...DOCTOR_KEYS.all, 'documents'] as const,
+  sessions: () => [...DOCTOR_KEYS.all, 'sessions'] as const,
 };
 
 /**
@@ -1187,6 +1199,178 @@ export const useDoctorConsentActions = (patientId: string) => {
     requestConsent: requestConsentMutation.mutateAsync,
     isRequesting: requestConsentMutation.isPending,
     requestError: requestConsentMutation.error,
+  };
+};
+
+/**
+ * Hook for doctor practice settings
+ */
+export const useDoctorPracticeSettings = () => {
+  const queryClient = useQueryClient();
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<DoctorPracticeSettingsDto, Error>({
+    queryKey: DOCTOR_KEYS.practiceSettings(),
+    queryFn: () => doctorApi.getPracticeSettings(),
+    enabled: isDoctor,
+    staleTime: 60 * 1000,
+  });
+
+  const updateMutation = useMutation<DoctorPracticeSettingsDto, Error, UpdateDoctorPracticeSettingsDto>({
+    mutationFn: (data) => doctorApi.updatePracticeSettings(data),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(DOCTOR_KEYS.practiceSettings(), updated);
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.profile() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.schedule() });
+    },
+  });
+
+  return {
+    practiceSettings: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    updatePracticeSettings: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending,
+    updateError: updateMutation.error,
+  };
+};
+
+/**
+ * Hook for doctor notification preferences
+ */
+export const useDoctorNotificationPreferences = () => {
+  const queryClient = useQueryClient();
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<DoctorNotificationPreferencesDto, Error>({
+    queryKey: DOCTOR_KEYS.notificationPreferences(),
+    queryFn: () => doctorApi.getNotificationPreferences(),
+    enabled: isDoctor,
+    staleTime: 60 * 1000,
+  });
+
+  const updateMutation = useMutation<DoctorNotificationPreferencesDto, Error, UpdateDoctorNotificationPreferencesDto>({
+    mutationFn: (data) => doctorApi.updateNotificationPreferences(data),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(DOCTOR_KEYS.notificationPreferences(), updated);
+    },
+  });
+
+  return {
+    preferences: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    updatePreferences: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending,
+    updateError: updateMutation.error,
+  };
+};
+
+/**
+ * Hook for doctor credential documents
+ */
+export const useDoctorDocuments = () => {
+  const queryClient = useQueryClient();
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<DoctorCredentialDocumentDto[], Error>({
+    queryKey: DOCTOR_KEYS.documents(),
+    queryFn: () => doctorApi.getDocuments(),
+    enabled: isDoctor,
+    staleTime: 60 * 1000,
+  });
+
+  const uploadMutation = useMutation<DoctorCredentialDocumentDto, Error, UploadDoctorDocumentDto>({
+    mutationFn: (data) => doctorApi.uploadDocument(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.documents() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.profile() });
+    },
+  });
+
+  const deleteMutation = useMutation<void, Error, string>({
+    mutationFn: (docId) => doctorApi.deleteDocument(docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.documents() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.profile() });
+    },
+  });
+
+  return {
+    documents: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    uploadDocument: uploadMutation.mutateAsync,
+    isUploading: uploadMutation.isPending,
+    uploadError: uploadMutation.error,
+    deleteDocument: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
+  };
+};
+
+/**
+ * Hook for active doctor sessions
+ */
+export const useDoctorSessions = () => {
+  const queryClient = useQueryClient();
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<UserSessionItemDto[], Error>({
+    queryKey: DOCTOR_KEYS.sessions(),
+    queryFn: () => doctorApi.getSessions(),
+    enabled: isDoctor,
+    staleTime: 30 * 1000,
+  });
+
+  const revokeMutation = useMutation<void, Error, string>({
+    mutationFn: (sessionId) => doctorApi.revokeSession(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.sessions() });
+    },
+  });
+
+  const revokeOthersMutation = useMutation<{ revokedCount: number }, Error, void>({
+    mutationFn: () => doctorApi.revokeOtherSessions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.sessions() });
+    },
+  });
+
+  return {
+    sessions: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    revokeSession: revokeMutation.mutateAsync,
+    isRevoking: revokeMutation.isPending,
+    revokeOtherSessions: revokeOthersMutation.mutateAsync,
+    isRevokingOthers: revokeOthersMutation.isPending,
+  };
+};
+
+/**
+ * Hook for changing password
+ */
+export const useDoctorChangePassword = () => {
+  const mutation = useMutation<{ message: string }, Error, ChangePasswordDto>({
+    mutationFn: (data) => doctorApi.changePassword(data),
+  });
+
+  return {
+    changePassword: mutation.mutateAsync,
+    isChanging: mutation.isPending,
+    error: mutation.error,
   };
 };
 

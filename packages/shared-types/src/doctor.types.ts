@@ -5,6 +5,83 @@
 import type { UserRole, AccountStatus } from './roles';
 import type { VerificationStatus, Address } from './profiles.types';
 import type { AppointmentStatus, ConsultationType } from './appointment';
+import type { ChannelPreferences } from './patient-profile.types';
+
+export type DoctorDocumentType =
+  | 'MEDICAL_REGISTRATION'
+  | 'QUALIFICATION'
+  | 'IDENTITY'
+  | 'EXPERIENCE_CERTIFICATE'
+  | 'OTHER';
+
+export interface DoctorCredentialDocumentDto {
+  id: string;
+  documentType: DoctorDocumentType;
+  title: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  fileSize: number;
+  verificationStatus: VerificationStatus;
+  uploadedAt: string;
+  verifiedAt?: string;
+  rejectionReason?: string;
+}
+
+export interface UploadDoctorDocumentDto {
+  documentType: DoctorDocumentType;
+  title: string;
+  fileName: string;
+  fileData?: string;
+  mimeType: string;
+  fileSize: number;
+}
+
+export interface DoctorNotificationPreferencesDto {
+  newAppointmentRequests: ChannelPreferences;
+  appointmentChanges: ChannelPreferences;
+  patientCheckIns: ChannelPreferences;
+  consultationReminders: ChannelPreferences;
+  clinicalWorkflowAlerts: ChannelPreferences;
+  securityAlerts: ChannelPreferences;
+  channelAvailability: {
+    emailConfigured: boolean;
+    smsConfigured: boolean;
+  };
+}
+
+export interface UpdateDoctorNotificationPreferencesDto {
+  newAppointmentRequests?: Partial<ChannelPreferences>;
+  appointmentChanges?: Partial<ChannelPreferences>;
+  patientCheckIns?: Partial<ChannelPreferences>;
+  consultationReminders?: Partial<ChannelPreferences>;
+  clinicalWorkflowAlerts?: Partial<ChannelPreferences>;
+  securityAlerts?: Partial<ChannelPreferences>;
+}
+
+export interface DoctorPracticeSettingsDto {
+  facilityId?: string;
+  facilityName?: string;
+  facilityAddress?: Address;
+  consultationModes: ('IN_PERSON' | 'TELECONSULTATION')[];
+  consultationFee: number;
+  slotDurationMinutes: number;
+  bufferMinutes: number;
+  autoConfirmAppointments: boolean;
+  maxDailyPatients?: number;
+  teleconsultationLink?: string;
+}
+
+export interface UpdateDoctorPracticeSettingsDto {
+  facilityId?: string;
+  consultationModes?: ('IN_PERSON' | 'TELECONSULTATION')[];
+  consultationFee?: number;
+  slotDurationMinutes?: number;
+  bufferMinutes?: number;
+  autoConfirmAppointments?: boolean;
+  maxDailyPatients?: number;
+  teleconsultationLink?: string;
+}
 
 export interface DoctorProfileDto {
   id: string;
@@ -35,6 +112,10 @@ export interface DoctorProfileDto {
     start: string;
     end: string;
   };
+  professionalInterests?: string[];
+  documents?: DoctorCredentialDocumentDto[];
+  notificationPreferences?: DoctorNotificationPreferencesDto;
+  practiceSettings?: DoctorPracticeSettingsDto;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +131,8 @@ export interface UpdateDoctorProfileDto {
     end: string;
   };
   profileImage?: string;
+  professionalInterests?: string[];
+  phone?: string;
 }
 
 export interface DoctorAppointmentItemDto {
