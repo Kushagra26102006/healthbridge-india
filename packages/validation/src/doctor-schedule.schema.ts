@@ -187,3 +187,4 @@ export type ScheduleCalendarQueryInput = z.infer<typeof scheduleCalendarQuerySch
 export type ScheduleAvailabilityQueryInput = z.infer<typeof scheduleAvailabilityQuerySchema>;
 export type BlockedDateIdParamInput = z.infer<typeof blockedDateIdParamSchema>;
 export type OverrideIdParamInput = z.infer<typeof overrideIdParamSchema>;
+

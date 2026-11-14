@@ -138,3 +138,4 @@ Under HealthBridge security governance, **Security Alerts** (`securityAlerts.inA
 | `DELETE` | `/api/v1/doctors/me/sessions/:sessionId` | `DOCTOR` | Revoke specific session |
 | `POST` | `/api/v1/doctors/me/sessions/revoke-others` | `DOCTOR` | Revoke all other active sessions |
 | `POST` | `/api/v1/doctors/me/change-password` | `DOCTOR` | Rotate account password |
+

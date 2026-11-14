@@ -257,3 +257,4 @@ The schedule test suite (`tests/integration/doctor-schedule.test.ts`) covers 19 
 1. **Recurring Bi-Weekly / Alternating Schedules**: Currently schedules follow a 7-day recurring weekly cycle. Alternating "Week A / Week B" schedules require date overrides.
 2. **External Calendar Sync (iCal / Google Calendar)**: Two-way sync with Google Calendar or Apple Calendar is scheduled for a future integration task.
 3. **Automated Patient Rescheduling Wizard**: While the conflict detection accurately warns of disrupted visits, automated bulk rebooking to the doctor's next available slots will be introduced in the Receptionist/Admin module.
+

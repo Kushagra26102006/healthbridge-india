@@ -171,3 +171,4 @@ The doctor navigation sidebar has been updated to provide immediate access to al
 1. **Document Storage Driver:** Credential uploads are currently processed with secure local filesystem storage. Integration with AWS S3 / Google Cloud Storage encrypted buckets with presigned URLs is planned for Day 5.
 2. **Push Notifications:** Notification preferences are persisted in the database; real-time web push (FCM) integration will be activated in upcoming infrastructure phases.
 3. **ABDM Gateway Live Sync:** Electronic consent validation currently utilizes the local MongoDB consent engine conformant with the ABDM M1/M2/M3 schemas; live National Health Authority (NHA) Sandbox gateway integration will be attached during external integration milestones.
+

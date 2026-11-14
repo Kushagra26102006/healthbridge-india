@@ -149,3 +149,4 @@ export class DoctorScheduleController {
 
 export const doctorScheduleController = new DoctorScheduleController();
 export default doctorScheduleController;
+

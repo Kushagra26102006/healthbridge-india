@@ -9,6 +9,9 @@ export * from '../modules/users/models/pharmacy-profile.model';
 export * from '../modules/users/models/laboratory-profile.model';
 export * from '../modules/users/models/admin-profile.model';
 
+export * from '../modules/pharmacy/models/pharmacy-inventory.model';
+export * from '../modules/pharmacy/models/pharmacy-order.model';
+
 export * from '../modules/healthcare/models/facility.model';
 export * from '../modules/healthcare/models/medical-record.model';
 export * from '../modules/healthcare/models/encounter.model';

@@ -123,3 +123,4 @@ export function ScheduleHeader({ onOpenLeaveModal, onOpenOverrideModal }: Schedu
 }
 
 export default ScheduleHeader;
+

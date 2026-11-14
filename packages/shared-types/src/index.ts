@@ -15,3 +15,4 @@ export * from './abha.types';
 export * from './patient-profile.types';
 export * from './doctor.types';
 export * from './encounter.types';
+export * from './pharmacy.types';
