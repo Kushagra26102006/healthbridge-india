@@ -115,3 +115,4 @@ apps/web/src/
 - **ESLint:** 0 warnings or errors across all workspace packages.
 - **Next.js Production Build:** All 40 routes statically generated and optimized.
 - **DPDP Act & ABDM Alignment:** Scoped patient lookup, immutable medical registration credentials, and non-blocking clinical audit logging.
+

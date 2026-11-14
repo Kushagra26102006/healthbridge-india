@@ -39,3 +39,4 @@ export default function DoctorDashboardLayout({ children }: { children: React.Re
     </ProtectedRoute>
   );
 }
+

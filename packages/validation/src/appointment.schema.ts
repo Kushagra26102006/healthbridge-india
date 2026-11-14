@@ -4,6 +4,7 @@ export const appointmentStatusEnum = z.enum([
   'REQUESTED',
   'SCHEDULED',
   'CONFIRMED',
+  'CHECKED_IN',
   'IN_PROGRESS',
   'COMPLETED',
   'CANCELLED',
@@ -106,6 +107,57 @@ export const doctorAvailabilityQuerySchema = z.object({
     .regex(dateRegex, 'Date must be in YYYY-MM-DD format (e.g. 2026-11-20)'),
 });
 
+export const rejectAppointmentSchema = z.object({
+  reason: z.string().trim().max(500, 'Rejection reason cannot exceed 500 characters').optional(),
+});
+
+export const doctorCancelAppointmentSchema = z.object({
+  reason: z
+    .string({ required_error: 'Cancellation reason is required' })
+    .trim()
+    .min(3, 'Cancellation reason must be at least 3 characters long')
+    .max(500, 'Cancellation reason cannot exceed 500 characters'),
+});
+
+export const updateDoctorScheduleSchema = z.object({
+  workingDays: z.array(z.string()).min(1, 'At least one working day is required'),
+  workingHours: z
+    .object({
+      start: z.string().regex(timeRegex, 'Start time must be in HH:mm format'),
+      end: z.string().regex(timeRegex, 'End time must be in HH:mm format'),
+    })
+    .refine((val) => val.start < val.end, {
+      message: 'Start time must be before end time',
+    }),
+  slotDurationMinutes: z.number().int().min(10).max(120).optional(),
+  consultationModes: z.array(consultationTypeEnum).min(1).optional(),
+  blockedSlots: z
+    .array(
+      z
+        .object({
+          date: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format'),
+          startTime: z.string().regex(timeRegex, 'Start time must be in HH:mm format'),
+          endTime: z.string().regex(timeRegex, 'End time must be in HH:mm format'),
+          reason: z.string().max(200).optional(),
+        })
+        .refine((val) => val.startTime < val.endTime, {
+          message: 'Blocked start time must be before end time',
+        })
+    )
+    .optional(),
+});
+
+export const doctorAppointmentFilterQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.string().optional(),
+  filterTab: z.enum(['all', 'today', 'upcoming', 'history', 'pending']).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  consultationType: consultationTypeEnum.optional(),
+  search: z.string().trim().max(100).optional(),
+});
+
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type CancelAppointmentInput = z.infer<typeof cancelAppointmentSchema>;
 export type RescheduleAppointmentInput = z.infer<typeof rescheduleAppointmentSchema>;
@@ -115,3 +167,7 @@ export type AppointmentIdParamInput = z.infer<typeof appointmentIdParamSchema>;
 export type DoctorFilterQueryInput = z.infer<typeof doctorFilterQuerySchema>;
 export type DoctorIdParamInput = z.infer<typeof doctorIdParamSchema>;
 export type DoctorAvailabilityQueryInput = z.infer<typeof doctorAvailabilityQuerySchema>;
+export type RejectAppointmentInput = z.infer<typeof rejectAppointmentSchema>;
+export type DoctorCancelAppointmentInput = z.infer<typeof doctorCancelAppointmentSchema>;
+export type UpdateDoctorScheduleInput = z.infer<typeof updateDoctorScheduleSchema>;
+export type DoctorAppointmentFilterQueryInput = z.infer<typeof doctorAppointmentFilterQuerySchema>;

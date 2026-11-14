@@ -79,3 +79,4 @@ export class DoctorDashboardController {
 
 export const doctorDashboardController = new DoctorDashboardController();
 export default doctorDashboardController;
+

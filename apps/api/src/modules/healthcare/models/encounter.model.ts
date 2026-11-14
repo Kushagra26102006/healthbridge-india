@@ -5,6 +5,7 @@ export interface IEncounterDocument extends Document {
   patientId: Types.ObjectId;
   practitionerId: Types.ObjectId;
   facilityId?: Types.ObjectId;
+  appointmentId?: Types.ObjectId;
   encounterType: EncounterType;
   startTime: Date;
   endTime?: Date;
@@ -31,6 +32,11 @@ const EncounterSchema = new Schema<IEncounterDocument>(
     facilityId: {
       type: Schema.Types.ObjectId,
       ref: 'Facility',
+      index: true,
+    },
+    appointmentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Appointment',
       index: true,
     },
     encounterType: {

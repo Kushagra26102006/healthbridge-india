@@ -66,6 +66,101 @@ export interface DoctorAppointmentItemDto {
   reason: string;
   facilityName: string;
   status: AppointmentStatus;
+  queueNumber?: number;
+  checkedInAt?: string;
+  consultationStartedAt?: string;
+  completedAt?: string;
+}
+
+export interface DoctorAppointmentSummaryCountsDto {
+  today: number;
+  upcoming: number;
+  pending: number;
+  completed: number;
+  cancelled: number;
+  total: number;
+}
+
+export interface DoctorQueueItemDto {
+  id: string;
+  queueNumber: number;
+  patientId: string;
+  patientName: string;
+  patientPhone?: string;
+  patientGender?: string;
+  patientAge?: number;
+  scheduledAt: string;
+  startTime: string;
+  endTime: string;
+  consultationType: ConsultationType;
+  status: AppointmentStatus;
+  checkedInAt?: string;
+  consultationStartedAt?: string;
+  completedAt?: string;
+  waitingMinutes?: number;
+  reason: string;
+  encounterId?: string;
+}
+
+export interface DoctorAppointmentDetailDto {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientPhone?: string;
+  patientGender?: string;
+  patientAge?: number;
+  patientEmail?: string;
+  scheduledAt: string;
+  startTime: string;
+  endTime: string;
+  consultationType: ConsultationType;
+  facility?: {
+    id: string;
+    name: string;
+    type?: string;
+    address?: Address;
+  };
+  status: AppointmentStatus;
+  reason: string;
+  notes?: string;
+  queueNumber?: number;
+  checkedInAt?: string;
+  consultationStartedAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  rejectionReason?: string;
+  encounterId?: string;
+  previousEncounterId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateDoctorScheduleDto {
+  workingDays: string[];
+  workingHours: {
+    start: string;
+    end: string;
+  };
+  slotDurationMinutes?: number;
+  consultationModes?: ('IN_PERSON' | 'TELECONSULTATION')[];
+  blockedSlots?: Array<{
+    date: string;
+    startTime: string;
+    endTime: string;
+    reason?: string;
+  }>;
+}
+
+export interface DoctorAppointmentFilterQueryDto {
+  page?: number;
+  limit?: number;
+  status?: string;
+  filterTab?: 'all' | 'today' | 'upcoming' | 'history' | 'pending';
+  startDate?: string;
+  endDate?: string;
+  consultationType?: ConsultationType;
+  search?: string;
 }
 
 export interface DoctorPatientItemDto {
@@ -122,3 +217,4 @@ export interface DoctorScheduleDto {
     reason?: string;
   }>;
 }
+

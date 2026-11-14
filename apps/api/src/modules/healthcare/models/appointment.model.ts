@@ -13,8 +13,16 @@ export interface IAppointmentDocument extends Document {
   notes?: string;
   status: AppointmentStatus;
   cancellationReason?: string;
+  rejectionReason?: string;
   cancelledAt?: Date;
   cancelledBy?: Types.ObjectId;
+  confirmedBy?: Types.ObjectId;
+  checkedInAt?: Date;
+  consultationStartedAt?: Date;
+  completedAt?: Date;
+  completedBy?: Types.ObjectId;
+  queueNumber?: number;
+  encounterId?: Types.ObjectId;
   rescheduledFrom?: Date;
   rescheduledAt?: Date;
   rescheduleCount: number;
@@ -77,7 +85,16 @@ const AppointmentSchema = new Schema<IAppointmentDocument>(
     },
     status: {
       type: String,
-      enum: ['REQUESTED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'],
+      enum: [
+        'REQUESTED',
+        'SCHEDULED',
+        'CONFIRMED',
+        'CHECKED_IN',
+        'IN_PROGRESS',
+        'COMPLETED',
+        'CANCELLED',
+        'NO_SHOW',
+      ],
       default: 'CONFIRMED',
       index: true,
     },
@@ -86,12 +103,43 @@ const AppointmentSchema = new Schema<IAppointmentDocument>(
       trim: true,
       maxlength: [500, 'Cancellation reason cannot exceed 500 characters'],
     },
+    rejectionReason: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Rejection reason cannot exceed 500 characters'],
+    },
     cancelledAt: {
       type: Date,
     },
     cancelledBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
+    },
+    confirmedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    checkedInAt: {
+      type: Date,
+    },
+    consultationStartedAt: {
+      type: Date,
+    },
+    completedAt: {
+      type: Date,
+    },
+    completedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    queueNumber: {
+      type: Number,
+      index: true,
+    },
+    encounterId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Encounter',
+      index: true,
     },
     rescheduledFrom: {
       type: Date,
@@ -126,15 +174,17 @@ AppointmentSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      status: { $in: ['REQUESTED', 'CONFIRMED'] },
+      status: { $in: ['REQUESTED', 'SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'] },
     },
   }
 );
 
-// High-performance patient query indexes
+// High-performance patient & doctor query indexes
 AppointmentSchema.index({ patientId: 1, scheduledAt: -1 });
 AppointmentSchema.index({ patientId: 1, status: 1 });
 AppointmentSchema.index({ doctorId: 1, scheduledAt: 1, status: 1 });
+AppointmentSchema.index({ doctorId: 1, status: 1 });
+AppointmentSchema.index({ doctorId: 1, queueNumber: 1 });
 
 export const AppointmentModel: Model<IAppointmentDocument> =
   (mongoose.models.Appointment as Model<IAppointmentDocument>) ||

@@ -9,6 +9,7 @@ export type AppointmentStatus =
   | 'REQUESTED'
   | 'SCHEDULED'
   | 'CONFIRMED'
+  | 'CHECKED_IN'
   | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'CANCELLED'

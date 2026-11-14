@@ -60,3 +60,4 @@ export function DoctorDashboardSkeleton() {
 }
 
 export default DoctorDashboardSkeleton;
+

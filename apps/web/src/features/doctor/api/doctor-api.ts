@@ -6,8 +6,14 @@ import type {
   DoctorProfileDto,
   UpdateDoctorProfileDto,
   DoctorAppointmentItemDto,
+  DoctorAppointmentSummaryCountsDto,
+  DoctorQueueItemDto,
+  DoctorAppointmentDetailDto,
   DoctorPatientItemDto,
   DoctorScheduleDto,
+  UpdateDoctorScheduleDto,
+  DoctorAppointmentFilterQueryDto,
+  PaginationMeta,
 } from '@healthbridge/shared-types';
 
 export const doctorApi = {
@@ -22,6 +28,160 @@ export const doctorApi = {
       throw new Error(response.data.message || 'Failed to fetch doctor dashboard summary');
     }
     return response.data.data;
+  },
+
+  /**
+   * Fetch appointment summary counts (today, upcoming, pending, completed, cancelled)
+   */
+  async getAppointmentSummaryCounts(): Promise<DoctorAppointmentSummaryCountsDto> {
+    const response = await apiClient.get<ApiResponse<DoctorAppointmentSummaryCountsDto>>(
+      API_ENDPOINTS.DOCTORS.APPOINTMENTS_SUMMARY
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch appointment summary counts');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch doctor appointments list with filters, search and pagination
+   */
+  async getAppointments(
+    filters?: DoctorAppointmentFilterQueryDto
+  ): Promise<{ items: DoctorAppointmentItemDto[]; pagination: PaginationMeta }> {
+    const params = new URLSearchParams();
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('limit', String(filters.limit));
+    if (filters?.status && filters.status !== 'ALL') params.append('status', filters.status);
+    if (filters?.filterTab) params.append('filterTab', filters.filterTab);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.consultationType) params.append('consultationType', filters.consultationType);
+    if (filters?.search) params.append('search', filters.search);
+
+    const query = params.toString();
+    const endpoint = query
+      ? `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}?${query}`
+      : API_ENDPOINTS.DOCTORS.APPOINTMENTS;
+
+    const response = await apiClient.get<ApiResponse<DoctorAppointmentItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page: filters?.page || 1,
+        limit: filters?.limit || 20,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  },
+
+  /**
+   * Fetch appointment details by ID
+   */
+  async getAppointmentById(appointmentId: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.get<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Appointment not found');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Confirm pending consultation request
+   */
+  async confirmAppointment(appointmentId: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}/confirm`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to confirm appointment');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Reject appointment request with reason
+   */
+  async rejectAppointment(appointmentId: string, reason?: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}/reject`,
+      { reason }
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to reject appointment');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Check in patient upon clinic arrival
+   */
+  async checkInPatient(appointmentId: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}/check-in`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to check in patient');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Start consultation session & initialize Encounter
+   */
+  async startConsultation(appointmentId: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}/start`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to start consultation');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Complete consultation session
+   */
+  async completeConsultation(appointmentId: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}/complete`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to complete consultation');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Cancel appointment with reason
+   */
+  async cancelAppointment(appointmentId: string, reason: string): Promise<DoctorAppointmentDetailDto> {
+    const response = await apiClient.patch<ApiResponse<DoctorAppointmentDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.APPOINTMENTS}/${appointmentId}/cancel`,
+      { reason }
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to cancel appointment');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch daily patient queue with priority ordering
+   */
+  async getQueue(filter?: string): Promise<DoctorQueueItemDto[]> {
+    const params = new URLSearchParams();
+    if (filter && filter !== 'ALL') params.append('filter', filter);
+    const query = params.toString();
+    const endpoint = query ? `${API_ENDPOINTS.DOCTORS.QUEUE}?${query}` : API_ENDPOINTS.DOCTORS.QUEUE;
+
+    const response = await apiClient.get<ApiResponse<DoctorQueueItemDto[]>>(endpoint);
+    return response.data.data || [];
   },
 
   /**
@@ -103,6 +263,20 @@ export const doctorApi = {
     );
     if (!response.data.data) {
       throw new Error(response.data.message || 'Failed to fetch doctor schedule');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Update doctor schedule availability & blocked slots
+   */
+  async updateSchedule(data: UpdateDoctorScheduleDto): Promise<DoctorScheduleDto> {
+    const response = await apiClient.put<ApiResponse<DoctorScheduleDto>>(
+      API_ENDPOINTS.DOCTORS.SCHEDULE,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to update doctor schedule');
     }
     return response.data.data;
   },

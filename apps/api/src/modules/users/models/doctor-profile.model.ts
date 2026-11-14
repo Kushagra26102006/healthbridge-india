@@ -19,6 +19,13 @@ export interface IDoctorProfileDocument extends Document {
     start: string;
     end: string;
   };
+  slotDurationMinutes?: number;
+  blockedSlots?: Array<{
+    date: string;
+    startTime: string;
+    endTime: string;
+    reason?: string;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,6 +111,20 @@ const DoctorProfileSchema = new Schema<IDoctorProfileDocument>(
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
     },
+    slotDurationMinutes: {
+      type: Number,
+      default: 30,
+      min: 10,
+      max: 120,
+    },
+    blockedSlots: [
+      {
+        date: { type: String, required: true },
+        startTime: { type: String, required: true },
+        endTime: { type: String, required: true },
+        reason: { type: String, trim: true },
+      },
+    ],
   },
   {
     timestamps: true,
