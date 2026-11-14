@@ -41,6 +41,13 @@ import type {
   PatientPrescriptionHistoryItemDto,
   PatientLabReportHistoryItemDto,
   CreateDoctorConsentRequestDto,
+  ScheduleOverviewDto,
+  BlockedDateDto,
+  ScheduleOverrideDto,
+  CalendarViewItemDto,
+  BlockDateRequestDto,
+  BlockDateResultDto,
+  TimeSlotDto,
 } from '@healthbridge/shared-types';
 
 export const doctorApi = {
@@ -492,6 +499,150 @@ export const doctorApi = {
     );
     if (!response.data.data) {
       throw new Error(response.data.message || 'Failed to update doctor schedule');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch doctor schedule overview (today's hours, appointments, available slots, weekly summary)
+   */
+  async getScheduleOverview(): Promise<ScheduleOverviewDto> {
+    const response = await apiClient.get<ApiResponse<ScheduleOverviewDto>>(
+      API_ENDPOINTS.DOCTORS.SCHEDULE_OVERVIEW
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch schedule overview');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Query doctor slot availability for target date
+   */
+  async getScheduleAvailability(params: {
+    date: string;
+    consultationType?: string;
+    facilityId?: string;
+  }): Promise<{ date: string; doctorId: string; slots: TimeSlotDto[] }> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('date', params.date);
+    if (params.consultationType) searchParams.append('consultationType', params.consultationType);
+    if (params.facilityId) searchParams.append('facilityId', params.facilityId);
+
+    const response = await apiClient.get<
+      ApiResponse<{ date: string; doctorId: string; slots: TimeSlotDto[] }>
+    >(`${API_ENDPOINTS.DOCTORS.SCHEDULE_AVAILABILITY}?${searchParams.toString()}`);
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch schedule availability');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Query doctor calendar view items (day, week, month)
+   */
+  async getScheduleCalendar(params: {
+    view?: 'day' | 'week' | 'month';
+    date?: string;
+    facilityId?: string;
+  }): Promise<{ view: 'day' | 'week' | 'month'; startDate: string; endDate: string; items: CalendarViewItemDto[] }> {
+    const searchParams = new URLSearchParams();
+    if (params.view) searchParams.append('view', params.view);
+    if (params.date) searchParams.append('date', params.date);
+    if (params.facilityId) searchParams.append('facilityId', params.facilityId);
+
+    const response = await apiClient.get<
+      ApiResponse<{ view: 'day' | 'week' | 'month'; startDate: string; endDate: string; items: CalendarViewItemDto[] }>
+    >(`${API_ENDPOINTS.DOCTORS.SCHEDULE_CALENDAR}?${searchParams.toString()}`);
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch schedule calendar');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch all blocked dates and leave periods
+   */
+  async getBlockedDates(): Promise<BlockedDateDto[]> {
+    const response = await apiClient.get<ApiResponse<BlockedDateDto[]>>(
+      API_ENDPOINTS.DOCTORS.SCHEDULE_BLOCKED_DATES
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch blocked dates');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Create blocked date period with conflict detection
+   */
+  async createBlockedDate(data: BlockDateRequestDto): Promise<BlockDateResultDto> {
+    const response = await apiClient.post<ApiResponse<BlockDateResultDto>>(
+      API_ENDPOINTS.DOCTORS.SCHEDULE_BLOCKED_DATES,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to create blocked date');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Delete blocked date period
+   */
+  async deleteBlockedDate(blockId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.DOCTORS.SCHEDULE_BLOCKED_DATE_DETAIL(blockId));
+  },
+
+  /**
+   * Fetch special working day overrides
+   */
+  async getScheduleOverrides(): Promise<ScheduleOverrideDto[]> {
+    const response = await apiClient.get<ApiResponse<ScheduleOverrideDto[]>>(
+      API_ENDPOINTS.DOCTORS.SCHEDULE_OVERRIDES
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch schedule overrides');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Create or update special working day override
+   */
+  async createScheduleOverride(data: {
+    date: string;
+    isWorkingDay: boolean;
+    reason: string;
+    workingWindows?: Array<{ start: string; end: string }>;
+    breaks?: Array<{ start: string; end: string; label?: string }>;
+  }): Promise<ScheduleOverrideDto> {
+    const response = await apiClient.post<ApiResponse<ScheduleOverrideDto>>(
+      API_ENDPOINTS.DOCTORS.SCHEDULE_OVERRIDES,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to save schedule override');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Delete special working day override
+   */
+  async deleteScheduleOverride(overrideId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.DOCTORS.SCHEDULE_OVERRIDE_DETAIL(overrideId));
+  },
+
+  /**
+   * Fetch associated facilities for doctor
+   */
+  async getScheduleFacilities(): Promise<Array<{ id: string; name: string; type: string; address: string; isPrimary: boolean }>> {
+    const response = await apiClient.get<
+      ApiResponse<Array<{ id: string; name: string; type: string; address: string; isPrimary: boolean }>>
+    >(API_ENDPOINTS.DOCTORS.SCHEDULE_FACILITIES);
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch doctor facilities');
     }
     return response.data.data;
   },

@@ -13,4 +13,5 @@ export * from './appointments';
 export * from './encounters';
 export * from './prescriptions';
 export * from './patients';
+export * from './schedule';
 

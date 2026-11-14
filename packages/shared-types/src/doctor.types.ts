@@ -137,8 +137,8 @@ export interface DoctorAppointmentDetailDto {
 }
 
 export interface UpdateDoctorScheduleDto {
-  workingDays: string[];
-  workingHours: {
+  workingDays?: string[];
+  workingHours?: {
     start: string;
     end: string;
   };
@@ -150,6 +150,11 @@ export interface UpdateDoctorScheduleDto {
     endTime: string;
     reason?: string;
   }>;
+  timezone?: string;
+  bufferMinutes?: number;
+  facilityId?: string;
+  weeklySchedule?: DayScheduleDto[];
+  consultationTypes?: ConsultationTypeConfigDto[];
 }
 
 export interface DoctorAppointmentFilterQueryDto {
@@ -484,6 +489,133 @@ export interface DoctorDashboardSummaryDto {
   recentActivities: DoctorClinicalActivityDto[];
 }
 
+export interface WorkingWindowDto {
+  start: string;
+  end: string;
+}
+
+export interface BreakIntervalDto {
+  start: string;
+  end: string;
+  label?: string;
+}
+
+export interface DayScheduleDto {
+  day: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  isEnabled: boolean;
+  workingWindows: WorkingWindowDto[];
+  breaks: BreakIntervalDto[];
+  slotDurationMinutes: number;
+  bufferMinutes: number;
+  consultationModes: ('IN_PERSON' | 'TELECONSULTATION')[];
+}
+
+export interface ConsultationTypeConfigDto {
+  type: 'IN_PERSON' | 'TELECONSULTATION' | 'FOLLOW_UP';
+  name: string;
+  isEnabled: boolean;
+  durationMinutes: number;
+  facilityId?: string;
+  facilityName?: string;
+  fee?: number;
+  bufferMinutes: number;
+  description?: string;
+}
+
+export interface BlockedDateDto {
+  id: string;
+  startDate: string;
+  endDate: string;
+  isAllDay: boolean;
+  startTime?: string;
+  endTime?: string;
+  reason: string;
+  affectedAppointmentCount?: number;
+  createdAt: string;
+}
+
+export interface ScheduleOverrideDto {
+  id: string;
+  date: string;
+  isWorkingDay: boolean;
+  reason: string;
+  workingWindows: WorkingWindowDto[];
+  breaks: BreakIntervalDto[];
+  createdAt: string;
+}
+
+export interface ScheduleOverviewDto {
+  todayWorkingHours: {
+    start: string;
+    end: string;
+    isWorking: boolean;
+  };
+  todayAppointmentsCount: number;
+  todayAvailableSlotsCount: number;
+  todayBlockedPeriodsCount: number;
+  nextWorkingDay?: {
+    date: string;
+    day: string;
+    hours: string;
+  };
+  weeklyScheduleSummary: {
+    totalWorkingDays: number;
+    totalWeeklyHours: number;
+    days: Array<{
+      day: string;
+      isEnabled: boolean;
+      hours: string;
+    }>;
+  };
+  activeFacility?: {
+    id: string;
+    name: string;
+    address?: string;
+  };
+}
+
+export interface CalendarViewItemDto {
+  id: string;
+  type: 'APPOINTMENT' | 'SLOT' | 'BREAK' | 'BLOCKED' | 'OVERRIDE';
+  date: string;
+  startTime: string;
+  endTime: string;
+  title: string;
+  status?: string;
+  appointmentType?: string;
+  patientMasked?: string;
+  reason?: string;
+  isAvailable?: boolean;
+}
+
+export interface AffectedAppointmentSummaryDto {
+  id: string;
+  patientNameMasked: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  consultationType: string;
+  status: string;
+}
+
+export interface BlockDateRequestDto {
+  startDate: string;
+  endDate: string;
+  isAllDay?: boolean;
+  startTime?: string;
+  endTime?: string;
+  reason: string;
+  forceWithConflicts?: boolean;
+}
+
+export interface BlockDateResultDto {
+  success: boolean;
+  blockedDate?: BlockedDateDto;
+  hasConflicts?: boolean;
+  affectedAppointments?: AffectedAppointmentSummaryDto[];
+  message: string;
+}
+
 export interface DoctorScheduleDto {
   doctorId: string;
   workingDays: string[];
@@ -499,5 +631,13 @@ export interface DoctorScheduleDto {
     endTime: string;
     reason?: string;
   }>;
+  timezone?: string;
+  bufferMinutes?: number;
+  facilityId?: string;
+  facilityName?: string;
+  weeklySchedule?: DayScheduleDto[];
+  consultationTypes?: ConsultationTypeConfigDto[];
+  blockedDates?: BlockedDateDto[];
+  overrides?: ScheduleOverrideDto[];
 }
 

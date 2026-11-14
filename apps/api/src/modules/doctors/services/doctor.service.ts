@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { DoctorProfileModel } from '../../users/models/doctor-profile.model';
 import { AppointmentModel } from '../../healthcare/models/appointment.model';
+import { doctorScheduleService } from './doctor-schedule.service';
 import { AppError } from '../../../shared/errors/app-error';
 import type {
   DoctorPublicDto,
@@ -365,6 +366,16 @@ export class DoctorService {
     doctorId: string;
     slots: TimeSlotDto[];
   }> {
+    const isConnected = mongoose.connection.readyState === 1;
+
+    if (isConnected && Types.ObjectId.isValid(doctorId)) {
+      try {
+        return await doctorScheduleService.getDoctorAvailabilitySlots(doctorId, dateStr);
+      } catch {
+        // Fallback to static slot generation
+      }
+    }
+
     // Generate 30-minute consultation slots between 09:00 and 17:00 IST
     const slotTimes = [
       { start: '09:00', end: '09:30', label: '09:00 AM' },
@@ -383,7 +394,6 @@ export class DoctorService {
 
     // Find booked appointments for this doctor on this day
     const bookedTimestamps = new Set<string>();
-    const isConnected = mongoose.connection.readyState === 1;
 
     if (isConnected && Types.ObjectId.isValid(doctorId)) {
       try {

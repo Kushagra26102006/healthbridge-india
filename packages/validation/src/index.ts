@@ -11,4 +11,5 @@ export * from './record.schema';
 export * from './lab-report.schema';
 export * from './encounter.schema';
 export * from './doctor-patient.schema';
+export * from './doctor-schedule.schema';
 

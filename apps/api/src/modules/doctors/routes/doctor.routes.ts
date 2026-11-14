@@ -5,6 +5,7 @@ import { doctorAppointmentController } from '../controllers/doctor-appointment.c
 import { doctorEncounterController } from '../controllers/doctor-encounter.controller';
 import { doctorPrescriptionController } from '../controllers/doctor-prescription.controller';
 import { doctorPatientController } from '../controllers/doctor-patient.controller';
+import { doctorScheduleController } from '../controllers/doctor-schedule.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 import { validateRequest } from '../../../middleware/validate';
@@ -14,6 +15,13 @@ import {
   doctorAvailabilityQuerySchema,
   updateDoctorProfileSchema,
   updateDoctorScheduleSchema,
+  updateDoctorWeeklyScheduleSchema,
+  blockDateRequestSchema,
+  blockedDateIdParamSchema,
+  scheduleOverrideSchema,
+  overrideIdParamSchema,
+  scheduleCalendarQuerySchema,
+  scheduleAvailabilityQuerySchema,
   rejectAppointmentSchema,
   doctorCancelAppointmentSchema,
   appointmentIdParamSchema,
@@ -217,25 +225,155 @@ doctorRoutes.get(
 
 /**
  * @route   GET /api/v1/doctors/schedule
- * @desc    Get clinical working hours, days, and blocked slots
+ * @desc    Get clinical working hours, weekly schedule, and availability configuration
  * @access  Private (DOCTOR role only)
  */
 doctorRoutes.get(
   '/schedule',
   authorize(['DOCTOR']),
-  (req, res, next) => doctorDashboardController.getSchedule(req, res, next)
+  (req, res, next) => doctorScheduleController.getSchedule(req, res, next)
 );
 
 /**
  * @route   PUT /api/v1/doctors/schedule
- * @desc    Update clinical schedule availability and blocked slots
+ * @desc    Update clinical schedule availability, weekly days, windows, breaks, or legacy settings
  * @access  Private (DOCTOR role only)
  */
 doctorRoutes.put(
   '/schedule',
   authorize(['DOCTOR']),
-  validateRequest({ body: updateDoctorScheduleSchema }),
-  (req, res, next) => doctorAppointmentController.updateSchedule(req, res, next)
+  (req, res, next) => {
+    if (req.body && req.body.weeklySchedule) {
+      const parsed = updateDoctorWeeklyScheduleSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return next(parsed.error);
+      }
+      req.body = parsed.data;
+      return doctorScheduleController.updateSchedule(req, res, next);
+    }
+    const parsed = updateDoctorScheduleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return next(parsed.error);
+    }
+    req.body = parsed.data;
+    return doctorAppointmentController.updateSchedule(req, res, next);
+  }
+);
+
+/**
+ * @route   GET /api/v1/doctors/schedule/overview
+ * @desc    Get schedule summary metrics for today and upcoming week
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/schedule/overview',
+  authorize(['DOCTOR']),
+  (req, res, next) => doctorScheduleController.getOverview(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/schedule/availability
+ * @desc    Query doctor consultation slot availability for a specific date
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/schedule/availability',
+  authorize(['DOCTOR']),
+  validateRequest({ query: scheduleAvailabilityQuerySchema }),
+  (req, res, next) => doctorScheduleController.getAvailability(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/schedule/calendar
+ * @desc    Get aggregated calendar view items (day, week, month)
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/schedule/calendar',
+  authorize(['DOCTOR']),
+  validateRequest({ query: scheduleCalendarQuerySchema }),
+  (req, res, next) => doctorScheduleController.getCalendar(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/schedule/blocked-dates
+ * @desc    List all blocked dates and leave periods
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/schedule/blocked-dates',
+  authorize(['DOCTOR']),
+  (req, res, next) => doctorScheduleController.getBlockedDates(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/schedule/blocked-dates
+ * @desc    Create a blocked date / leave with conflict detection
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/schedule/blocked-dates',
+  authorize(['DOCTOR']),
+  validateRequest({ body: blockDateRequestSchema }),
+  (req, res, next) => doctorScheduleController.createBlockedDate(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/doctors/schedule/blocked-dates/:blockId
+ * @desc    Delete a blocked date / leave period
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.delete(
+  '/schedule/blocked-dates/:blockId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: blockedDateIdParamSchema }),
+  (req, res, next) => doctorScheduleController.deleteBlockedDate(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/schedule/overrides
+ * @desc    Get special working day overrides
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/schedule/overrides',
+  authorize(['DOCTOR']),
+  (req, res, next) => doctorScheduleController.getOverrides(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/schedule/overrides
+ * @desc    Create or update a special working day override
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/schedule/overrides',
+  authorize(['DOCTOR']),
+  validateRequest({ body: scheduleOverrideSchema }),
+  (req, res, next) => doctorScheduleController.createOverride(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/doctors/schedule/overrides/:overrideId
+ * @desc    Delete a special working day override
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.delete(
+  '/schedule/overrides/:overrideId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: overrideIdParamSchema }),
+  (req, res, next) => doctorScheduleController.deleteOverride(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/schedule/facilities
+ * @desc    Retrieve facilities associated with doctor
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/schedule/facilities',
+  authorize(['DOCTOR']),
+  (req, res, next) => doctorScheduleController.getFacilities(req, res, next)
 );
 
 /* ==========================================================================

@@ -43,6 +43,13 @@ import type {
   PatientPrescriptionHistoryItemDto,
   PatientLabReportHistoryItemDto,
   CreateDoctorConsentRequestDto,
+  ScheduleOverviewDto,
+  BlockedDateDto,
+  ScheduleOverrideDto,
+  CalendarViewItemDto,
+  BlockDateRequestDto,
+  BlockDateResultDto,
+  TimeSlotDto,
 } from '@healthbridge/shared-types';
 
 export const DOCTOR_KEYS = {
@@ -74,6 +81,14 @@ export const DOCTOR_KEYS = {
   patientLabReports: (patientId: string, page?: number, limit?: number) =>
     [...DOCTOR_KEYS.all, 'patients', 'lab-reports', patientId, page || 1, limit || 10] as const,
   schedule: () => [...DOCTOR_KEYS.all, 'schedule'] as const,
+  scheduleOverview: () => [...DOCTOR_KEYS.all, 'schedule', 'overview'] as const,
+  scheduleAvailability: (params: { date: string; consultationType?: string; facilityId?: string }) =>
+    [...DOCTOR_KEYS.all, 'schedule', 'availability', params] as const,
+  scheduleCalendar: (params: { view?: string; date?: string; facilityId?: string }) =>
+    [...DOCTOR_KEYS.all, 'schedule', 'calendar', params] as const,
+  blockedDates: () => [...DOCTOR_KEYS.all, 'schedule', 'blocked-dates'] as const,
+  scheduleOverrides: () => [...DOCTOR_KEYS.all, 'schedule', 'overrides'] as const,
+  scheduleFacilities: () => [...DOCTOR_KEYS.all, 'schedule', 'facilities'] as const,
   encounterSummary: () => [...DOCTOR_KEYS.all, 'encounters', 'summary'] as const,
   encounters: (filters?: EncounterFilterQueryDto) =>
     [...DOCTOR_KEYS.all, 'encounters', 'list', filters || {}] as const,
@@ -411,6 +426,194 @@ export const useDoctorSchedule = () => {
     updateSchedule: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
     updateError: updateMutation.error,
+  };
+};
+
+/**
+ * Hook for doctor schedule overview summary
+ */
+export const useDoctorScheduleOverview = () => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<ScheduleOverviewDto, Error>({
+    queryKey: DOCTOR_KEYS.scheduleOverview(),
+    queryFn: () => doctorApi.getScheduleOverview(),
+    enabled: isDoctor,
+    staleTime: 60 * 1000,
+  });
+
+  return {
+    overview: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for doctor schedule slot availability for date
+ */
+export const useDoctorScheduleAvailability = (params: {
+  date: string;
+  consultationType?: string;
+  facilityId?: string;
+}) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<{ date: string; doctorId: string; slots: TimeSlotDto[] }, Error>({
+    queryKey: DOCTOR_KEYS.scheduleAvailability(params),
+    queryFn: () => doctorApi.getScheduleAvailability(params),
+    enabled: isDoctor && Boolean(params.date),
+  });
+
+  return {
+    availability: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for doctor schedule calendar view (day, week, month)
+ */
+export const useDoctorScheduleCalendar = (params: {
+  view?: 'day' | 'week' | 'month';
+  date?: string;
+  facilityId?: string;
+}) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<{ view: 'day' | 'week' | 'month'; startDate: string; endDate: string; items: CalendarViewItemDto[] }, Error>({
+    queryKey: DOCTOR_KEYS.scheduleCalendar(params),
+    queryFn: () => doctorApi.getScheduleCalendar(params),
+    enabled: isDoctor,
+  });
+
+  return {
+    calendar: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for managing doctor blocked dates and leaves
+ */
+export const useDoctorBlockedDates = () => {
+  const { isAuthenticated, user } = useAuth();
+  const queryClient = useQueryClient();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<BlockedDateDto[], Error>({
+    queryKey: DOCTOR_KEYS.blockedDates(),
+    queryFn: () => doctorApi.getBlockedDates(),
+    enabled: isDoctor,
+  });
+
+  const createMutation = useMutation<BlockDateResultDto, Error, BlockDateRequestDto>({
+    mutationFn: (data: BlockDateRequestDto) => doctorApi.createBlockedDate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.blockedDates() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.schedule() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.scheduleOverview() });
+    },
+  });
+
+  const deleteMutation = useMutation<void, Error, string>({
+    mutationFn: (blockId: string) => doctorApi.deleteBlockedDate(blockId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.blockedDates() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.schedule() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.scheduleOverview() });
+    },
+  });
+
+  return {
+    blockedDates: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    createBlockedDate: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+    createError: createMutation.error,
+    deleteBlockedDate: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
+    deleteError: deleteMutation.error,
+  };
+};
+
+/**
+ * Hook for managing doctor special schedule overrides
+ */
+export const useDoctorScheduleOverrides = () => {
+  const { isAuthenticated, user } = useAuth();
+  const queryClient = useQueryClient();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<ScheduleOverrideDto[], Error>({
+    queryKey: DOCTOR_KEYS.scheduleOverrides(),
+    queryFn: () => doctorApi.getScheduleOverrides(),
+    enabled: isDoctor,
+  });
+
+  const createMutation = useMutation<ScheduleOverrideDto, Error, any>({
+    mutationFn: (data: any) => doctorApi.createScheduleOverride(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.scheduleOverrides() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.schedule() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.scheduleOverview() });
+    },
+  });
+
+  const deleteMutation = useMutation<void, Error, string>({
+    mutationFn: (overrideId: string) => doctorApi.deleteScheduleOverride(overrideId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.scheduleOverrides() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.schedule() });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.scheduleOverview() });
+    },
+  });
+
+  return {
+    overrides: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    createOverride: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+    deleteOverride: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
+  };
+};
+
+/**
+ * Hook for doctor facilities
+ */
+export const useDoctorScheduleFacilities = () => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<Array<{ id: string; name: string; type: string; address: string; isPrimary: boolean }>, Error>({
+    queryKey: DOCTOR_KEYS.scheduleFacilities(),
+    queryFn: () => doctorApi.getScheduleFacilities(),
+    enabled: isDoctor,
+  });
+
+  return {
+    facilities: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
   };
 };
 

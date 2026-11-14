@@ -9,6 +9,7 @@ import {
   AuditLogModel,
 } from '../../../database/models';
 import { AppError } from '../../../shared/errors/app-error';
+import { doctorScheduleService } from './doctor-schedule.service';
 import type {
   DoctorProfileDto,
   UpdateDoctorProfileDto,
@@ -443,45 +444,7 @@ export class DoctorDashboardService {
    * Get doctor schedule & availability foundation
    */
   async getDoctorSchedule(userId: string): Promise<DoctorScheduleDto> {
-    const profile = await DoctorProfileModel.findOne({ userId });
-
-    const workingDays = profile?.workingDays || [
-      'MONDAY',
-      'TUESDAY',
-      'WEDNESDAY',
-      'THURSDAY',
-      'FRIDAY',
-      'SATURDAY',
-    ];
-    const workingHours = profile?.workingHours || { start: '09:00', end: '17:00' };
-    const consultationModes = profile?.consultationModes || ['IN_PERSON', 'TELECONSULTATION'];
-
-    // Retrieve today & tomorrow booked appointment blocks
-    const now = new Date();
-    const nextWeek = new Date();
-    nextWeek.setDate(now.getDate() + 7);
-
-    const appointments = await AppointmentModel.find({
-      doctorId: new Types.ObjectId(userId),
-      scheduledAt: { $gte: now, $lte: nextWeek },
-      status: { $in: ['SCHEDULED', 'CONFIRMED'] },
-    }).lean();
-
-    const existingBlocks = appointments.map((apt) => ({
-      date: (apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : 'today') as string,
-      startTime: apt.startTime || '09:00',
-      endTime: apt.endTime || '09:30',
-      reason: 'Booked Patient Appointment',
-    }));
-
-    return {
-      doctorId: userId,
-      workingDays,
-      workingHours,
-      slotDurationMinutes: 30,
-      consultationModes,
-      existingBlocks,
-    };
+    return doctorScheduleService.getSchedule(userId);
   }
 }
 

@@ -12,6 +12,7 @@ import {
   ConsentArtifactModel,
   ConsentRequestModel,
   FacilityModel,
+  DoctorScheduleModel,
 } from '../../src/database/models';
 import { Types } from 'mongoose';
 
@@ -167,6 +168,7 @@ describe('Doctor Dashboard, Professional Profile & Clinical Overview Tests', () 
     vi.spyOn(ConsentArtifactModel, 'distinct').mockResolvedValue([]);
     vi.spyOn(ConsentRequestModel, 'distinct').mockResolvedValue([]);
     vi.spyOn(PrescriptionModel, 'countDocuments').mockResolvedValue(0);
+    vi.spyOn(DoctorScheduleModel, 'findOne').mockResolvedValue(null as any);
   });
 
   describe('RBAC & Route Protection', () => {

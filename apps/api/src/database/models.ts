@@ -15,6 +15,7 @@ export * from '../modules/healthcare/models/encounter.model';
 export * from '../modules/healthcare/models/prescription.model';
 export * from '../modules/healthcare/models/medication-catalog.model';
 export * from '../modules/healthcare/models/appointment.model';
+export * from '../modules/healthcare/models/doctor-schedule.model';
 export * from '../modules/healthcare/models/lab-order.model';
 export * from '../modules/healthcare/models/lab-report.model';
 
