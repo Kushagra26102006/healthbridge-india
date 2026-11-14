@@ -76,3 +76,4 @@ private mapToPatientOrderDto(doc: IPharmacyOrderDocument): PharmacyOrderDto {
 ### 3. Prescription Integrity
 - Prescribed dosage schedules, frequency, and doctor instructions are displayed read-only as written by the treating physician.
 - Pharmacists cannot alter prescription instructions during order fulfillment.
+

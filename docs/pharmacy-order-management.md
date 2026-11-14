@@ -103,3 +103,4 @@ Endpoint `GET /api/v1/pharmacy/orders/metrics` computes real-time operational KP
 - **Today's Revenue:** Sum of completed order totals closed today.
 - **Average Turnaround Time:** Elapsed duration from order creation to counter pickup handover:
 $$\text{Avg Turnaround} = \frac{\sum (\text{order.updatedAt} - \text{order.createdAt})}{\text{Count}(\text{Completed Orders})}$$
+

@@ -6,20 +6,17 @@ import { usePathname } from 'next/navigation';
 import {
   Menu,
   Search,
-  Bell,
   Building2,
   Settings,
   LogOut,
   ShieldCheck,
   ChevronDown,
   Pill,
-  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { usePharmacyInventoryAlerts } from '@/features/pharmacy/hooks/use-pharmacy';
+import { NotificationBell } from '@/components/notifications';
 
 export interface PharmacyTopbarProps {
   onOpenMobileSidebar?: () => void;
@@ -30,20 +27,13 @@ export function PharmacyTopbar({ onOpenMobileSidebar, className }: PharmacyTopba
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const notifMenuRef = useRef<HTMLDivElement>(null);
-
-  const { data: alerts } = usePharmacyInventoryAlerts();
 
   // Close menus on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
-      }
-      if (notifMenuRef.current && !notifMenuRef.current.contains(e.target as Node)) {
-        setNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -60,8 +50,6 @@ export function PharmacyTopbar({ onOpenMobileSidebar, className }: PharmacyTopba
     if (pathname.includes('/settings')) return 'Pharmacy Settings';
     return 'Pharmacy Dashboard';
   };
-
-  const alertCount = alerts?.length || 0;
 
   return (
     <header
@@ -107,83 +95,8 @@ export function PharmacyTopbar({ onOpenMobileSidebar, className }: PharmacyTopba
       <div className="flex items-center gap-2.5">
         <ThemeToggle />
 
-        {/* Notifications Dropdown */}
-        <div className="relative" ref={notifMenuRef}>
-          <button
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-colors"
-            aria-label="View notifications"
-          >
-            <Bell className="w-5 h-5" />
-            {alertCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-background animate-pulse" />
-            )}
-          </button>
-
-          {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-card border border-border shadow-xl py-3 z-50 animate-in fade-in-50 slide-in-from-top-2">
-              <div className="px-4 pb-2 border-b border-border/60 flex items-center justify-between">
-                <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-teal-500" /> Inventory Alerts
-                </span>
-                <Badge variant="outline" className="text-[11px] font-mono">
-                  {alertCount} Alerts
-                </Badge>
-              </div>
-
-              <div className="max-h-72 overflow-y-auto px-2 py-2 space-y-1">
-                {alertCount === 0 ? (
-                  <div className="text-center py-6 text-xs text-muted-foreground">
-                    No urgent stock or expiry alerts
-                  </div>
-                ) : (
-                  alerts?.map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="p-2.5 rounded-xl hover:bg-muted/50 transition-colors flex items-start gap-3 text-xs"
-                    >
-                      <AlertTriangle
-                        className={cn(
-                          'w-4 h-4 mt-0.5 shrink-0',
-                          alert.alertStatus === 'EXPIRED' ? 'text-red-500' : 'text-amber-500'
-                        )}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">
-                          {alert.medicineName}
-                        </p>
-                        <p className="text-muted-foreground text-[11px]">
-                          Batch: {alert.batchNumber} • Qty: {alert.availableQuantity}
-                        </p>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          'text-[10px] shrink-0 font-medium',
-                          alert.alertStatus === 'EXPIRED'
-                            ? 'bg-red-500/10 text-red-500'
-                            : 'bg-amber-500/10 text-amber-500'
-                        )}
-                      >
-                        {alert.alertStatus}
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="px-3 pt-2 border-t border-border/60">
-                <Link
-                  href="/pharmacy/inventory"
-                  onClick={() => setNotificationsOpen(false)}
-                  className="block text-center text-xs font-semibold text-teal-600 hover:text-teal-500 py-1"
-                >
-                  View Complete Inventory →
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Global Real-Time Notification Bell */}
+        <NotificationBell />
 
         {/* User Profile Menu */}
         <div className="relative" ref={userMenuRef}>

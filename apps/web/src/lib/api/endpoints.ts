@@ -155,4 +155,15 @@ export const API_ENDPOINTS = {
   LAB_REPORTS: '/lab-reports',
   LAB_ORDERS: '/lab-orders',
   AUDIT: '/audit',
+  NOTIFICATIONS: {
+    ROOT: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    STREAM: '/notifications/stream',
+    PREFERENCES: '/notifications/preferences',
+    PREFERENCES_RESET: '/notifications/preferences/reset',
+    MARK_ALL_READ: '/notifications/mark-all-read',
+    MARK_READ: (id: string) => `/notifications/${id}/read`,
+    DELETE: (id: string) => `/notifications/${id}`,
+    DELIVERY_HISTORY: '/notifications/delivery-history',
+  },
 } as const;

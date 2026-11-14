@@ -86,3 +86,4 @@ stateDiagram-v2
    - Requires mandatory cancellation reason explanation.
 3. **Completed Orders Are Non-Cancellable:**
    - Once counter verification succeeds and medications are physically handed over (`COMPLETED`), the order can never transition to `CANCELLED`.
+

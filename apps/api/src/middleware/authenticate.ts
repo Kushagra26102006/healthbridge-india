@@ -34,6 +34,10 @@ export const authenticate = async (
     else if (req.cookies && req.cookies[AUTH_CONFIG.accessTokenCookieName]) {
       token = req.cookies[AUTH_CONFIG.accessTokenCookieName];
     }
+    // 3. Check query parameter (for EventSource / SSE streams)
+    else if (req.query && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
 
     if (!token) {
       throw AppError.unauthorized('Authentication required. No access token provided.');

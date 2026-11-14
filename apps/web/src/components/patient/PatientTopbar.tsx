@@ -6,18 +6,17 @@ import { usePathname } from 'next/navigation';
 import {
   Menu,
   Search,
-  Bell,
   User as UserIcon,
   Settings,
   LogOut,
   ShieldCheck,
   ChevronDown,
-  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/notifications';
 
 export interface PatientTopbarProps {
   onOpenMobileSidebar?: () => void;
@@ -28,18 +27,13 @@ export function PatientTopbar({ onOpenMobileSidebar, className }: PatientTopbarP
   const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const notifMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
-      }
-      if (notifMenuRef.current && !notifMenuRef.current.contains(e.target as Node)) {
-        setNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -125,49 +119,8 @@ export function PatientTopbar({ onOpenMobileSidebar, className }: PatientTopbarP
         {/* Theme Toggle */}
         <ThemeToggle />
 
-        {/* Notifications Popover */}
-        <div className="relative" ref={notifMenuRef}>
-          <button
-            type="button"
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            aria-label="View notifications"
-            className="relative p-2 rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-teal-500 ring-2 ring-background" />
-          </button>
-
-          {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Notifications
-                </span>
-                <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold cursor-pointer hover:underline">
-                  Mark all as read
-                </span>
-              </div>
-              <div className="space-y-2.5 text-xs">
-                <div className="p-2.5 rounded-xl bg-accent/60 space-y-1">
-                  <div className="flex items-center gap-1.5 text-teal-700 dark:text-teal-300 font-semibold">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Security Session Active</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Your authenticated patient session is secured under ABDM encryption protocols.
-                  </p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-muted/40 space-y-1">
-                  <span className="font-semibold text-foreground">ABHA Digital Health Record</span>
-                  <p className="text-[11px] text-muted-foreground">
-                    Link your 14-digit ABHA ID to sync historical lab reports and prescriptions
-                    nationwide.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Global Real-Time Notification Bell */}
+        <NotificationBell />
 
         {/* Patient Profile Menu Dropdown */}
         <div className="relative" ref={userMenuRef}>

@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   Menu,
   Search,
-  Bell,
   User as UserIcon,
   Settings,
   LogOut,
@@ -20,6 +19,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/notifications';
 
 export interface DoctorTopbarProps {
   onOpenMobileSidebar?: () => void;
@@ -30,18 +30,13 @@ export function DoctorTopbar({ onOpenMobileSidebar, className }: DoctorTopbarPro
   const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const notifMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
-      }
-      if (notifMenuRef.current && !notifMenuRef.current.contains(e.target as Node)) {
-        setNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -118,64 +113,8 @@ export function DoctorTopbar({ onOpenMobileSidebar, className }: DoctorTopbarPro
         {/* Theme Toggle */}
         <ThemeToggle />
 
-        {/* Notification Bell with Menu */}
-        <div className="relative" ref={notifMenuRef}>
-          <button
-            type="button"
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-            aria-label="View clinical notifications"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-background animate-pulse" />
-          </button>
-
-          {/* Notifications Dropdown */}
-          {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-xl z-50 animate-fade-in">
-              <div className="flex items-center justify-between pb-3 border-b border-border/80">
-                <span className="font-semibold text-sm">Clinical Notifications</span>
-                <Badge variant="secondary" className="text-xs">
-                  2 New
-                </Badge>
-              </div>
-
-              <div className="py-2 space-y-2 max-h-72 overflow-y-auto">
-                <div className="p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 flex items-start gap-3">
-                  <Calendar className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-semibold text-foreground">Upcoming Consultation</p>
-                    <p className="text-muted-foreground">
-                      Teleconsultation with Rahul Sharma starts in 15 minutes.
-                    </p>
-                    <span className="text-[10px] text-muted-foreground">Just now</span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900/60 flex items-start gap-3">
-                  <ShieldCheck className="h-4 w-4 text-teal-600 mt-0.5 shrink-0" />
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-semibold text-foreground">Consent Approved</p>
-                    <p className="text-muted-foreground">
-                      Ananya Patel granted consent to review prior lab records.
-                    </p>
-                    <span className="text-[10px] text-muted-foreground">1 hour ago</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-border/80 text-center">
-                <Link
-                  href="/doctor/appointments"
-                  onClick={() => setNotificationsOpen(false)}
-                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  View all appointments & notices
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Global Real-Time Notification Bell */}
+        <NotificationBell />
 
         {/* Doctor Profile Dropdown */}
         <div className="relative" ref={userMenuRef}>

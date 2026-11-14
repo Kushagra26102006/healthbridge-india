@@ -17,6 +17,7 @@ import {
   MedicationCatalogModel,
   UserModel,
 } from '../../../database/models';
+import { notificationService } from '../../notifications/services/notification.service';
 import { AppError } from '../../../shared/errors/app-error';
 import type {
   SupplierDto,
@@ -975,6 +976,27 @@ export class ProcurementService {
     };
 
     await po.save();
+
+    try {
+      await notificationService.publishEvent({
+        recipientId: pharmacyUserId,
+        recipientRole: 'PHARMACY',
+        category: 'PROCUREMENT',
+        eventType: 'PURCHASE_ORDER_APPROVED',
+        title: 'Purchase Order Approved',
+        message: `Purchase order #${po.poNumber} has been approved by ${approverName}.`,
+        priority: 'MEDIUM',
+        relatedEntity: {
+          entityType: 'PURCHASE_ORDER',
+          entityId: po._id.toString(),
+          referenceNumber: po.poNumber,
+        },
+        linkUrl: '/pharmacy/procurement',
+      });
+    } catch {
+      // Non-fatal
+    }
+
     return this.mapPurchaseOrderToDto(po);
   }
 
@@ -1009,6 +1031,27 @@ export class ProcurementService {
     };
 
     await po.save();
+
+    try {
+      await notificationService.publishEvent({
+        recipientId: pharmacyUserId,
+        recipientRole: 'PHARMACY',
+        category: 'PROCUREMENT',
+        eventType: 'PURCHASE_ORDER_REJECTED',
+        title: 'Purchase Order Rejected',
+        message: `Purchase order #${po.poNumber} was rejected: ${dto.reason.trim()}.`,
+        priority: 'HIGH',
+        relatedEntity: {
+          entityType: 'PURCHASE_ORDER',
+          entityId: po._id.toString(),
+          referenceNumber: po.poNumber,
+        },
+        linkUrl: '/pharmacy/procurement',
+      });
+    } catch {
+      // Non-fatal
+    }
+
     return this.mapPurchaseOrderToDto(po);
   }
 
@@ -1271,6 +1314,26 @@ export class ProcurementService {
       totalAmount,
       notes: dto.notes?.trim(),
     });
+
+    try {
+      await notificationService.publishEvent({
+        recipientId: pharmacyUserId,
+        recipientRole: 'PHARMACY',
+        category: 'PROCUREMENT',
+        eventType: 'GOODS_RECEIVED',
+        title: 'Goods Received Note Created',
+        message: `GRN #${grnNumber} generated for PO #${po.poNumber} (${grn.totalAcceptedQuantity} units accepted into inventory).`,
+        priority: 'MEDIUM',
+        relatedEntity: {
+          entityType: 'PURCHASE_ORDER',
+          entityId: po._id.toString(),
+          referenceNumber: po.poNumber,
+        },
+        linkUrl: '/pharmacy/procurement',
+      });
+    } catch {
+      // Non-fatal
+    }
 
     return this.mapGoodsReceiptToDto(grn);
   }

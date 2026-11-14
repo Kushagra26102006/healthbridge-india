@@ -174,3 +174,4 @@ Result: Production build successful
 - **Controlled Substance & Prescription Protection:** Only issued prescriptions can generate active orders. Draft or cancelled prescriptions are immediately rejected.
 - **Traceable Medication Handover:** Every completed pickup records the authorized staff member's identifier, collection timestamp, and SHA-256 hash verification result in the persistent audit trail.
 - **Zero Payment / Stripe / Razorpay Bloat:** Adheres strictly to scope boundaries, keeping financial records clean without premature payment gateway integrations.
+

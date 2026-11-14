@@ -12,8 +12,8 @@ import {
   FacilityModel,
   MedicationCatalogModel,
   DispensingRecordModel,
-  NotificationModel,
 } from '../../../database/models';
+import { notificationService } from '../../notifications/services/notification.service';
 import { AppError } from '../../../shared/errors/app-error';
 import { HttpStatus } from '../../../shared/constants/http-status';
 import { ErrorCode } from '../../../shared/errors/error-codes';
@@ -2421,6 +2421,30 @@ export class PharmacyService {
         $set: { status: newStatus },
       });
 
+      if (newStatus === 'LOW_STOCK' || newStatus === 'OUT_OF_STOCK') {
+        try {
+          await notificationService.publishEvent({
+            recipientId: userObjectId.toString(),
+            recipientRole: 'PHARMACY',
+            category: 'INVENTORY',
+            eventType: newStatus === 'LOW_STOCK' ? 'LOW_STOCK' : 'OUT_OF_STOCK',
+            title: newStatus === 'LOW_STOCK' ? 'Low Stock Alert' : 'Out of Stock Alert',
+            message: `Medicine ${v.batch.medicineName} (Batch #${v.batch.batchNumber}) has reached ${
+              newStatus === 'LOW_STOCK' ? 'reorder level' : 'zero stock'
+            } (${newQty} units remaining).`,
+            priority: newStatus === 'LOW_STOCK' ? 'MEDIUM' : 'HIGH',
+            relatedEntity: {
+              entityType: 'INVENTORY',
+              entityId: v.batch._id.toString(),
+              referenceNumber: v.batch.batchNumber,
+            },
+            linkUrl: '/pharmacy/inventory',
+          });
+        } catch {
+          // Non-fatal alert failure
+        }
+      }
+
       await PharmacyInventoryTransactionModel.create({
         pharmacyId: userObjectId,
         inventoryId: v.batch._id,
@@ -2515,14 +2539,29 @@ export class PharmacyService {
     });
 
     try {
-      await NotificationModel.create({
-        userId: patient?._id || rx.patientId?._id || rx.patientId,
-        title: 'Prescription Dispensed',
-        message: `Your prescription #${rx.prescriptionNumber} has been ${
-          dispensingStatus === 'FULLY_DISPENSED' ? 'fully dispensed' : 'partially dispensed'
-        } by ${pharmacyProfile?.pharmacyName || dispenser?.name || 'your pharmacy'}. Dispensing Ref: ${dispensingNumber}.`,
-        type: 'PRESCRIPTION',
-      });
+      const patientIdStr = (patient?._id || rx.patientId?._id || rx.patientId)?.toString();
+      if (patientIdStr) {
+        await notificationService.publishEvent({
+          recipientId: patientIdStr,
+          recipientRole: 'PATIENT',
+          category: 'PRESCRIPTION',
+          eventType:
+            dispensingStatus === 'FULLY_DISPENSED'
+              ? 'PRESCRIPTION_FULLY_DISPENSED'
+              : 'PRESCRIPTION_PARTIALLY_DISPENSED',
+          title: 'Prescription Dispensed',
+          message: `Your prescription #${rx.prescriptionNumber} has been ${
+            dispensingStatus === 'FULLY_DISPENSED' ? 'fully dispensed' : 'partially dispensed'
+          } by ${pharmacyProfile?.pharmacyName || dispenser?.name || 'your pharmacy'}. Dispensing Ref: ${dispensingNumber}.`,
+          priority: 'MEDIUM',
+          relatedEntity: {
+            entityType: 'PRESCRIPTION',
+            entityId: rx._id.toString(),
+            referenceNumber: rx.prescriptionNumber,
+          },
+          linkUrl: '/patient/prescriptions',
+        });
+      }
     } catch (_e) {
       // Non-fatal notification failure
     }

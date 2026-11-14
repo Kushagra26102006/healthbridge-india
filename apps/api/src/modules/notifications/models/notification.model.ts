@@ -1,12 +1,30 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
-import { NotificationType } from '@healthbridge/shared-types';
+import type {
+  NotificationCategory,
+  NotificationEventType,
+  NotificationPriority,
+  NotificationType,
+} from '@healthbridge/shared-types';
 
 export interface INotificationDocument extends Document {
   userId: Types.ObjectId;
+  userRole?: string;
+  category: NotificationCategory;
+  eventType: NotificationEventType;
   title: string;
   message: string;
+  priority: NotificationPriority;
   type: NotificationType;
+  relatedEntity?: {
+    entityType: string;
+    entityId: string;
+    referenceNumber?: string;
+  };
+  linkUrl?: string;
+  idempotencyKey?: string;
+  metadata?: Record<string, unknown>;
   readAt?: Date;
+  isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,6 +36,31 @@ const NotificationSchema = new Schema<INotificationDocument>(
       ref: 'User',
       required: [true, 'User ID reference is required for notification'],
       index: true,
+    },
+    userRole: {
+      type: String,
+      trim: true,
+    },
+    category: {
+      type: String,
+      enum: [
+        'PRESCRIPTION',
+        'ORDER',
+        'INVENTORY',
+        'PROCUREMENT',
+        'SECURITY',
+        'APPOINTMENT',
+        'CONSENT',
+        'LAB',
+        'SYSTEM',
+      ],
+      default: 'SYSTEM',
+      index: true,
+    },
+    eventType: {
+      type: String,
+      trim: true,
+      default: 'SYSTEM_ALERT',
     },
     title: {
       type: String,
@@ -31,14 +74,52 @@ const NotificationSchema = new Schema<INotificationDocument>(
       trim: true,
       maxlength: [1000, 'Message cannot exceed 1000 characters'],
     },
+    priority: {
+      type: String,
+      enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+      default: 'MEDIUM',
+    },
     type: {
       type: String,
-      enum: ['APPOINTMENT', 'CONSENT_REQUEST', 'LAB_REPORT', 'PRESCRIPTION', 'SYSTEM_ALERT'],
-      required: [true, 'Notification type is required'],
+      enum: [
+        'APPOINTMENT',
+        'CONSENT_REQUEST',
+        'LAB_REPORT',
+        'PRESCRIPTION',
+        'SYSTEM_ALERT',
+        'ORDER',
+        'INVENTORY',
+        'PROCUREMENT',
+        'SECURITY',
+      ],
+      default: 'SYSTEM_ALERT',
       index: true,
+    },
+    relatedEntity: {
+      entityType: { type: String, trim: true },
+      entityId: { type: String, trim: true },
+      referenceNumber: { type: String, trim: true },
+    },
+    linkUrl: {
+      type: String,
+      trim: true,
+    },
+    idempotencyKey: {
+      type: String,
+      trim: true,
+      sparse: true,
+      unique: true,
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
     },
     readAt: {
       type: Date,
+      index: true,
+    },
+    isRead: {
+      type: Boolean,
+      default: false,
       index: true,
     },
   },
@@ -57,8 +138,10 @@ const NotificationSchema = new Schema<INotificationDocument>(
   }
 );
 
-// High-speed index for user unread notification queries
-NotificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
+// High-speed compound indexes for filtered user queries
+NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+NotificationSchema.index({ userId: 1, category: 1, createdAt: -1 });
+NotificationSchema.index({ createdAt: -1 });
 
 export const NotificationModel: Model<INotificationDocument> =
   (mongoose.models.Notification as Model<INotificationDocument>) ||

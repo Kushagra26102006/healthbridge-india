@@ -37,4 +37,6 @@ export * from '../modules/security/models/refresh-token.model';
 export * from '../modules/security/models/audit-log.model';
 
 export * from '../modules/notifications/models/notification.model';
+export * from '../modules/notifications/models/notification-preference.model';
+export * from '../modules/notifications/models/notification-delivery.model';
 export * from '../modules/auth/models/verification-token.model';

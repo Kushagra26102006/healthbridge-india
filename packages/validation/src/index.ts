@@ -13,4 +13,5 @@ export * from './encounter.schema';
 export * from './doctor-patient.schema';
 export * from './doctor-schedule.schema';
 export * from './pharmacy.schema';
+export * from './notification.schema';
 

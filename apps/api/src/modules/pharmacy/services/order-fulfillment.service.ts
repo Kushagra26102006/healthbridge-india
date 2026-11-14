@@ -6,10 +6,10 @@ import {
   PrescriptionModel,
   UserModel,
   DispensingRecordModel,
-  NotificationModel,
   AuditLogModel,
   PharmacyProfileModel,
 } from '../../../database/models';
+import { notificationService } from '../../notifications/services/notification.service';
 import { AppError } from '../../../shared/errors/app-error';
 import type {
   PharmacyOrderStatus,
@@ -179,20 +179,42 @@ export class OrderFulfillmentService {
     });
 
     // In-App Notifications
-    await Promise.all([
-      NotificationModel.create({
-        userId: pharmacyId,
-        title: 'New Pharmacy Order Received',
-        message: `Order #${orderNumber} for patient ${patientName} has been submitted for prescription #${prescription.prescriptionNumber}.`,
-        type: 'PRESCRIPTION',
-      }),
-      NotificationModel.create({
-        userId: prescription.patientId,
-        title: 'Order Placed with Pharmacy',
-        message: `Your prescription order #${orderNumber} has been received by ${pharmacyName} and is awaiting review.`,
-        type: 'PRESCRIPTION',
-      }),
-    ]);
+    try {
+      await Promise.all([
+        notificationService.publishEvent({
+          recipientId: pharmacyId.toString(),
+          recipientRole: 'PHARMACY',
+          category: 'ORDER',
+          eventType: 'ORDER_CREATED',
+          title: 'New Pharmacy Order Received',
+          message: `Order #${orderNumber} for patient ${patientName} has been submitted for prescription #${prescription.prescriptionNumber}.`,
+          priority: 'HIGH',
+          relatedEntity: {
+            entityType: 'ORDER',
+            entityId: order._id.toString(),
+            referenceNumber: orderNumber,
+          },
+          linkUrl: '/pharmacy/orders',
+        }),
+        notificationService.publishEvent({
+          recipientId: prescription.patientId.toString(),
+          recipientRole: 'PATIENT',
+          category: 'ORDER',
+          eventType: 'ORDER_CREATED',
+          title: 'Order Placed with Pharmacy',
+          message: `Your prescription order #${orderNumber} has been received by ${pharmacyName} and is awaiting review.`,
+          priority: 'MEDIUM',
+          relatedEntity: {
+            entityType: 'ORDER',
+            entityId: order._id.toString(),
+            referenceNumber: orderNumber,
+          },
+          linkUrl: '/patient/orders',
+        }),
+      ]);
+    } catch {
+      // Non-fatal notification error
+    }
 
     // Audit Log
     await this.logAudit({
@@ -329,12 +351,25 @@ export class OrderFulfillmentService {
       await order.save();
 
       // Notify patient
-      await NotificationModel.create({
-        userId: order.patientId,
-        title: 'Order Could Not Be Fulfilled',
-        message: `Your pharmacy order #${order.orderNumber} was rejected: ${dto.reason.trim()}. Please consult your doctor or choose another pharmacy.`,
-        type: 'PRESCRIPTION',
-      });
+      try {
+        await notificationService.publishEvent({
+          recipientId: order.patientId.toString(),
+          recipientRole: 'PATIENT',
+          category: 'ORDER',
+          eventType: 'ORDER_REJECTED',
+          title: 'Order Could Not Be Fulfilled',
+          message: `Your pharmacy order #${order.orderNumber} was rejected: ${dto.reason.trim()}. Please consult your doctor or choose another pharmacy.`,
+          priority: 'HIGH',
+          relatedEntity: {
+            entityType: 'ORDER',
+            entityId: order._id.toString(),
+            referenceNumber: order.orderNumber,
+          },
+          linkUrl: '/patient/orders',
+        });
+      } catch {
+        // Non-fatal notification error
+      }
 
       await this.logAudit({
         actorId: pharmacyUserId,
@@ -367,12 +402,25 @@ export class OrderFulfillmentService {
     await order.save();
 
     // Notify patient
-    await NotificationModel.create({
-      userId: order.patientId,
-      title: 'Order Accepted by Pharmacy',
-      message: `Your pharmacy order #${order.orderNumber} has been accepted and scheduled for preparation.`,
-      type: 'PRESCRIPTION',
-    });
+    try {
+      await notificationService.publishEvent({
+        recipientId: order.patientId.toString(),
+        recipientRole: 'PATIENT',
+        category: 'ORDER',
+        eventType: 'ORDER_ACCEPTED',
+        title: 'Order Accepted by Pharmacy',
+        message: `Your pharmacy order #${order.orderNumber} has been accepted and scheduled for preparation.`,
+        priority: 'MEDIUM',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     await this.logAudit({
       actorId: pharmacyUserId,
@@ -418,12 +466,25 @@ export class OrderFulfillmentService {
     await order.save();
 
     // Notify Patient
-    await NotificationModel.create({
-      userId: order.patientId,
-      title: 'Prescription Clarification Required',
-      message: `The pharmacy has requested clarification regarding order #${order.orderNumber}: "${notes.trim()}".`,
-      type: 'PRESCRIPTION',
-    });
+    try {
+      await notificationService.publishEvent({
+        recipientId: order.patientId.toString(),
+        recipientRole: 'PATIENT',
+        category: 'ORDER',
+        eventType: 'ORDER_PROCESSING',
+        title: 'Prescription Clarification Required',
+        message: `The pharmacy has requested clarification regarding order #${order.orderNumber}: "${notes.trim()}".`,
+        priority: 'HIGH',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     return this.mapToPharmacyOrderDto(order);
   }
@@ -458,12 +519,25 @@ export class OrderFulfillmentService {
 
     await order.save();
 
-    await NotificationModel.create({
-      userId: order.patientId,
-      title: 'Order Processing',
-      message: `Your order #${order.orderNumber} is now being packed and prepared by pharmacy staff.`,
-      type: 'PRESCRIPTION',
-    });
+    try {
+      await notificationService.publishEvent({
+        recipientId: order.patientId.toString(),
+        recipientRole: 'PATIENT',
+        category: 'ORDER',
+        eventType: 'ORDER_PROCESSING',
+        title: 'Order Processing',
+        message: `Your order #${order.orderNumber} is now being packed and prepared by pharmacy staff.`,
+        priority: 'MEDIUM',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     return this.mapToPharmacyOrderDto(order);
   }
@@ -563,12 +637,25 @@ export class OrderFulfillmentService {
       ? `All medications for order #${order.orderNumber} have been packed and are ready for collection! Pickup Code: ${order.pickupDetails?.pickupReference}.`
       : `Partially fulfilled order #${order.orderNumber}. Some items were dispensed under #${dispensingRecord.dispensingNumber}.`;
 
-    await NotificationModel.create({
-      userId: order.patientId,
-      title: allItemsFulfilled ? 'Order Ready for Pickup' : 'Order Partially Fulfilled',
-      message: notificationMsg,
-      type: 'PRESCRIPTION',
-    });
+    try {
+      await notificationService.publishEvent({
+        recipientId: order.patientId.toString(),
+        recipientRole: 'PATIENT',
+        category: 'ORDER',
+        eventType: allItemsFulfilled ? 'ORDER_READY_FOR_PICKUP' : 'ORDER_PARTIALLY_FULFILLED',
+        title: allItemsFulfilled ? 'Order Ready for Pickup' : 'Order Partially Fulfilled',
+        message: notificationMsg,
+        priority: allItemsFulfilled ? 'HIGH' : 'MEDIUM',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     return this.mapToPharmacyOrderDto(order);
   }
@@ -606,12 +693,25 @@ export class OrderFulfillmentService {
 
     await order.save();
 
-    await NotificationModel.create({
-      userId: order.patientId,
-      title: 'Order Ready for Pickup',
-      message: `Your order #${order.orderNumber} is ready for pickup! Your verification code is ${order.pickupDetails?.pickupReference}.`,
-      type: 'PRESCRIPTION',
-    });
+    try {
+      await notificationService.publishEvent({
+        recipientId: order.patientId.toString(),
+        recipientRole: 'PATIENT',
+        category: 'ORDER',
+        eventType: 'ORDER_READY_FOR_PICKUP',
+        title: 'Order Ready for Pickup',
+        message: `Your order #${order.orderNumber} is ready for pickup! Your verification code is ${order.pickupDetails?.pickupReference}.`,
+        priority: 'HIGH',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     return this.mapToPharmacyOrderDto(order);
   }
@@ -687,12 +787,25 @@ export class OrderFulfillmentService {
     await order.save();
 
     // Patient notification
-    await NotificationModel.create({
-      userId: order.patientId,
-      title: 'Order Handover Completed',
-      message: `Your order #${order.orderNumber} was successfully collected. Thank you for using HealthBridge!`,
-      type: 'PRESCRIPTION',
-    });
+    try {
+      await notificationService.publishEvent({
+        recipientId: order.patientId.toString(),
+        recipientRole: 'PATIENT',
+        category: 'ORDER',
+        eventType: 'ORDER_COMPLETED',
+        title: 'Order Handover Completed',
+        message: `Your order #${order.orderNumber} was successfully collected. Thank you for using HealthBridge!`,
+        priority: 'MEDIUM',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     await this.logAudit({
       actorId: staffId,
@@ -770,12 +883,26 @@ export class OrderFulfillmentService {
 
     // Notify the other party
     const notifyUserId = actor.role === 'PATIENT' ? order.pharmacyId : order.patientId;
-    await NotificationModel.create({
-      userId: notifyUserId,
-      title: 'Pharmacy Order Cancelled',
-      message: `Order #${order.orderNumber} was cancelled by ${actor.name}: ${dto.reason.trim()}.`,
-      type: 'PRESCRIPTION',
-    });
+    const notifyRole = actor.role === 'PATIENT' ? 'PHARMACY' : 'PATIENT';
+    try {
+      await notificationService.publishEvent({
+        recipientId: notifyUserId.toString(),
+        recipientRole: notifyRole as any,
+        category: 'ORDER',
+        eventType: 'ORDER_CANCELLED',
+        title: 'Pharmacy Order Cancelled',
+        message: `Order #${order.orderNumber} was cancelled by ${actor.name}: ${dto.reason.trim()}.`,
+        priority: 'HIGH',
+        relatedEntity: {
+          entityType: 'ORDER',
+          entityId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+        },
+        linkUrl: actor.role === 'PATIENT' ? '/pharmacy/orders' : '/patient/orders',
+      });
+    } catch {
+      // Non-fatal notification error
+    }
 
     await this.logAudit({
       actorId: actor.userId,
