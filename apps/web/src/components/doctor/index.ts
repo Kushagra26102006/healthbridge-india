@@ -12,4 +12,5 @@ export * from './DoctorEmptyState';
 export * from './appointments';
 export * from './encounters';
 export * from './prescriptions';
+export * from './patients';
 

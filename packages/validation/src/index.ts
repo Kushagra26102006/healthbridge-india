@@ -10,4 +10,5 @@ export * from './pagination.schema';
 export * from './record.schema';
 export * from './lab-report.schema';
 export * from './encounter.schema';
+export * from './doctor-patient.schema';
 

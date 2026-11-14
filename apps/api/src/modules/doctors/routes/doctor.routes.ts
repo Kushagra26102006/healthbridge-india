@@ -4,6 +4,7 @@ import { doctorDashboardController } from '../controllers/doctor-dashboard.contr
 import { doctorAppointmentController } from '../controllers/doctor-appointment.controller';
 import { doctorEncounterController } from '../controllers/doctor-encounter.controller';
 import { doctorPrescriptionController } from '../controllers/doctor-prescription.controller';
+import { doctorPatientController } from '../controllers/doctor-patient.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 import { validateRequest } from '../../../middleware/validate';
@@ -28,6 +29,11 @@ import {
   discontinuePrescriptionSchema,
   doctorPrescriptionFilterQuerySchema,
   prescriptionIdParamSchema,
+  doctorPatientFilterQuerySchema,
+  patientTimelineQuerySchema,
+  patientRecordFilterQuerySchema,
+  createDoctorConsentRequestSchema,
+  paginationQuerySchema,
 } from '@healthbridge/validation';
 
 export const doctorRoutes = Router();
@@ -199,13 +205,14 @@ doctorRoutes.get(
 
 /**
  * @route   GET /api/v1/doctors/patients
- * @desc    Get assigned patient roster with clinical relationships
+ * @desc    Get assigned patient directory with search, filters and pagination
  * @access  Private (DOCTOR role only)
  */
 doctorRoutes.get(
   '/patients',
   authorize(['DOCTOR']),
-  (req, res, next) => doctorDashboardController.getAssignedPatients(req, res, next)
+  validateRequest({ query: doctorPatientFilterQuerySchema }),
+  (req, res, next) => doctorPatientController.getPatients(req, res, next)
 );
 
 /**
@@ -318,9 +325,97 @@ doctorRoutes.post(
   (req, res, next) => doctorEncounterController.completeEncounter(req, res, next)
 );
 
+/* ==========================================================================
+   DOCTOR PATIENT MANAGEMENT & CLINICAL HISTORY ENDPOINTS (DOCTOR role only)
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId
+ * @desc    Get clinical patient profile overview and authorized health summary
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema }),
+  (req, res, next) => doctorPatientController.getPatientProfile(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId/history
+ * @desc    Get chronological unified medical timeline with category & date filters
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId/history',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema, query: patientTimelineQuerySchema }),
+  (req, res, next) => doctorPatientController.getPatientHistory(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId/records
+ * @desc    Get authorized patient medical records and diagnostic documents
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId/records',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema, query: patientRecordFilterQuerySchema }),
+  (req, res, next) => doctorPatientController.getPatientRecords(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId/encounters
+ * @desc    Get previous consultation encounter history for authorized patient
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId/encounters',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema, query: paginationQuerySchema }),
+  (req, res, next) => doctorPatientController.getPatientEncounters(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId/prescriptions
+ * @desc    Get prescription history for authorized patient
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId/prescriptions',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema, query: paginationQuerySchema }),
+  (req, res, next) => doctorPatientController.getPatientPrescriptions(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId/lab-reports
+ * @desc    Get diagnostic laboratory reports with reference ranges
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId/lab-reports',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema, query: paginationQuerySchema }),
+  (req, res, next) => doctorPatientController.getPatientLabReports(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/patients/:patientId/consent-requests
+ * @desc    Initiate an ABDM electronic patient consent request
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/patients/:patientId/consent-requests',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema, body: createDoctorConsentRequestSchema }),
+  (req, res, next) => doctorPatientController.createConsentRequest(req, res, next)
+);
+
 /**
  * @route   GET /api/v1/doctors/patients/:patientId/clinical-history
- * @desc    Get longitudinal clinical health chart with consent enforcement
+ * @desc    Get longitudinal clinical health chart with consent enforcement (backward compatibility)
  * @access  Private (DOCTOR role only)
  */
 doctorRoutes.get(

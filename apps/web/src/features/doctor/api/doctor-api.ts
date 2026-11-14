@@ -31,6 +31,16 @@ import type {
   PrescriptionFilterQueryDto,
   MedicationCatalogItemDto,
   MedicationCatalogFilterQueryDto,
+  DoctorPatientFilterQueryDto,
+  DoctorPatientProfileOverviewDto,
+  DoctorPatientTimelineItemDto,
+  PatientTimelineQueryDto,
+  PatientRecordItemDto,
+  PatientRecordFilterQueryDto,
+  PatientEncounterHistoryItemDto,
+  PatientPrescriptionHistoryItemDto,
+  PatientLabReportHistoryItemDto,
+  CreateDoctorConsentRequestDto,
 } from '@healthbridge/shared-types';
 
 export const doctorApi = {
@@ -269,6 +279,194 @@ export const doctorApi = {
 
     const response = await apiClient.get<ApiResponse<DoctorPatientItemDto[]>>(endpoint);
     return response.data.data || [];
+  },
+
+  /**
+   * Fetch paginated patient directory with search, filters and pagination
+   */
+  async getPatientDirectory(
+    query?: DoctorPatientFilterQueryDto
+  ): Promise<{ items: DoctorPatientItemDto[]; pagination: PaginationMeta }> {
+    const params = new URLSearchParams();
+    if (query?.search) params.append('search', query.search);
+    if (query?.filter) params.append('filter', query.filter);
+    if (query?.facilityId) params.append('facilityId', query.facilityId);
+    if (query?.startDate) params.append('startDate', query.startDate);
+    if (query?.endDate) params.append('endDate', query.endDate);
+    if (query?.page) params.append('page', String(query.page));
+    if (query?.limit) params.append('limit', String(query.limit));
+    if (query?.sortBy) params.append('sortBy', query.sortBy);
+    if (query?.sortOrder) params.append('sortOrder', query.sortOrder);
+
+    const qs = params.toString();
+    const endpoint = qs
+      ? `${API_ENDPOINTS.DOCTORS.PATIENTS}?${qs}`
+      : API_ENDPOINTS.DOCTORS.PATIENTS;
+
+    const response = await apiClient.get<ApiResponse<DoctorPatientItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page: query?.page || 1,
+        limit: query?.limit || 10,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Fetch patient profile overview and authorized clinical summary
+   */
+  async getPatientProfile(patientId: string): Promise<DoctorPatientProfileOverviewDto> {
+    const response = await apiClient.get<ApiResponse<DoctorPatientProfileOverviewDto>>(
+      API_ENDPOINTS.DOCTORS.PATIENT_DETAIL(patientId)
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch patient profile overview');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch chronological unified medical timeline
+   */
+  async getPatientHistoryTimeline(
+    patientId: string,
+    query?: PatientTimelineQueryDto
+  ): Promise<{ items: DoctorPatientTimelineItemDto[]; pagination: PaginationMeta }> {
+    const params = new URLSearchParams();
+    if (query?.category) params.append('category', query.category);
+    if (query?.startDate) params.append('startDate', query.startDate);
+    if (query?.endDate) params.append('endDate', query.endDate);
+    if (query?.page) params.append('page', String(query.page));
+    if (query?.limit) params.append('limit', String(query.limit));
+    if (query?.sortOrder) params.append('sortOrder', query.sortOrder);
+
+    const qs = params.toString();
+    const endpoint = qs
+      ? `${API_ENDPOINTS.DOCTORS.PATIENT_HISTORY(patientId)}?${qs}`
+      : API_ENDPOINTS.DOCTORS.PATIENT_HISTORY(patientId);
+
+    const response = await apiClient.get<ApiResponse<DoctorPatientTimelineItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page: query?.page || 1,
+        limit: query?.limit || 20,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Fetch authorized patient medical records
+   */
+  async getPatientMedicalRecords(
+    patientId: string,
+    query?: PatientRecordFilterQueryDto
+  ): Promise<{ items: PatientRecordItemDto[]; pagination: PaginationMeta }> {
+    const params = new URLSearchParams();
+    if (query?.recordType) params.append('recordType', query.recordType);
+    if (query?.startDate) params.append('startDate', query.startDate);
+    if (query?.endDate) params.append('endDate', query.endDate);
+    if (query?.search) params.append('search', query.search);
+    if (query?.page) params.append('page', String(query.page));
+    if (query?.limit) params.append('limit', String(query.limit));
+
+    const qs = params.toString();
+    const endpoint = qs
+      ? `${API_ENDPOINTS.DOCTORS.PATIENT_RECORDS(patientId)}?${qs}`
+      : API_ENDPOINTS.DOCTORS.PATIENT_RECORDS(patientId);
+
+    const response = await apiClient.get<ApiResponse<PatientRecordItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page: query?.page || 1,
+        limit: query?.limit || 10,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Fetch previous consultations / encounters for patient
+   */
+  async getPatientEncounters(
+    patientId: string,
+    page = 1,
+    limit = 10
+  ): Promise<{ items: PatientEncounterHistoryItemDto[]; pagination: PaginationMeta }> {
+    const endpoint = `${API_ENDPOINTS.DOCTORS.PATIENT_ENCOUNTERS(patientId)}?page=${page}&limit=${limit}`;
+    const response = await apiClient.get<ApiResponse<PatientEncounterHistoryItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page,
+        limit,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Fetch prescription history for patient
+   */
+  async getPatientPrescriptions(
+    patientId: string,
+    page = 1,
+    limit = 10
+  ): Promise<{ items: PatientPrescriptionHistoryItemDto[]; pagination: PaginationMeta }> {
+    const endpoint = `${API_ENDPOINTS.DOCTORS.PATIENT_PRESCRIPTIONS(patientId)}?page=${page}&limit=${limit}`;
+    const response = await apiClient.get<ApiResponse<PatientPrescriptionHistoryItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page,
+        limit,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Fetch diagnostic laboratory reports for patient
+   */
+  async getPatientLabReports(
+    patientId: string,
+    page = 1,
+    limit = 10
+  ): Promise<{ items: PatientLabReportHistoryItemDto[]; pagination: PaginationMeta }> {
+    const endpoint = `${API_ENDPOINTS.DOCTORS.PATIENT_LAB_REPORTS(patientId)}?page=${page}&limit=${limit}`;
+    const response = await apiClient.get<ApiResponse<PatientLabReportHistoryItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page,
+        limit,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Dispatch an ABDM electronic consent request to patient
+   */
+  async createPatientConsentRequest(
+    patientId: string,
+    data: CreateDoctorConsentRequestDto
+  ): Promise<any> {
+    const response = await apiClient.post<ApiResponse<any>>(
+      API_ENDPOINTS.DOCTORS.PATIENT_CONSENT_REQUEST(patientId),
+      data
+    );
+    return response.data.data;
   },
 
   /**

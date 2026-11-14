@@ -163,17 +163,300 @@ export interface DoctorAppointmentFilterQueryDto {
   search?: string;
 }
 
+export type PatientAccessStatus =
+  | 'GRANTED'
+  | 'ENCOUNTER_BOUND'
+  | 'ACTIVE_CONSENT'
+  | 'CONSENT_REQUIRED'
+  | 'ACCESS_EXPIRED'
+  | 'ACCESS_REVOKED'
+  | 'ACCESS_RESTRICTED';
+
 export interface DoctorPatientItemDto {
   id: string;
   patientId: string;
   name: string;
+  patientReference?: string;
   phone?: string;
   gender?: string;
   dateOfBirth?: string;
+  age?: number;
+  bloodGroup?: string;
   lastEncounterDate?: string;
   nextAppointmentDate?: string;
+  nextAppointmentDetails?: {
+    id: string;
+    scheduledAt: string;
+    consultationType: string;
+    status: string;
+  };
+  assignedFacility?: {
+    id: string;
+    name: string;
+  };
   totalAppointments: number;
-  accessStatus: 'ACTIVE_CONSENT' | 'ENCOUNTER_BOUND';
+  totalEncounters?: number;
+  accessStatus: PatientAccessStatus;
+  accessExpiresAt?: string;
+}
+
+export interface DoctorPatientFilterQueryDto {
+  search?: string;
+  filter?: 'all' | 'recently-seen' | 'upcoming-appointments' | 'active-care';
+  facilityId?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'lastEncounterDate' | 'nextAppointmentDate' | 'name' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface DoctorPatientProfileOverviewDto {
+  patient: {
+    id: string;
+    name: string;
+    patientReference: string;
+    profileImage?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    age?: number;
+    bloodGroup?: string;
+    phone?: string;
+    email?: string;
+    abhaAddress?: string;
+    abhaNumber?: string;
+    emergencyContact?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+    address?: {
+      line1?: string;
+      city?: string;
+      district?: string;
+      state?: string;
+      postalCode?: string;
+    };
+  };
+  accessStatus: PatientAccessStatus;
+  accessDetails?: {
+    consentId?: string;
+    grantedAt?: string;
+    expiresAt?: string;
+    permittedDataTypes?: string[];
+    purpose?: string;
+    isEncounterBound?: boolean;
+    reason?: string;
+  };
+  clinicalSummary: {
+    medicalHistory?: string;
+    allergies: string[];
+    currentMedications: Array<{
+      id?: string;
+      name: string;
+      dosage: string;
+      frequency: string;
+      duration: string;
+      prescribedBy?: string;
+      issuedAt: string;
+    }>;
+    pastDiagnoses: Array<{
+      name: string;
+      code?: string;
+      type: string;
+      diagnosedDate: string;
+      encounterId?: string;
+    }>;
+    recentEncounters: Array<{
+      id: string;
+      encounterReference: string;
+      date: string;
+      doctorName: string;
+      facilityName?: string;
+      chiefComplaint?: string;
+      primaryDiagnosis?: string;
+      status: string;
+    }>;
+    recentPrescriptions: Array<{
+      id: string;
+      prescriptionNumber: string;
+      date: string;
+      doctorName: string;
+      medicationsCount: number;
+      medicationNames: string[];
+      status: string;
+    }>;
+    recentLabReports: Array<{
+      id: string;
+      reportNumber: string;
+      testName: string;
+      date: string;
+      status: string;
+      laboratoryName?: string;
+      observationsCount: number;
+    }>;
+    upcomingAppointments: Array<{
+      id: string;
+      scheduledAt: string;
+      consultationType: string;
+      status: string;
+      facilityName?: string;
+    }>;
+    vitalSigns?: {
+      bloodPressure?: string;
+      heartRate?: number;
+      temperature?: number;
+      respiratoryRate?: number;
+      oxygenSaturation?: number;
+      weight?: number;
+      height?: number;
+      bmi?: number;
+      recordedAt?: string;
+    };
+  };
+}
+
+export type TimelineEventCategory =
+  | 'ENCOUNTER'
+  | 'PRESCRIPTION'
+  | 'LAB_REPORT'
+  | 'RECORD'
+  | 'APPOINTMENT';
+
+export interface DoctorPatientTimelineItemDto {
+  id: string;
+  category: TimelineEventCategory;
+  title: string;
+  timestamp: string;
+  source: string;
+  responsibleProvider: string;
+  summary?: string;
+  badgeText: string;
+  badgeVariant: 'default' | 'outline' | 'secondary' | 'destructive' | 'success' | 'warning';
+  actionUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PatientTimelineQueryDto {
+  category?: 'ALL' | TimelineEventCategory;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface PatientRecordItemDto {
+  id: string;
+  title: string;
+  recordType: string;
+  recordDate: string;
+  source: string;
+  doctorName?: string;
+  facilityName?: string;
+  verificationStatus: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  description?: string;
+}
+
+export interface PatientRecordFilterQueryDto {
+  recordType?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PatientEncounterHistoryItemDto {
+  id: string;
+  encounterReference: string;
+  encounterType: string;
+  startTime: string;
+  endTime?: string;
+  treatingDoctor: {
+    id: string;
+    name: string;
+    specialization?: string[];
+  };
+  facility?: {
+    id: string;
+    name: string;
+  };
+  chiefComplaint?: string;
+  primaryDiagnosis?: string;
+  diagnoses: Array<{
+    name: string;
+    code?: string;
+    type: string;
+  }>;
+  status: string;
+  isDraft: boolean;
+  isOwner: boolean;
+  actionUrl: string;
+}
+
+export interface PatientPrescriptionHistoryItemDto {
+  id: string;
+  prescriptionNumber: string;
+  issuedAt: string;
+  doctor: {
+    id: string;
+    name: string;
+    registrationNumber?: string;
+  };
+  diagnosis?: string;
+  medications: Array<{
+    name: string;
+    genericName?: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    route?: string;
+    instructions?: string;
+  }>;
+  medicationsCount: number;
+  status: string;
+  isDraft: boolean;
+  isOwner: boolean;
+  documentUrl?: string;
+  discontinuedAt?: string;
+  discontinuationReason?: string;
+}
+
+export interface PatientLabReportHistoryItemDto {
+  id: string;
+  reportNumber: string;
+  testName: string;
+  category: string;
+  testDate: string;
+  publishedAt: string;
+  status: string;
+  laboratory: {
+    id: string;
+    name: string;
+  };
+  doctorName?: string;
+  observations: Array<{
+    testName: string;
+    value: string;
+    unit: string;
+    referenceRange: string;
+    interpretation: string;
+  }>;
+  clinicalNotes?: string;
+  reportUrl?: string;
+}
+
+export interface CreateDoctorConsentRequestDto {
+  purpose: string;
+  purposeDescription?: string;
+  requestedDataTypes: string[];
+  durationDays?: number;
 }
 
 export interface DoctorClinicalActivityDto {

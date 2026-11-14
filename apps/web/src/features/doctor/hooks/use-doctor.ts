@@ -33,6 +33,16 @@ import type {
   PrescriptionFilterQueryDto,
   MedicationCatalogItemDto,
   MedicationCatalogFilterQueryDto,
+  DoctorPatientFilterQueryDto,
+  DoctorPatientProfileOverviewDto,
+  DoctorPatientTimelineItemDto,
+  PatientTimelineQueryDto,
+  PatientRecordItemDto,
+  PatientRecordFilterQueryDto,
+  PatientEncounterHistoryItemDto,
+  PatientPrescriptionHistoryItemDto,
+  PatientLabReportHistoryItemDto,
+  CreateDoctorConsentRequestDto,
 } from '@healthbridge/shared-types';
 
 export const DOCTOR_KEYS = {
@@ -49,6 +59,20 @@ export const DOCTOR_KEYS = {
     [...DOCTOR_KEYS.all, 'appointments', 'upcoming', limit] as const,
   queue: (filter?: string) => [...DOCTOR_KEYS.all, 'queue', filter || 'ALL'] as const,
   patients: (search?: string) => [...DOCTOR_KEYS.all, 'patients', search || ''] as const,
+  patientDirectory: (query?: DoctorPatientFilterQueryDto) =>
+    [...DOCTOR_KEYS.all, 'patients', 'directory', query || {}] as const,
+  patientProfile: (patientId: string) =>
+    [...DOCTOR_KEYS.all, 'patients', 'profile', patientId] as const,
+  patientTimeline: (patientId: string, query?: PatientTimelineQueryDto) =>
+    [...DOCTOR_KEYS.all, 'patients', 'timeline', patientId, query || {}] as const,
+  patientRecords: (patientId: string, query?: PatientRecordFilterQueryDto) =>
+    [...DOCTOR_KEYS.all, 'patients', 'records', patientId, query || {}] as const,
+  patientEncounters: (patientId: string, page?: number, limit?: number) =>
+    [...DOCTOR_KEYS.all, 'patients', 'encounters', patientId, page || 1, limit || 10] as const,
+  patientPrescriptions: (patientId: string, page?: number, limit?: number) =>
+    [...DOCTOR_KEYS.all, 'patients', 'prescriptions', patientId, page || 1, limit || 10] as const,
+  patientLabReports: (patientId: string, page?: number, limit?: number) =>
+    [...DOCTOR_KEYS.all, 'patients', 'lab-reports', patientId, page || 1, limit || 10] as const,
   schedule: () => [...DOCTOR_KEYS.all, 'schedule'] as const,
   encounterSummary: () => [...DOCTOR_KEYS.all, 'encounters', 'summary'] as const,
   encounters: (filters?: EncounterFilterQueryDto) =>
@@ -769,4 +793,198 @@ export const useMedicationCatalogDetail = (medicationId?: string) => {
     error: query.error,
   };
 };
+
+/* ==========================================================================
+   DOCTOR PATIENT MANAGEMENT & CLINICAL HISTORY HOOKS
+   ========================================================================== */
+
+/**
+ * Hook for authorized patient directory with server-side filters & pagination
+ */
+export const useDoctorPatientDirectory = (query?: DoctorPatientFilterQueryDto) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<{ items: DoctorPatientItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.patientDirectory(query),
+    queryFn: () => doctorApi.getPatientDirectory(query),
+    enabled: isDoctor,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    patients: res.data?.items || [],
+    pagination: res.data?.pagination,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for patient clinical profile overview & access status
+ */
+export const useDoctorPatientProfile = (patientId?: string) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<DoctorPatientProfileOverviewDto, Error>({
+    queryKey: DOCTOR_KEYS.patientProfile(patientId || ''),
+    queryFn: () => doctorApi.getPatientProfile(patientId!),
+    enabled: isDoctor && !!patientId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    profile: res.data,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for chronological unified medical timeline
+ */
+export const useDoctorPatientTimeline = (patientId?: string, query?: PatientTimelineQueryDto) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<{ items: DoctorPatientTimelineItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.patientTimeline(patientId || '', query),
+    queryFn: () => doctorApi.getPatientHistoryTimeline(patientId!, query),
+    enabled: isDoctor && !!patientId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    events: res.data?.items || [],
+    pagination: res.data?.pagination,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for authorized patient medical records
+ */
+export const useDoctorPatientRecords = (patientId?: string, query?: PatientRecordFilterQueryDto) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<{ items: PatientRecordItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.patientRecords(patientId || '', query),
+    queryFn: () => doctorApi.getPatientMedicalRecords(patientId!, query),
+    enabled: isDoctor && !!patientId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    records: res.data?.items || [],
+    pagination: res.data?.pagination,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for previous clinical consultation encounters
+ */
+export const useDoctorPatientEncounters = (patientId?: string, page = 1, limit = 10) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<{ items: PatientEncounterHistoryItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.patientEncounters(patientId || '', page, limit),
+    queryFn: () => doctorApi.getPatientEncounters(patientId!, page, limit),
+    enabled: isDoctor && !!patientId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    encounters: res.data?.items || [],
+    pagination: res.data?.pagination,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for patient prescription history
+ */
+export const useDoctorPatientPrescriptions = (patientId?: string, page = 1, limit = 10) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<{ items: PatientPrescriptionHistoryItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.patientPrescriptions(patientId || '', page, limit),
+    queryFn: () => doctorApi.getPatientPrescriptions(patientId!, page, limit),
+    enabled: isDoctor && !!patientId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    prescriptions: res.data?.items || [],
+    pagination: res.data?.pagination,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for patient laboratory reports
+ */
+export const useDoctorPatientLabReports = (patientId?: string, page = 1, limit = 10) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const res = useQuery<{ items: PatientLabReportHistoryItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.patientLabReports(patientId || '', page, limit),
+    queryFn: () => doctorApi.getPatientLabReports(patientId!, page, limit),
+    enabled: isDoctor && !!patientId,
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    labReports: res.data?.items || [],
+    pagination: res.data?.pagination,
+    isLoading: res.isLoading,
+    isError: res.isError,
+    error: res.error,
+    refetch: res.refetch,
+  };
+};
+
+/**
+ * Hook for ABDM electronic consent actions
+ */
+export const useDoctorConsentActions = (patientId: string) => {
+  const queryClient = useQueryClient();
+
+  const requestConsentMutation = useMutation<any, Error, CreateDoctorConsentRequestDto>({
+    mutationFn: (data: CreateDoctorConsentRequestDto) =>
+      doctorApi.createPatientConsentRequest(patientId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.patientProfile(patientId) });
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.all });
+    },
+  });
+
+  return {
+    requestConsent: requestConsentMutation.mutateAsync,
+    isRequesting: requestConsentMutation.isPending,
+    requestError: requestConsentMutation.error,
+  };
+};
+
 

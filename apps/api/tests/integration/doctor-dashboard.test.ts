@@ -9,6 +9,8 @@ import {
   AppointmentModel,
   EncounterModel,
   PrescriptionModel,
+  ConsentArtifactModel,
+  ConsentRequestModel,
   FacilityModel,
 } from '../../src/database/models';
 import { Types } from 'mongoose';
@@ -160,6 +162,10 @@ describe('Doctor Dashboard, Professional Profile & Clinical Overview Tests', () 
 
     // Mock EncounterModel & PrescriptionModel counts
     vi.spyOn(EncounterModel, 'countDocuments').mockResolvedValue(0);
+    vi.spyOn(EncounterModel, 'distinct').mockResolvedValue([]);
+    vi.spyOn(EncounterModel, 'findOne').mockImplementation(() => createQueryMock(null));
+    vi.spyOn(ConsentArtifactModel, 'distinct').mockResolvedValue([]);
+    vi.spyOn(ConsentRequestModel, 'distinct').mockResolvedValue([]);
     vi.spyOn(PrescriptionModel, 'countDocuments').mockResolvedValue(0);
   });
 

@@ -198,6 +198,7 @@ const PrescriptionSchema = new Schema<IPrescriptionDocument>(
 );
 
 PrescriptionSchema.index({ patientId: 1, status: 1 });
+PrescriptionSchema.index({ patientId: 1, issuedAt: -1 });
 PrescriptionSchema.index({ doctorId: 1, createdAt: -1 });
 PrescriptionSchema.index({ doctorId: 1, status: 1 });
 PrescriptionSchema.index({ doctorId: 1, isDraft: 1 });

@@ -185,6 +185,7 @@ AppointmentSchema.index({ patientId: 1, status: 1 });
 AppointmentSchema.index({ doctorId: 1, scheduledAt: 1, status: 1 });
 AppointmentSchema.index({ doctorId: 1, status: 1 });
 AppointmentSchema.index({ doctorId: 1, queueNumber: 1 });
+AppointmentSchema.index({ doctorId: 1, patientId: 1 });
 
 export const AppointmentModel: Model<IAppointmentDocument> =
   (mongoose.models.Appointment as Model<IAppointmentDocument>) ||
