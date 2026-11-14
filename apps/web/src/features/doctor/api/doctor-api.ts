@@ -14,6 +14,13 @@ import type {
   UpdateDoctorScheduleDto,
   DoctorAppointmentFilterQueryDto,
   PaginationMeta,
+  EncounterItemDto,
+  EncounterDetailDto,
+  EncounterSummaryCountsDto,
+  PatientClinicalHistoryDto,
+  CreateEncounterDto,
+  UpdateEncounterDto,
+  EncounterFilterQueryDto,
 } from '@healthbridge/shared-types';
 
 export const doctorApi = {
@@ -277,6 +284,130 @@ export const doctorApi = {
     );
     if (!response.data.data) {
       throw new Error(response.data.message || 'Failed to update doctor schedule');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch clinical encounter summary counts
+   */
+  async getEncounterSummaryCounts(): Promise<EncounterSummaryCountsDto> {
+    const response = await apiClient.get<ApiResponse<EncounterSummaryCountsDto>>(
+      API_ENDPOINTS.DOCTORS.ENCOUNTERS_SUMMARY
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch encounter summary counts');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch clinical encounters list with filters, search, and pagination
+   */
+  async getEncounters(
+    filters?: EncounterFilterQueryDto
+  ): Promise<{ items: EncounterItemDto[]; pagination: PaginationMeta }> {
+    const params = new URLSearchParams();
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('limit', String(filters.limit));
+    if (filters?.status && filters.status !== 'ALL') params.append('status', filters.status);
+    if (filters?.filterTab) params.append('filterTab', filters.filterTab);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.patientId) params.append('patientId', filters.patientId);
+    if (filters?.facilityId) params.append('facilityId', filters.facilityId);
+    if (filters?.encounterType) params.append('encounterType', filters.encounterType);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+
+    const query = params.toString();
+    const endpoint = query
+      ? `${API_ENDPOINTS.DOCTORS.ENCOUNTERS}?${query}`
+      : API_ENDPOINTS.DOCTORS.ENCOUNTERS;
+
+    const response = await apiClient.get<ApiResponse<EncounterItemDto[]>>(endpoint);
+    return {
+      items: response.data.data || [],
+      pagination: (response.data.meta as PaginationMeta) || {
+        page: filters?.page || 1,
+        limit: filters?.limit || 20,
+        total: (response.data.data || []).length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  },
+
+  /**
+   * Fetch detailed clinical encounter workspace by ID
+   */
+  async getEncounterById(encounterId: string): Promise<EncounterDetailDto> {
+    const response = await apiClient.get<ApiResponse<EncounterDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.ENCOUNTERS}/${encounterId}`
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch encounter details');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Start a new clinical encounter
+   */
+  async createEncounter(data: CreateEncounterDto): Promise<EncounterDetailDto> {
+    const response = await apiClient.post<ApiResponse<EncounterDetailDto>>(
+      API_ENDPOINTS.DOCTORS.ENCOUNTERS,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to start clinical encounter');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Save draft documentation of an encounter
+   */
+  async saveEncounterDraft(
+    encounterId: string,
+    data: UpdateEncounterDto
+  ): Promise<EncounterDetailDto> {
+    const response = await apiClient.patch<ApiResponse<EncounterDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.ENCOUNTERS}/${encounterId}`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to save encounter draft');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Finalize and complete clinical encounter
+   */
+  async completeEncounter(
+    encounterId: string,
+    data?: UpdateEncounterDto
+  ): Promise<EncounterDetailDto> {
+    const response = await apiClient.post<ApiResponse<EncounterDetailDto>>(
+      `${API_ENDPOINTS.DOCTORS.ENCOUNTERS}/${encounterId}/complete`,
+      data || {}
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to finalize clinical encounter');
+    }
+    return response.data.data;
+  },
+
+  /**
+   * Fetch patient longitudinal clinical history
+   */
+  async getPatientClinicalHistory(patientId: string): Promise<PatientClinicalHistoryDto> {
+    const response = await apiClient.get<ApiResponse<PatientClinicalHistoryDto>>(
+      API_ENDPOINTS.DOCTORS.PATIENT_CLINICAL_HISTORY(patientId)
+    );
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch patient clinical history');
     }
     return response.data.data;
   },

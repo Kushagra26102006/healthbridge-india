@@ -6,3 +6,4 @@ import { PatientQueue } from '@/components/doctor/appointments';
 export default function DoctorQueuePage() {
   return <PatientQueue />;
 }
+

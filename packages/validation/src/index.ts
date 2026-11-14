@@ -9,4 +9,5 @@ export * from './env.schema';
 export * from './pagination.schema';
 export * from './record.schema';
 export * from './lab-report.schema';
+export * from './encounter.schema';
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { doctorController } from '../controllers/doctor.controller';
 import { doctorDashboardController } from '../controllers/doctor-dashboard.controller';
 import { doctorAppointmentController } from '../controllers/doctor-appointment.controller';
+import { doctorEncounterController } from '../controllers/doctor-encounter.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 import { validateRequest } from '../../../middleware/validate';
@@ -14,6 +15,12 @@ import {
   rejectAppointmentSchema,
   doctorCancelAppointmentSchema,
   appointmentIdParamSchema,
+  createEncounterSchema,
+  updateEncounterDraftSchema,
+  completeEncounterSchema,
+  encounterFilterQuerySchema,
+  encounterIdParamSchema,
+  patientIdParamSchema,
 } from '@healthbridge/validation';
 
 export const doctorRoutes = Router();
@@ -215,6 +222,105 @@ doctorRoutes.put(
   authorize(['DOCTOR']),
   validateRequest({ body: updateDoctorScheduleSchema }),
   (req, res, next) => doctorAppointmentController.updateSchedule(req, res, next)
+);
+
+/* ==========================================================================
+   CLINICAL ENCOUNTER MANAGEMENT & EMR ENDPOINTS (DOCTOR role only)
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/doctors/encounters/summary
+ * @desc    Aggregate encounter metrics (today, draft, completed, pendingDocumentation, total)
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/encounters/summary',
+  authorize(['DOCTOR']),
+  (req, res, next) => doctorEncounterController.getSummary(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/encounters
+ * @desc    List consultations with search, filters and pagination
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/encounters',
+  authorize(['DOCTOR']),
+  validateRequest({ query: encounterFilterQuerySchema }),
+  (req, res, next) => doctorEncounterController.getEncounters(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/encounters
+ * @desc    Initialize a new clinical encounter workspace
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/encounters',
+  authorize(['DOCTOR']),
+  validateRequest({ body: createEncounterSchema }),
+  (req, res, next) => doctorEncounterController.createEncounter(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/encounters/:encounterId
+ * @desc    Get detailed encounter workspace
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/encounters/:encounterId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: encounterIdParamSchema }),
+  (req, res, next) => doctorEncounterController.getEncounterById(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/doctors/encounters/:encounterId
+ * @desc    Update and auto-save clinical documentation draft
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.patch(
+  '/encounters/:encounterId',
+  authorize(['DOCTOR']),
+  validateRequest({ params: encounterIdParamSchema, body: updateEncounterDraftSchema }),
+  (req, res, next) => doctorEncounterController.updateDraft(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/encounters/:encounterId/save-draft
+ * @desc    Explicitly save clinical documentation draft
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/encounters/:encounterId/save-draft',
+  authorize(['DOCTOR']),
+  validateRequest({ params: encounterIdParamSchema, body: updateEncounterDraftSchema }),
+  (req, res, next) => doctorEncounterController.updateDraft(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/doctors/encounters/:encounterId/complete
+ * @desc    Finalize and lock clinical consultation document
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.post(
+  '/encounters/:encounterId/complete',
+  authorize(['DOCTOR']),
+  validateRequest({ params: encounterIdParamSchema, body: completeEncounterSchema }),
+  (req, res, next) => doctorEncounterController.completeEncounter(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/doctors/patients/:patientId/clinical-history
+ * @desc    Get longitudinal clinical health chart with consent enforcement
+ * @access  Private (DOCTOR role only)
+ */
+doctorRoutes.get(
+  '/patients/:patientId/clinical-history',
+  authorize(['DOCTOR']),
+  validateRequest({ params: patientIdParamSchema }),
+  (req, res, next) => doctorEncounterController.getPatientClinicalHistory(req, res, next)
 );
 
 /* ==========================================================================

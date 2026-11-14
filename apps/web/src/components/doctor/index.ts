@@ -10,4 +10,5 @@ export * from './ClinicalActivity';
 export * from './DoctorDashboardSkeleton';
 export * from './DoctorEmptyState';
 export * from './appointments';
+export * from './encounters';
 

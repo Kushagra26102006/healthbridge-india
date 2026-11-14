@@ -1,28 +1,122 @@
 'use client';
 
-import React from 'react';
-import { Stethoscope } from 'lucide-react';
-import { DoctorEmptyState } from '@/components/doctor/DoctorEmptyState';
+import React, { useState } from 'react';
+import {
+  EncounterHeader,
+  EncounterSummary,
+  EncounterFilters,
+  EncounterList,
+  EncounterSkeleton,
+} from '@/components/doctor/encounters';
+import {
+  useDoctorEncounters,
+  useDoctorEncounterSummary,
+} from '@/features/doctor/hooks/use-doctor';
+import type { EncounterType } from '@healthbridge/shared-types';
 
 export default function DoctorEncountersPage() {
-  return (
-    <div className="space-y-6 animate-fade-in max-w-5xl">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
-          Clinical Encounters & EMR
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Patient examination notes, diagnosis ICD-10 coding, clinical observations, and longitudinal chart
-        </p>
-      </div>
+  const [filterTab, setFilterTab] = useState<'all' | 'today' | 'draft' | 'completed' | 'pending'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [encounterType, setEncounterType] = useState<EncounterType | undefined>(undefined);
+  const [status, setStatus] = useState<string | undefined>(undefined);
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [endDate, setEndDate] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
 
-      <DoctorEmptyState
-        title="Clinical Encounters Engine"
-        description="Select an active consultation from your appointments schedule to initiate clinical documentation, record vitals, and issue digital prescriptions."
-        icon={Stethoscope}
-        actionHref="/doctor/appointments"
-        actionLabel="View Today's Appointments"
+  const { summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useDoctorEncounterSummary();
+
+  const {
+    encounters,
+    pagination,
+    isLoading: isListLoading,
+    isFetching,
+    refetch: refetchEncounters,
+  } = useDoctorEncounters({
+    page,
+    limit: 15,
+    filterTab,
+    search: searchQuery || undefined,
+    encounterType,
+    status,
+    startDate,
+    endDate,
+  });
+
+  const handleRefresh = () => {
+    refetchSummary();
+    refetchEncounters();
+  };
+
+  const handleResetFilters = () => {
+    setFilterTab('all');
+    setSearchQuery('');
+    setEncounterType(undefined);
+    setStatus(undefined);
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setPage(1);
+  };
+
+  return (
+    <div className="space-y-6 max-w-6xl animate-fade-in">
+      {/* Page Header */}
+      <EncounterHeader onRefresh={handleRefresh} isRefreshing={isFetching} />
+
+      {/* Summary Cards */}
+      <EncounterSummary
+        summary={summary}
+        activeFilter={filterTab}
+        onFilterSelect={(tab) => {
+          setFilterTab(tab);
+          setPage(1);
+        }}
       />
+
+      {/* Search & Filters */}
+      <EncounterFilters
+        filterTab={filterTab}
+        onFilterTabChange={(tab) => {
+          setFilterTab(tab);
+          setPage(1);
+        }}
+        searchQuery={searchQuery}
+        onSearchChange={(query) => {
+          setSearchQuery(query);
+          setPage(1);
+        }}
+        encounterType={encounterType}
+        onEncounterTypeChange={(type) => {
+          setEncounterType(type);
+          setPage(1);
+        }}
+        startDate={startDate}
+        onStartDateChange={(d) => {
+          setStartDate(d);
+          setPage(1);
+        }}
+        endDate={endDate}
+        onEndDateChange={(d) => {
+          setEndDate(d);
+          setPage(1);
+        }}
+        status={status}
+        onStatusChange={(s) => {
+          setStatus(s);
+          setPage(1);
+        }}
+        onReset={handleResetFilters}
+      />
+
+      {/* Main List */}
+      {isListLoading || isSummaryLoading ? (
+        <EncounterSkeleton />
+      ) : (
+        <EncounterList
+          encounters={encounters}
+          pagination={pagination}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

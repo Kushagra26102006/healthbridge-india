@@ -48,3 +48,4 @@ export default function DoctorAppointmentDetailPage() {
 
   return <AppointmentDetails appointment={appointment} onRefresh={refetch} />;
 }
+

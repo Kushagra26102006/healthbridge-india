@@ -16,6 +16,13 @@ import type {
   UpdateDoctorScheduleDto,
   DoctorAppointmentFilterQueryDto,
   PaginationMeta,
+  EncounterItemDto,
+  EncounterDetailDto,
+  EncounterSummaryCountsDto,
+  PatientClinicalHistoryDto,
+  CreateEncounterDto,
+  UpdateEncounterDto,
+  EncounterFilterQueryDto,
 } from '@healthbridge/shared-types';
 
 export const DOCTOR_KEYS = {
@@ -33,6 +40,12 @@ export const DOCTOR_KEYS = {
   queue: (filter?: string) => [...DOCTOR_KEYS.all, 'queue', filter || 'ALL'] as const,
   patients: (search?: string) => [...DOCTOR_KEYS.all, 'patients', search || ''] as const,
   schedule: () => [...DOCTOR_KEYS.all, 'schedule'] as const,
+  encounterSummary: () => [...DOCTOR_KEYS.all, 'encounters', 'summary'] as const,
+  encounters: (filters?: EncounterFilterQueryDto) =>
+    [...DOCTOR_KEYS.all, 'encounters', 'list', filters || {}] as const,
+  encounterDetail: (id: string) => [...DOCTOR_KEYS.all, 'encounters', 'detail', id] as const,
+  patientClinicalHistory: (patientId: string) =>
+    [...DOCTOR_KEYS.all, 'patients', 'clinical-history', patientId] as const,
 };
 
 /**
@@ -358,3 +371,155 @@ export const useDoctorSchedule = () => {
     updateError: updateMutation.error,
   };
 };
+
+/**
+ * Hook for doctor clinical encounter summary counts
+ */
+export const useDoctorEncounterSummary = () => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<EncounterSummaryCountsDto, Error>({
+    queryKey: DOCTOR_KEYS.encounterSummary(),
+    queryFn: () => doctorApi.getEncounterSummaryCounts(),
+    enabled: isDoctor,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  return {
+    summary: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for doctor clinical encounters list
+ */
+export const useDoctorEncounters = (filters?: EncounterFilterQueryDto) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<{ items: EncounterItemDto[]; pagination: PaginationMeta }, Error>({
+    queryKey: DOCTOR_KEYS.encounters(filters),
+    queryFn: () => doctorApi.getEncounters(filters),
+    enabled: isDoctor,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  return {
+    encounters: query.data?.items || [],
+    pagination: query.data?.pagination,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for single clinical encounter detail workspace
+ */
+export const useDoctorEncounterDetail = (encounterId?: string) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<EncounterDetailDto, Error>({
+    queryKey: DOCTOR_KEYS.encounterDetail(encounterId || ''),
+    queryFn: () => doctorApi.getEncounterById(encounterId!),
+    enabled: isDoctor && !!encounterId,
+    staleTime: 15 * 1000,
+  });
+
+  return {
+    encounter: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/**
+ * Hook for clinical encounter mutations (Create, Save Draft, Complete)
+ */
+export const useDoctorEncounterActions = () => {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation<EncounterDetailDto, Error, CreateEncounterDto>({
+    mutationFn: (data: CreateEncounterDto) => doctorApi.createEncounter(data),
+    onSuccess: (newEncounter) => {
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.encounterSummary() });
+      queryClient.invalidateQueries({ queryKey: [...DOCTOR_KEYS.all, 'encounters'] });
+      queryClient.setQueryData(DOCTOR_KEYS.encounterDetail(newEncounter.id), newEncounter);
+    },
+  });
+
+  const saveDraftMutation = useMutation<
+    EncounterDetailDto,
+    Error,
+    { encounterId: string; data: UpdateEncounterDto }
+  >({
+    mutationFn: ({ encounterId, data }) => doctorApi.saveEncounterDraft(encounterId, data),
+    onSuccess: (updatedEncounter) => {
+      queryClient.setQueryData(DOCTOR_KEYS.encounterDetail(updatedEncounter.id), updatedEncounter);
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.encounterSummary() });
+      queryClient.invalidateQueries({ queryKey: [...DOCTOR_KEYS.all, 'encounters'] });
+    },
+  });
+
+  const completeMutation = useMutation<
+    EncounterDetailDto,
+    Error,
+    { encounterId: string; data?: UpdateEncounterDto }
+  >({
+    mutationFn: ({ encounterId, data }) => doctorApi.completeEncounter(encounterId, data),
+    onSuccess: (finalizedEncounter) => {
+      queryClient.setQueryData(DOCTOR_KEYS.encounterDetail(finalizedEncounter.id), finalizedEncounter);
+      queryClient.invalidateQueries({ queryKey: DOCTOR_KEYS.all });
+    },
+  });
+
+  return {
+    createEncounter: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+    createError: createMutation.error,
+
+    saveDraft: saveDraftMutation.mutateAsync,
+    isSavingDraft: saveDraftMutation.isPending,
+    saveDraftError: saveDraftMutation.error,
+
+    completeEncounter: completeMutation.mutateAsync,
+    isCompleting: completeMutation.isPending,
+    completeError: completeMutation.error,
+  };
+};
+
+/**
+ * Hook for patient longitudinal clinical history
+ */
+export const usePatientClinicalHistory = (patientId?: string) => {
+  const { isAuthenticated, user } = useAuth();
+  const isDoctor = isAuthenticated && user?.role === 'DOCTOR';
+
+  const query = useQuery<PatientClinicalHistoryDto, Error>({
+    queryKey: DOCTOR_KEYS.patientClinicalHistory(patientId || ''),
+    queryFn: () => doctorApi.getPatientClinicalHistory(patientId!),
+    enabled: isDoctor && !!patientId,
+    staleTime: 60 * 1000,
+  });
+
+  return {
+    history: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
