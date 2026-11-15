@@ -18,6 +18,14 @@ import type {
   DispensePrescriptionDto,
   CancelDispensingDto,
   DispensingFilterDto,
+  UploadPharmacyDocumentDto,
+  UpdateOperatingHoursDto,
+  UpdatePharmacyServicesDto,
+  InvitePharmacyStaffDto,
+  UpdatePharmacyStaffDto,
+  AcceptStaffInviteDto,
+  PharmacyStaffFilterDto,
+  ChangePharmacyPasswordDto,
 } from '@healthbridge/shared-types';
 
 export class PharmacyController {
@@ -523,6 +531,301 @@ export class PharmacyController {
         req.body as CancelDispensingDto
       );
       sendSuccess(res, record, 'Dispensing record cancelled successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: PROFILE DOCUMENTS
+     ========================================================================== */
+
+  /**
+   * POST /api/v1/pharmacy/profile/documents
+   */
+  async uploadDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const doc = await pharmacyService.uploadDocument(
+        userId,
+        req.body as UploadPharmacyDocumentDto
+      );
+      sendSuccess(res, doc, 'Statutory document uploaded successfully', HttpStatus.CREATED);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * DELETE /api/v1/pharmacy/profile/documents/:documentId
+   */
+  async deleteDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.deleteDocument(
+        userId,
+        req.params.documentId as string
+      );
+      sendSuccess(res, result, 'Statutory document removed successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: OPERATING HOURS & TIMEZONE
+     ========================================================================== */
+
+  /**
+   * GET /api/v1/pharmacy/settings/operating-hours
+   */
+  async getOperatingHours(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const hours = await pharmacyService.getOperatingHours(userId);
+      sendSuccess(res, hours, 'Operating hours retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * PUT /api/v1/pharmacy/settings/operating-hours
+   */
+  async updateOperatingHours(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const hours = await pharmacyService.updateOperatingHours(
+        userId,
+        req.body as UpdateOperatingHoursDto
+      );
+      sendSuccess(res, hours, 'Operating hours updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: PHARMACY SERVICES
+     ========================================================================== */
+
+  /**
+   * GET /api/v1/pharmacy/settings/services
+   */
+  async getServices(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const services = await pharmacyService.getServices(userId);
+      sendSuccess(res, services, 'Pharmacy service settings retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * PUT /api/v1/pharmacy/settings/services
+   */
+  async updateServices(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const services = await pharmacyService.updateServices(
+        userId,
+        req.body as UpdatePharmacyServicesDto
+      );
+      sendSuccess(res, services, 'Pharmacy service settings updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: STAFF MANAGEMENT
+     ========================================================================== */
+
+  /**
+   * GET /api/v1/pharmacy/staff
+   */
+  async getStaffList(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.getStaffList(
+        userId,
+        req.query as unknown as PharmacyStaffFilterDto
+      );
+      sendSuccess(res, result, 'Pharmacy staff list retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/staff/invite
+   */
+  async inviteStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const staff = await pharmacyService.inviteStaff(
+        userId,
+        req.body as InvitePharmacyStaffDto
+      );
+      sendSuccess(res, staff, 'Staff invitation issued successfully', HttpStatus.CREATED);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/pharmacy/staff/:id
+   */
+  async getStaffMember(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const staff = await pharmacyService.getStaffMember(userId, req.params.id as string);
+      sendSuccess(res, staff, 'Staff details retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/pharmacy/staff/:id
+   */
+  async updateStaffMember(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const staff = await pharmacyService.updateStaffMember(
+        userId,
+        req.params.id as string,
+        req.body as UpdatePharmacyStaffDto
+      );
+      sendSuccess(res, staff, 'Staff details updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/staff/:id/suspend
+   */
+  async suspendStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const staff = await pharmacyService.suspendStaff(
+        userId,
+        req.params.id as string,
+        req.body?.reason
+      );
+      sendSuccess(res, staff, 'Staff member access suspended successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/staff/:id/reactivate
+   */
+  async reactivateStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const staff = await pharmacyService.reactivateStaff(userId, req.params.id as string);
+      sendSuccess(res, staff, 'Staff member access reactivated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/staff/:id/revoke
+   */
+  async revokeStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const staff = await pharmacyService.revokeStaff(userId, req.params.id as string);
+      sendSuccess(res, staff, 'Staff member access permanently revoked');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/staff/accept-invite
+   */
+  async acceptStaffInvite(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await pharmacyService.acceptStaffInvite(
+        req.body as AcceptStaffInviteDto
+      );
+      sendSuccess(res, result, 'Staff invitation accepted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: SESSIONS & ACCOUNT SECURITY
+     ========================================================================== */
+
+  /**
+   * GET /api/v1/pharmacy/sessions
+   */
+  async getSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const currentToken = req.headers['authorization']?.replace('Bearer ', '');
+      const sessions = await pharmacyService.getSessions(userId, currentToken);
+      sendSuccess(res, sessions, 'Active sessions retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * DELETE /api/v1/pharmacy/sessions/:sessionId
+   */
+  async revokeSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.revokeSession(
+        userId,
+        req.params.sessionId as string,
+        req.headers['x-request-id'] as string
+      );
+      sendSuccess(res, result, 'Session revoked successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/sessions/revoke-others
+   */
+  async revokeOtherSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const currentToken = req.headers['authorization']?.replace('Bearer ', '');
+      const result = await pharmacyService.revokeOtherSessions(
+        userId,
+        currentToken,
+        req.headers['x-request-id'] as string
+      );
+      sendSuccess(res, result, 'All other sessions revoked successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/pharmacy/change-password
+   */
+  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const result = await pharmacyService.changePassword(
+        userId,
+        req.body as ChangePharmacyPasswordDto,
+        req.headers['x-request-id'] as string
+      );
+      sendSuccess(res, result, 'Password changed successfully');
     } catch (error) {
       next(error);
     }

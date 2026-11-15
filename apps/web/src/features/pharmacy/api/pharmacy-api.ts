@@ -72,6 +72,20 @@ import type {
   CancelOrderDto,
   OrderFilterDto,
   PharmacyOrderMetricsDto,
+  UploadPharmacyDocumentDto,
+  PharmacyDocumentDto,
+  PharmacyOperatingHoursDto,
+  UpdateOperatingHoursDto,
+  PharmacyServicesDto,
+  UpdatePharmacyServicesDto,
+  PharmacyStaffDto,
+  InvitePharmacyStaffDto,
+  UpdatePharmacyStaffDto,
+  AcceptStaffInviteDto,
+  PharmacyStaffFilterDto,
+  PharmacyStaffListResponseDto,
+  PharmacySessionDto,
+  ChangePharmacyPasswordDto,
 } from '@healthbridge/shared-types';
 
 export const pharmacyApi = {
@@ -1154,5 +1168,226 @@ export const pharmacyApi = {
         replenishmentSuggestionsCount: 0,
       }
     );
+  },
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 07: PROFILE DOCUMENTS
+   * ============================================================================
+   */
+
+  async uploadDocument(dto: UploadPharmacyDocumentDto): Promise<PharmacyDocumentDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyDocumentDto>>(
+      API_ENDPOINTS.PHARMACY.UPLOAD_DOCUMENT,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to upload document');
+    }
+    return res.data.data;
+  },
+
+  async deleteDocument(documentId: string): Promise<{ message: string }> {
+    const res = await apiClient.delete<ApiResponse<{ message: string }>>(
+      API_ENDPOINTS.PHARMACY.DELETE_DOCUMENT(documentId)
+    );
+    return res.data.data || { message: 'Document removed successfully' };
+  },
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 07: OPERATING HOURS & TIMEZONE
+   * ============================================================================
+   */
+
+  async getOperatingHours(): Promise<PharmacyOperatingHoursDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyOperatingHoursDto>>(
+      API_ENDPOINTS.PHARMACY.OPERATING_HOURS
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch operating hours');
+    }
+    return res.data.data;
+  },
+
+  async updateOperatingHours(
+    dto: UpdateOperatingHoursDto
+  ): Promise<PharmacyOperatingHoursDto> {
+    const res = await apiClient.put<ApiResponse<PharmacyOperatingHoursDto>>(
+      API_ENDPOINTS.PHARMACY.OPERATING_HOURS,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update operating hours');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 07: PHARMACY SERVICES
+   * ============================================================================
+   */
+
+  async getServices(): Promise<PharmacyServicesDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyServicesDto>>(
+      API_ENDPOINTS.PHARMACY.SERVICES
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch pharmacy services');
+    }
+    return res.data.data;
+  },
+
+  async updateServices(
+    dto: UpdatePharmacyServicesDto
+  ): Promise<PharmacyServicesDto> {
+    const res = await apiClient.put<ApiResponse<PharmacyServicesDto>>(
+      API_ENDPOINTS.PHARMACY.SERVICES,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update pharmacy services');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 07: PHARMACY STAFF MANAGEMENT
+   * ============================================================================
+   */
+
+  async getStaffList(
+    params?: PharmacyStaffFilterDto
+  ): Promise<PharmacyStaffListResponseDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyStaffListResponseDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF,
+      { params }
+    );
+    return (
+      res.data.data || {
+        staff: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      }
+    );
+  },
+
+  async inviteStaff(dto: InvitePharmacyStaffDto): Promise<PharmacyStaffDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyStaffDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF_INVITE,
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to invite staff member');
+    }
+    return res.data.data;
+  },
+
+  async getStaffMember(id: string): Promise<PharmacyStaffDto> {
+    const res = await apiClient.get<ApiResponse<PharmacyStaffDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF_DETAIL(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to fetch staff details');
+    }
+    return res.data.data;
+  },
+
+  async updateStaffMember(
+    id: string,
+    dto: UpdatePharmacyStaffDto
+  ): Promise<PharmacyStaffDto> {
+    const res = await apiClient.patch<ApiResponse<PharmacyStaffDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF_DETAIL(id),
+      dto
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to update staff member');
+    }
+    return res.data.data;
+  },
+
+  async suspendStaff(id: string, reason?: string): Promise<PharmacyStaffDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyStaffDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF_SUSPEND(id),
+      { reason }
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to suspend staff member');
+    }
+    return res.data.data;
+  },
+
+  async reactivateStaff(id: string): Promise<PharmacyStaffDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyStaffDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF_REACTIVATE(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to reactivate staff member');
+    }
+    return res.data.data;
+  },
+
+  async revokeStaff(id: string): Promise<PharmacyStaffDto> {
+    const res = await apiClient.post<ApiResponse<PharmacyStaffDto>>(
+      API_ENDPOINTS.PHARMACY.STAFF_REVOKE(id)
+    );
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to revoke staff access');
+    }
+    return res.data.data;
+  },
+
+  async acceptStaffInvite(
+    dto: AcceptStaffInviteDto
+  ): Promise<{ message: string; staffId: string }> {
+    const res = await apiClient.post<
+      ApiResponse<{ message: string; staffId: string }>
+    >(API_ENDPOINTS.PHARMACY.STAFF_ACCEPT_INVITE, dto);
+    if (!res.data.data) {
+      throw new Error(res.data.message || 'Failed to accept staff invite');
+    }
+    return res.data.data;
+  },
+
+  /**
+   * ============================================================================
+   * DAY 5 TASK 07: SESSIONS & ACCOUNT SECURITY
+   * ============================================================================
+   */
+
+  async getSessions(): Promise<PharmacySessionDto[]> {
+    const res = await apiClient.get<ApiResponse<PharmacySessionDto[]>>(
+      API_ENDPOINTS.PHARMACY.SESSIONS
+    );
+    return res.data.data || [];
+  },
+
+  async revokeSession(sessionId: string): Promise<{ message: string }> {
+    const res = await apiClient.delete<ApiResponse<{ message: string }>>(
+      API_ENDPOINTS.PHARMACY.SESSION_DETAIL(sessionId)
+    );
+    return res.data.data || { message: 'Session revoked successfully' };
+  },
+
+  async revokeOtherSessions(): Promise<{ revokedCount: number }> {
+    const res = await apiClient.post<ApiResponse<{ revokedCount: number }>>(
+      API_ENDPOINTS.PHARMACY.REVOKE_OTHER_SESSIONS
+    );
+    return res.data.data || { revokedCount: 0 };
+  },
+
+  async changePassword(
+    dto: ChangePharmacyPasswordDto
+  ): Promise<{ message: string }> {
+    const res = await apiClient.post<ApiResponse<{ message: string }>>(
+      API_ENDPOINTS.PHARMACY.CHANGE_PASSWORD,
+      dto
+    );
+    return res.data.data || { message: 'Password changed successfully' };
   },
 };

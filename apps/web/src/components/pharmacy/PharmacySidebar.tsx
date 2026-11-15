@@ -27,6 +27,7 @@ import {
   Truck,
   FileSpreadsheet,
   RefreshCw,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -78,6 +79,7 @@ export const PHARMACY_NAV_SECTIONS = [
     items: [
       { label: 'Notifications', href: '/pharmacy/notifications', icon: Bell },
       { label: 'Pharmacy Profile', href: '/pharmacy/profile', icon: Building2 },
+      { label: 'Staff Management', href: '/pharmacy/settings/staff', icon: Users },
       { label: 'Settings', href: '/pharmacy/settings', icon: Settings },
     ],
   },

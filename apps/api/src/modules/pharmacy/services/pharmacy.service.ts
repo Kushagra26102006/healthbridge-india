@@ -1,4 +1,6 @@
 import { Types } from 'mongoose';
+import bcryptjs from 'bcryptjs';
+import crypto from 'crypto';
 import {
   PharmacyProfileModel,
   PharmacyInventoryModel,
@@ -12,6 +14,8 @@ import {
   FacilityModel,
   MedicationCatalogModel,
   DispensingRecordModel,
+  RefreshTokenModel,
+  PharmacyStaffModel,
 } from '../../../database/models';
 import { notificationService } from '../../notifications/services/notification.service';
 import { AppError } from '../../../shared/errors/app-error';
@@ -52,6 +56,22 @@ import type {
   DispensingRecordDto,
   DispensingFilterDto,
   CancelDispensingDto,
+  PharmacyOperatingHoursDto,
+  UpdateOperatingHoursDto,
+  PharmacyServicesDto,
+  UpdatePharmacyServicesDto,
+  UploadPharmacyDocumentDto,
+  PharmacyDocumentDto,
+  PharmacyStaffRole,
+  PharmacyPermission,
+  PharmacyStaffDto,
+  InvitePharmacyStaffDto,
+  UpdatePharmacyStaffDto,
+  AcceptStaffInviteDto,
+  PharmacyStaffFilterDto,
+  PharmacyStaffListResponseDto,
+  PharmacySessionDto,
+  ChangePharmacyPasswordDto,
 } from '@healthbridge/shared-types';
 
 function escapeRegex(text: string): string {
@@ -73,6 +93,7 @@ export class PharmacyService {
     action: string;
     resourceType: string;
     resourceId: string;
+    requestId?: string;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
     try {
@@ -82,7 +103,10 @@ export class PharmacyService {
         action: params.action,
         resourceType: params.resourceType,
         resourceId: params.resourceId,
-        metadata: params.metadata,
+        metadata: {
+          ...params.metadata,
+          requestId: params.requestId,
+        },
         timestamp: new Date(),
       });
     } catch {
@@ -217,6 +241,7 @@ export class PharmacyService {
       phone: profile.contactPhone || user.phone,
       description: profile.description,
       logoUrl: profile.logoUrl,
+      websiteUrl: profile.websiteUrl,
       address: {
         line1: profile.address?.line1,
         city: profile.address?.city || 'New Delhi',
@@ -225,8 +250,12 @@ export class PharmacyService {
         country: profile.address?.country || 'India',
       },
       pharmacyLicenseNumber: profile.pharmacyLicenseNumber,
+      registrationNumber: profile.registrationNumber,
       gstin: profile.gstin,
       issuingAuthority: profile.issuingAuthority || 'State Drugs Standard Control Organization',
+      licenseIssueDate: profile.licenseIssueDate ? toIsoSafe(profile.licenseIssueDate) : undefined,
+      licenseExpiryDate: profile.licenseExpiryDate ? toIsoSafe(profile.licenseExpiryDate) : undefined,
+      timezone: profile.timezone || 'Asia/Kolkata',
       verificationStatus: profile.verificationStatus,
       isVerified: profile.verificationStatus === 'VERIFIED',
       documentSubmissionStatus: profile.documentSubmissionStatus,
@@ -248,6 +277,24 @@ export class PharmacyService {
       is24Hours: Boolean(profile.is24Hours),
       weeklyAvailability: profile.weeklyAvailability || [],
       supportedServices: profile.supportedServices || [],
+      operatingHoursSchedule: profile.operatingHoursSchedule as any,
+      temporaryClosure: profile.temporaryClosure
+        ? {
+            isTemporarilyClosed: Boolean(profile.temporaryClosure.isTemporarilyClosed),
+            reason: profile.temporaryClosure.reason,
+            closureStartDate: profile.temporaryClosure.closureStartDate
+              ? toIsoSafe(profile.temporaryClosure.closureStartDate)
+              : undefined,
+            closureEndDate: profile.temporaryClosure.closureEndDate
+              ? toIsoSafe(profile.temporaryClosure.closureEndDate)
+              : undefined,
+            reopenDate: profile.temporaryClosure.reopenDate
+              ? toIsoSafe(profile.temporaryClosure.reopenDate)
+              : undefined,
+          }
+        : undefined,
+      holidays: profile.holidays as any,
+      serviceSettings: profile.serviceSettings as any,
       createdAt: profile.createdAt ? new Date(profile.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: profile.updatedAt ? new Date(profile.updatedAt).toISOString() : new Date().toISOString(),
     };
@@ -256,16 +303,26 @@ export class PharmacyService {
   /**
    * 2. Update pharmacy profile
    */
-  async updateProfile(userId: string, input: UpdatePharmacyProfileDto): Promise<PharmacyProfileDto> {
+  async updateProfile(userId: string, input: UpdatePharmacyProfileDto & { verificationStatus?: any; documentSubmissionStatus?: any }): Promise<PharmacyProfileDto> {
     const userObjectId = new Types.ObjectId(userId);
     const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
     if (!profile) {
       throw AppError.notFound('Pharmacy profile not found');
     }
 
+    // Security check: Zero self-approval invariant
+    if (input.verificationStatus !== undefined || input.documentSubmissionStatus !== undefined) {
+      throw AppError.forbidden('Self-approval or manual tampering with statutory verification status is strictly prohibited');
+    }
+
     if (input.pharmacyName) profile.pharmacyName = input.pharmacyName.trim();
     if (input.description !== undefined) profile.description = input.description.trim();
     if (input.logoUrl !== undefined) profile.logoUrl = input.logoUrl;
+    if (input.websiteUrl !== undefined) profile.websiteUrl = input.websiteUrl.trim();
+    if (input.registrationNumber !== undefined) profile.registrationNumber = input.registrationNumber.trim();
+    if (input.licenseIssueDate) profile.licenseIssueDate = new Date(input.licenseIssueDate);
+    if (input.licenseExpiryDate) profile.licenseExpiryDate = new Date(input.licenseExpiryDate);
+    if (input.timezone) profile.timezone = input.timezone.trim();
     if (input.openingTime) profile.openingTime = input.openingTime;
     if (input.closingTime) profile.closingTime = input.closingTime;
     if (input.is24Hours !== undefined) profile.is24Hours = input.is24Hours;
@@ -2769,7 +2826,1114 @@ export class PharmacyService {
 
     return this.mapDispensingRecordToDto(record);
   }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: DOCUMENT MANAGEMENT (PRIVATE STORAGE & VERIFICATION STATUS)
+     ========================================================================== */
+
+  /**
+   * Upload pharmacy statutory verification document
+   */
+  async uploadDocument(
+    userId: string,
+    input: UploadPharmacyDocumentDto
+  ): Promise<PharmacyDocumentDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const docId = new Types.ObjectId();
+    const newDoc = {
+      _id: docId,
+      documentType: input.documentType,
+      documentNumber: input.documentNumber?.trim(),
+      documentUrl: input.documentUrl.trim(),
+      fileName: input.fileName.trim(),
+      fileSize: input.fileSize,
+      mimeType: input.mimeType || 'application/pdf',
+      uploadedAt: new Date(),
+      verificationStatus: 'PENDING' as const,
+    };
+
+    profile.documents.push(newDoc as any);
+    profile.documentSubmissionStatus = 'SUBMITTED';
+    await profile.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_DOCUMENT_UPLOADED',
+      resourceType: 'PHARMACY_DOCUMENT',
+      resourceId: docId.toString(),
+      metadata: {
+        documentType: input.documentType,
+        fileName: input.fileName,
+      },
+    });
+
+    return {
+      id: docId.toString(),
+      documentType: newDoc.documentType,
+      documentNumber: newDoc.documentNumber,
+      documentUrl: newDoc.documentUrl,
+      fileName: newDoc.fileName,
+      fileSize: newDoc.fileSize,
+      mimeType: newDoc.mimeType,
+      uploadedAt: newDoc.uploadedAt.toISOString(),
+      verificationStatus: 'PENDING',
+    };
+  }
+
+  /**
+   * Delete statutory verification document
+   */
+  async deleteDocument(
+    userId: string,
+    documentId: string
+  ): Promise<{ message: string }> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const initialLength = profile.documents.length;
+    profile.documents = (profile.documents as any).filter(
+      (doc: any) => doc._id?.toString() !== documentId && doc.id !== documentId
+    );
+
+    if (profile.documents.length === initialLength) {
+      throw AppError.notFound('Document not found on pharmacy profile');
+    }
+
+    if (profile.documents.length === 0) {
+      profile.documentSubmissionStatus = 'NOT_SUBMITTED';
+    }
+
+    await profile.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_DOCUMENT_DELETED',
+      resourceType: 'PHARMACY_DOCUMENT',
+      resourceId: documentId,
+    });
+
+    return { message: 'Document deleted successfully' };
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: OPERATING HOURS & TIMEZONE EVALUATION
+     ========================================================================== */
+
+  /**
+   * Compute real-time open status evaluating weekly schedule, timezone, holidays and closures
+   */
+  computeIsOpenNow(profile: any): {
+    isOpenNow: boolean;
+    currentStatusReason?: string;
+    nextOpeningTime?: string;
+  } {
+    if (profile.temporaryClosure?.isTemporarilyClosed) {
+      return {
+        isOpenNow: false,
+        currentStatusReason: profile.temporaryClosure.reason || 'Temporarily closed',
+        nextOpeningTime: profile.temporaryClosure.reopenDate
+          ? toIsoSafe(profile.temporaryClosure.reopenDate)
+          : undefined,
+      };
+    }
+
+    const now = new Date();
+    const tz = profile.timezone || 'Asia/Kolkata';
+    let dayName = 'MONDAY';
+    let currentTimeStr = '12:00';
+    let dateStr = now.toISOString().slice(0, 10);
+
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const parts = formatter.formatToParts(now);
+      const pWeekday = parts.find((p) => p.type === 'weekday')?.value?.toUpperCase();
+      if (pWeekday) dayName = pWeekday;
+      const pHour = parts.find((p) => p.type === 'hour')?.value || '00';
+      const pMin = parts.find((p) => p.type === 'minute')?.value || '00';
+      currentTimeStr = `${pHour}:${pMin}`;
+      const pYear = parts.find((p) => p.type === 'year')?.value;
+      const pMonth = parts.find((p) => p.type === 'month')?.value;
+      const pDay = parts.find((p) => p.type === 'day')?.value;
+      if (pYear && pMonth && pDay) {
+        dateStr = `${pYear}-${pMonth}-${pDay}`;
+      }
+    } catch {
+      // Fallback
+    }
+
+    // Check holidays
+    if (profile.holidays && Array.isArray(profile.holidays)) {
+      const todayHoliday = profile.holidays.find((h: any) => h.date === dateStr);
+      if (todayHoliday) {
+        if (todayHoliday.isClosed) {
+          return {
+            isOpenNow: false,
+            currentStatusReason: `Closed for holiday: ${todayHoliday.name}`,
+          };
+        }
+        if (todayHoliday.customOpenTime && todayHoliday.customCloseTime) {
+          const isOpen =
+            currentTimeStr >= todayHoliday.customOpenTime &&
+            currentTimeStr < todayHoliday.customCloseTime;
+          return {
+            isOpenNow: isOpen,
+            currentStatusReason: isOpen
+              ? `Special holiday hours (${todayHoliday.name})`
+              : `Closed (Holiday hours ${todayHoliday.customOpenTime}-${todayHoliday.customCloseTime})`,
+            nextOpeningTime: !isOpen ? todayHoliday.customOpenTime : undefined,
+          };
+        }
+      }
+    }
+
+    if (profile.is24Hours) {
+      return { isOpenNow: true, currentStatusReason: 'Open 24 Hours' };
+    }
+
+    const weekly = profile.operatingHoursSchedule || [];
+    const todaySchedule = weekly.find((s: any) => s.dayOfWeek === dayName);
+
+    if (!todaySchedule || !todaySchedule.isOpen) {
+      return {
+        isOpenNow: false,
+        currentStatusReason: `Closed on ${dayName.charAt(0) + dayName.slice(1).toLowerCase()}s`,
+      };
+    }
+
+    if (todaySchedule.is24Hours) {
+      return { isOpenNow: true, currentStatusReason: 'Open 24 Hours today' };
+    }
+
+    const openTime = todaySchedule.openTime || '08:00';
+    const closeTime = todaySchedule.closeTime || '22:00';
+
+    if (currentTimeStr < openTime) {
+      return {
+        isOpenNow: false,
+        currentStatusReason: `Opens today at ${openTime}`,
+        nextOpeningTime: openTime,
+      };
+    }
+
+    if (currentTimeStr >= closeTime) {
+      return {
+        isOpenNow: false,
+        currentStatusReason: `Closed for today at ${closeTime}`,
+      };
+    }
+
+    // Check breaks
+    if (todaySchedule.breaks && Array.isArray(todaySchedule.breaks)) {
+      for (const brk of todaySchedule.breaks) {
+        if (currentTimeStr >= brk.startTime && currentTimeStr < brk.endTime) {
+          return {
+            isOpenNow: false,
+            currentStatusReason: `On break (${brk.breakName || 'Staff break'}) until ${brk.endTime}`,
+            nextOpeningTime: brk.endTime,
+          };
+        }
+      }
+    }
+
+    return {
+      isOpenNow: true,
+      currentStatusReason: `Open today until ${closeTime}`,
+    };
+  }
+
+  /**
+   * Get pharmacy operating hours, holiday list and current real-time status
+   */
+  async getOperatingHours(userId: string): Promise<PharmacyOperatingHoursDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    let profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      profile = await PharmacyProfileModel.create({
+        userId: userObjectId,
+        pharmacyName: 'HealthBridge Pharmacy',
+        pharmacyLicenseNumber: `DL-${Date.now().toString().slice(-8)}`,
+      });
+    }
+
+    const openStatus = this.computeIsOpenNow(profile);
+
+    return {
+      timezone: profile.timezone || 'Asia/Kolkata',
+      is24Hours: Boolean(profile.is24Hours),
+      isOpenNow: openStatus.isOpenNow,
+      currentStatusReason: openStatus.currentStatusReason,
+      nextOpeningTime: openStatus.nextOpeningTime,
+      weeklySchedule: (profile.operatingHoursSchedule as any) || [],
+      temporaryClosure: profile.temporaryClosure
+        ? {
+            isTemporarilyClosed: Boolean(profile.temporaryClosure.isTemporarilyClosed),
+            reason: profile.temporaryClosure.reason,
+            closureStartDate: profile.temporaryClosure.closureStartDate
+              ? toIsoSafe(profile.temporaryClosure.closureStartDate)
+              : undefined,
+            closureEndDate: profile.temporaryClosure.closureEndDate
+              ? toIsoSafe(profile.temporaryClosure.closureEndDate)
+              : undefined,
+            reopenDate: profile.temporaryClosure.reopenDate
+              ? toIsoSafe(profile.temporaryClosure.reopenDate)
+              : undefined,
+          }
+        : undefined,
+      holidays: (profile.holidays || []).map((h: any) => ({
+        id: h.id || h._id?.toString(),
+        name: h.name,
+        date: h.date,
+        isClosed: Boolean(h.isClosed),
+        customOpenTime: h.customOpenTime,
+        customCloseTime: h.customCloseTime,
+      })),
+    };
+  }
+
+  /**
+   * Update weekly schedule, breaks, timezone and holidays
+   */
+  async updateOperatingHours(
+    userId: string,
+    input: UpdateOperatingHoursDto
+  ): Promise<PharmacyOperatingHoursDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    if (input.timezone) profile.timezone = input.timezone.trim();
+    if (input.is24Hours !== undefined) profile.is24Hours = input.is24Hours;
+
+    if (input.weeklySchedule) {
+      // Validate non-overlapping breaks and opening < closing
+      for (const day of input.weeklySchedule) {
+        if (day.isOpen && !day.is24Hours) {
+          if (day.openTime >= day.closeTime) {
+            throw AppError.badRequest(
+              `Invalid hours for ${day.dayOfWeek}: Opening time (${day.openTime}) must be earlier than closing time (${day.closeTime})`
+            );
+          }
+          if (day.breaks && day.breaks.length > 0) {
+            for (let i = 0; i < day.breaks.length; i++) {
+              const b = day.breaks[i];
+              if (!b) continue;
+              if (b.startTime < day.openTime || b.endTime > day.closeTime) {
+                throw AppError.badRequest(
+                  `Break ${b.startTime}-${b.endTime} on ${day.dayOfWeek} must be within operating hours (${day.openTime}-${day.closeTime})`
+                );
+              }
+              for (let j = i + 1; j < day.breaks.length; j++) {
+                const b2 = day.breaks[j];
+                if (!b2) continue;
+                if (b.startTime < b2.endTime && b2.startTime < b.endTime) {
+                  throw AppError.badRequest(
+                    `Overlapping breaks detected on ${day.dayOfWeek}: ${b.startTime}-${b.endTime} and ${b2.startTime}-${b2.endTime}`
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+      profile.operatingHoursSchedule = input.weeklySchedule as any;
+    }
+
+    if (input.temporaryClosure) {
+      profile.temporaryClosure = {
+        isTemporarilyClosed: input.temporaryClosure.isTemporarilyClosed,
+        reason: input.temporaryClosure.reason?.trim(),
+        closureStartDate: input.temporaryClosure.closureStartDate
+          ? new Date(input.temporaryClosure.closureStartDate)
+          : undefined,
+        closureEndDate: input.temporaryClosure.closureEndDate
+          ? new Date(input.temporaryClosure.closureEndDate)
+          : undefined,
+        reopenDate: input.temporaryClosure.reopenDate
+          ? new Date(input.temporaryClosure.reopenDate)
+          : undefined,
+      };
+    }
+
+    if (input.holidays) {
+      profile.holidays = input.holidays.map((h) => ({
+        id: h.id || new Types.ObjectId().toString(),
+        name: h.name.trim(),
+        date: h.date,
+        isClosed: h.isClosed,
+        customOpenTime: h.customOpenTime,
+        customCloseTime: h.customCloseTime,
+      })) as any;
+    }
+
+    await profile.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_OPERATING_HOURS_UPDATED',
+      resourceType: 'PHARMACY_PROFILE',
+      resourceId: profile._id.toString(),
+      metadata: { timezone: profile.timezone, is24Hours: profile.is24Hours },
+    });
+
+    return this.getOperatingHours(userId);
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: PHARMACY SERVICES & DISPENSING CAPABILITIES
+     ========================================================================== */
+
+  /**
+   * Get pharmacy service settings
+   */
+  async getServices(userId: string): Promise<PharmacyServicesDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const s = profile.serviceSettings || ({} as any);
+    return {
+      dispensingEnabled: s.dispensingEnabled !== undefined ? s.dispensingEnabled : true,
+      inStorePickupEnabled: s.inStorePickupEnabled !== undefined ? s.inStorePickupEnabled : true,
+      deliveryReady: Boolean(s.deliveryReady),
+      emergencyPrescriptionSupport: s.emergencyPrescriptionSupport !== undefined ? s.emergencyPrescriptionSupport : true,
+      scheduleHDispensingEnabled: s.scheduleHDispensingEnabled !== undefined ? s.scheduleHDispensingEnabled : true,
+      scheduleXDispensingEnabled: Boolean(s.scheduleXDispensingEnabled),
+      chronicRefillProgramEnabled: s.chronicRefillProgramEnabled !== undefined ? s.chronicRefillProgramEnabled : true,
+      compoundingAvailable: Boolean(s.compoundingAvailable),
+      homeDeliveryRadiusKm: s.homeDeliveryRadiusKm || 5,
+      minimumOrderValueForDelivery: s.minimumOrderValueForDelivery || 200,
+      deliveryFee: s.deliveryFee !== undefined ? s.deliveryFee : 30,
+      freeDeliveryAbove: s.freeDeliveryAbove || 500,
+      estimatedPickupReadyMinutes: s.estimatedPickupReadyMinutes || 30,
+    };
+  }
+
+  /**
+   * Update pharmacy service settings
+   */
+  async updateServices(
+    userId: string,
+    input: UpdatePharmacyServicesDto
+  ): Promise<PharmacyServicesDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const currentSettings = profile.serviceSettings || {
+      dispensingEnabled: true,
+      inStorePickupEnabled: true,
+      deliveryReady: false,
+      emergencyPrescriptionSupport: true,
+      scheduleHDispensingEnabled: true,
+      scheduleXDispensingEnabled: false,
+      chronicRefillProgramEnabled: true,
+      compoundingAvailable: false,
+      homeDeliveryRadiusKm: 5,
+      minimumOrderValueForDelivery: 200,
+      deliveryFee: 30,
+      freeDeliveryAbove: 500,
+      estimatedPickupReadyMinutes: 30,
+    };
+
+    profile.serviceSettings = {
+      ...currentSettings,
+      ...input,
+    };
+    await profile.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_SERVICES_UPDATED',
+      resourceType: 'PHARMACY_PROFILE',
+      resourceId: profile._id.toString(),
+      metadata: input as any,
+    });
+
+    return this.getServices(userId);
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: PHARMACY STAFF MANAGEMENT FOUNDATION
+     ========================================================================== */
+
+  private mapStaffDoc(doc: any): PharmacyStaffDto {
+    return {
+      id: doc._id.toString(),
+      pharmacyId: doc.pharmacyId.toString(),
+      userId: doc.userId?.toString(),
+      fullName: doc.fullName,
+      email: doc.email,
+      phone: doc.phone,
+      staffId: doc.staffId,
+      designation: doc.designation,
+      role: doc.role,
+      permissions: doc.permissions || [],
+      status: doc.status,
+      pharmacistRegistrationNumber: doc.pharmacistRegistrationNumber,
+      isOwner: Boolean(doc.isOwner),
+      invitationSentAt: doc.invitationSentAt ? toIsoSafe(doc.invitationSentAt) : undefined,
+      invitationExpiresAt: doc.invitationExpiresAt ? toIsoSafe(doc.invitationExpiresAt) : undefined,
+      invitedBy: doc.invitedBy?.toString(),
+      lastActiveAt: doc.lastActiveAt ? toIsoSafe(doc.lastActiveAt) : undefined,
+      joinedAt: doc.joinedAt ? toIsoSafe(doc.joinedAt) : undefined,
+      createdAt: toIsoSafe(doc.createdAt),
+      updatedAt: toIsoSafe(doc.updatedAt),
+    };
+  }
+
+  /**
+   * Helper: Role default permission matrices
+   */
+  private getDefaultStaffPermissions(role: PharmacyStaffRole): PharmacyPermission[] {
+    const defaults: Record<PharmacyStaffRole, PharmacyPermission[]> = {
+      PHARMACY_OWNER: [
+        'VIEW_DASHBOARD',
+        'MANAGE_INVENTORY',
+        'VERIFY_PRESCRIPTIONS',
+        'DISPENSE_MEDICINES',
+        'MANAGE_PROCUREMENT',
+        'MANAGE_ORDERS',
+        'VIEW_REPORTS',
+        'MANAGE_STAFF',
+        'MANAGE_SETTINGS',
+        'VIEW_AUDIT_LOGS',
+      ],
+      PHARMACY_MANAGER: [
+        'VIEW_DASHBOARD',
+        'MANAGE_INVENTORY',
+        'VERIFY_PRESCRIPTIONS',
+        'DISPENSE_MEDICINES',
+        'MANAGE_PROCUREMENT',
+        'MANAGE_ORDERS',
+        'VIEW_REPORTS',
+        'MANAGE_STAFF',
+        'VIEW_AUDIT_LOGS',
+      ],
+      PHARMACIST: [
+        'VIEW_DASHBOARD',
+        'VERIFY_PRESCRIPTIONS',
+        'DISPENSE_MEDICINES',
+        'VIEW_REPORTS',
+      ],
+      INVENTORY_STAFF: [
+        'VIEW_DASHBOARD',
+        'MANAGE_INVENTORY',
+        'VIEW_REPORTS',
+      ],
+      PROCUREMENT_STAFF: [
+        'VIEW_DASHBOARD',
+        'MANAGE_PROCUREMENT',
+        'VIEW_REPORTS',
+      ],
+      ORDER_STAFF: [
+        'VIEW_DASHBOARD',
+        'MANAGE_ORDERS',
+        'VIEW_REPORTS',
+      ],
+    };
+    return defaults[role] || ['VIEW_DASHBOARD'];
+  }
+
+  /**
+   * List staff members scoped to authenticated pharmacy
+   */
+  async getStaffList(
+    userId: string,
+    query: PharmacyStaffFilterDto
+  ): Promise<PharmacyStaffListResponseDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const page = Math.max(1, query.page || 1);
+    const limit = Math.min(100, Math.max(1, query.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const filter: any = { pharmacyId: profile._id };
+    if (query.role) filter.role = query.role;
+    if (query.status) filter.status = query.status;
+    if (query.search) {
+      const rx = new RegExp(escapeRegex(query.search.trim()), 'i');
+      filter.$or = [{ fullName: rx }, { email: rx }, { staffId: rx }];
+    }
+
+    const [staffDocs, total] = await Promise.all([
+      PharmacyStaffModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      PharmacyStaffModel.countDocuments(filter),
+    ]);
+
+    return {
+      staff: staffDocs.map((doc) => this.mapStaffDoc(doc)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  /**
+   * Invite new staff member
+   */
+  async inviteStaff(
+    userId: string,
+    input: InvitePharmacyStaffDto
+  ): Promise<PharmacyStaffDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const email = input.email.trim().toLowerCase();
+
+    // Check if staff already exists in this pharmacy
+    const existing = await PharmacyStaffModel.findOne({
+      pharmacyId: profile._id,
+      email,
+      status: { $ne: 'REVOKED' },
+    });
+
+    if (existing) {
+      throw AppError.conflict(`A staff member with email '${email}' already exists in this pharmacy dispensary`);
+    }
+
+    // Role elevation guard: Only owners can assign owner role
+    if (input.role === 'PHARMACY_OWNER') {
+      const callerOwner = await PharmacyStaffModel.findOne({
+        pharmacyId: profile._id,
+        userId: userObjectId,
+        isOwner: true,
+      });
+      // Allow if caller is the pharmacy profile owner
+      if (!callerOwner && profile.userId.toString() !== userId) {
+        throw AppError.forbidden('Only the primary pharmacy owner can appoint co-owners');
+      }
+    }
+
+    // Generate staffId
+    const dateStr = new Date().toISOString().slice(0, 7).replace('-', '');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const staffId = `STF-${dateStr}-${rand}`;
+
+    // Generate secure invitation token (expires in 7 days)
+    const invitationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const permissions =
+      input.permissions && input.permissions.length > 0
+        ? input.permissions
+        : this.getDefaultStaffPermissions(input.role);
+
+    // If an existing registered user matches the email, link it
+    const existingUser = await UserModel.findOne({ email });
+
+    const staff = await PharmacyStaffModel.create({
+      pharmacyId: profile._id,
+      userId: existingUser?._id,
+      fullName: input.fullName.trim(),
+      email,
+      phone: input.phone?.trim(),
+      staffId,
+      designation: input.designation.trim(),
+      role: input.role,
+      permissions,
+      status: 'INVITED',
+      pharmacistRegistrationNumber: input.pharmacistRegistrationNumber?.trim(),
+      isOwner: input.role === 'PHARMACY_OWNER',
+      invitationToken,
+      invitationSentAt: new Date(),
+      invitationExpiresAt: expiresAt,
+      invitedBy: userObjectId,
+    });
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_STAFF_INVITED',
+      resourceType: 'PHARMACY_STAFF',
+      resourceId: staff._id.toString(),
+      metadata: {
+        staffId,
+        email,
+        role: input.role,
+        permissions,
+      },
+    });
+
+    return this.mapStaffDoc(staff);
+  }
+
+  /**
+   * Get single staff member details
+   */
+  async getStaffMember(userId: string, staffId: string): Promise<PharmacyStaffDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const staff = await PharmacyStaffModel.findOne({
+      _id: staffId,
+      pharmacyId: profile._id,
+    });
+
+    if (!staff) {
+      throw AppError.notFound('Staff member not found');
+    }
+
+    return this.mapStaffDoc(staff);
+  }
+
+  /**
+   * Update staff member permissions or profile
+   */
+  async updateStaffMember(
+    userId: string,
+    staffId: string,
+    input: UpdatePharmacyStaffDto
+  ): Promise<PharmacyStaffDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const staff = await PharmacyStaffModel.findOne({
+      _id: staffId,
+      pharmacyId: profile._id,
+    });
+
+    if (!staff) {
+      throw AppError.notFound('Staff member not found');
+    }
+
+    if (staff.status === 'REVOKED') {
+      throw AppError.badRequest('Cannot update a revoked staff membership');
+    }
+
+    // Guard: Prevent self-elevation if updating own membership
+    if (staff.userId && staff.userId.toString() === userId) {
+      if (input.role && input.role !== staff.role) {
+        throw AppError.forbidden('Staff members cannot change their own role or elevate their privileges');
+      }
+      if (input.permissions) {
+        throw AppError.forbidden('Staff members cannot self-assign permissions');
+      }
+    }
+
+    if (input.fullName) staff.fullName = input.fullName.trim();
+    if (input.phone !== undefined) staff.phone = input.phone?.trim();
+    if (input.designation) staff.designation = input.designation.trim();
+    if (input.role) {
+      staff.role = input.role;
+      staff.isOwner = input.role === 'PHARMACY_OWNER';
+    }
+    if (input.permissions) staff.permissions = input.permissions;
+    if (input.pharmacistRegistrationNumber !== undefined) {
+      staff.pharmacistRegistrationNumber = input.pharmacistRegistrationNumber.trim();
+    }
+
+    await staff.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_STAFF_UPDATED',
+      resourceType: 'PHARMACY_STAFF',
+      resourceId: staff._id.toString(),
+      metadata: {
+        staffId: staff.staffId,
+        role: staff.role,
+        permissions: staff.permissions,
+      },
+    });
+
+    return this.mapStaffDoc(staff);
+  }
+
+  /**
+   * Suspend staff access immediately
+   */
+  async suspendStaff(
+    userId: string,
+    staffId: string,
+    reason?: string
+  ): Promise<PharmacyStaffDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const staff = await PharmacyStaffModel.findOne({
+      _id: staffId,
+      pharmacyId: profile._id,
+    });
+
+    if (!staff) {
+      throw AppError.notFound('Staff member not found');
+    }
+
+    if (staff.isOwner) {
+      throw AppError.badRequest('Primary pharmacy owner cannot be suspended');
+    }
+
+    staff.status = 'SUSPENDED';
+    await staff.save();
+
+    // Revoke any active sessions if linked to a user account
+    if (staff.userId) {
+      await RefreshTokenModel.updateMany(
+        { userId: staff.userId, revokedAt: { $exists: false } },
+        { revokedAt: new Date() }
+      );
+    }
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_STAFF_SUSPENDED',
+      resourceType: 'PHARMACY_STAFF',
+      resourceId: staff._id.toString(),
+      metadata: { staffId: staff.staffId, reason },
+    });
+
+    return this.mapStaffDoc(staff);
+  }
+
+  /**
+   * Reactivate suspended staff member
+   */
+  async reactivateStaff(userId: string, staffId: string): Promise<PharmacyStaffDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const staff = await PharmacyStaffModel.findOne({
+      _id: staffId,
+      pharmacyId: profile._id,
+    });
+
+    if (!staff) {
+      throw AppError.notFound('Staff member not found');
+    }
+
+    if (staff.status === 'REVOKED') {
+      throw AppError.badRequest('Revoked staff memberships cannot be reactivated; invite again.');
+    }
+
+    staff.status = 'ACTIVE';
+    await staff.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_STAFF_REACTIVATED',
+      resourceType: 'PHARMACY_STAFF',
+      resourceId: staff._id.toString(),
+      metadata: { staffId: staff.staffId },
+    });
+
+    return this.mapStaffDoc(staff);
+  }
+
+  /**
+   * Permanently revoke staff access
+   */
+  async revokeStaff(userId: string, staffId: string): Promise<PharmacyStaffDto> {
+    const userObjectId = new Types.ObjectId(userId);
+    const profile = await PharmacyProfileModel.findOne({ userId: userObjectId });
+    if (!profile) {
+      throw AppError.notFound('Pharmacy profile not found');
+    }
+
+    const staff = await PharmacyStaffModel.findOne({
+      _id: staffId,
+      pharmacyId: profile._id,
+    });
+
+    if (!staff) {
+      throw AppError.notFound('Staff member not found');
+    }
+
+    if (staff.isOwner) {
+      throw AppError.badRequest('Primary pharmacy owner cannot be revoked');
+    }
+
+    staff.status = 'REVOKED';
+    await staff.save();
+
+    if (staff.userId) {
+      await RefreshTokenModel.updateMany(
+        { userId: staff.userId, revokedAt: { $exists: false } },
+        { revokedAt: new Date() }
+      );
+    }
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PHARMACY_STAFF_REVOKED',
+      resourceType: 'PHARMACY_STAFF',
+      resourceId: staff._id.toString(),
+      metadata: { staffId: staff.staffId },
+    });
+
+    return this.mapStaffDoc(staff);
+  }
+
+  /**
+   * Accept staff invitation using invitationToken
+   */
+  async acceptStaffInvite(
+    input: AcceptStaffInviteDto
+  ): Promise<{ message: string; staffId: string }> {
+    const staff = await PharmacyStaffModel.findOne({
+      invitationToken: input.invitationToken,
+      status: 'INVITED',
+    });
+
+    if (!staff) {
+      throw AppError.notFound('Invitation token is invalid, expired, or already used');
+    }
+
+    if (staff.invitationExpiresAt && new Date() > staff.invitationExpiresAt) {
+      throw AppError.badRequest('This staff invitation has expired. Request a new invite from your pharmacy manager.');
+    }
+
+    staff.status = 'ACTIVE';
+    staff.invitationToken = undefined;
+    staff.joinedAt = new Date();
+    await staff.save();
+
+    await this.recordAudit({
+      actorId: staff._id.toString(),
+      action: 'PHARMACY_STAFF_INVITE_ACCEPTED',
+      resourceType: 'PHARMACY_STAFF',
+      resourceId: staff._id.toString(),
+      metadata: { staffId: staff.staffId, email: staff.email },
+    });
+
+    return {
+      message: 'Staff invitation accepted successfully. You now have active dispensary access.',
+      staffId: staff.staffId,
+    };
+  }
+
+  /* ==========================================================================
+     DAY 5 TASK 07: ACCOUNT SECURITY, SESSIONS & PASSWORD MANAGEMENT
+     ========================================================================== */
+
+  private parseUserAgent(ua?: string): { browser: string; os: string; deviceName: string } {
+    if (!ua) {
+      return { browser: 'Web Browser', os: 'Desktop', deviceName: 'Web Session' };
+    }
+    let browser = 'Web Browser';
+    if (ua.includes('Chrome')) browser = 'Chrome';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Safari')) browser = 'Safari';
+    else if (ua.includes('Edge')) browser = 'Edge';
+
+    let os = 'Unknown OS';
+    if (ua.includes('Macintosh') || ua.includes('Mac OS')) os = 'macOS';
+    else if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Linux')) os = 'Linux';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+
+    return {
+      browser,
+      os,
+      deviceName: `${browser} on ${os}`,
+    };
+  }
+
+  /**
+   * List active sessions for pharmacy user
+   */
+  async getSessions(
+    userId: string,
+    currentTokenHash?: string
+  ): Promise<PharmacySessionDto[]> {
+    const userObjectId = new Types.ObjectId(userId);
+    const sessions = await RefreshTokenModel.find({
+      userId: userObjectId,
+      revokedAt: { $exists: false },
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return sessions.map((session, index) => {
+      const uaInfo = this.parseUserAgent(session.deviceInfo?.userAgent);
+      const isCurrent = currentTokenHash
+        ? session.tokenHash === currentTokenHash
+        : index === 0;
+
+      return {
+        id: session._id.toString(),
+        deviceName: session.deviceInfo?.deviceName || uaInfo.deviceName,
+        device: uaInfo.deviceName,
+        browser: uaInfo.browser,
+        os: uaInfo.os,
+        ipAddress: session.deviceInfo?.ipAddress || '127.0.0.1',
+        lastActiveAt: session.updatedAt
+          ? toIsoSafe(session.updatedAt)
+          : toIsoSafe(session.createdAt),
+        isCurrent,
+        createdAt: toIsoSafe(session.createdAt),
+        expiresAt: session.expiresAt ? toIsoSafe(session.expiresAt) : undefined,
+      };
+    });
+  }
+
+  /**
+   * Revoke individual session
+   */
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    requestId?: string
+  ): Promise<{ message: string }> {
+    const userObjectId = new Types.ObjectId(userId);
+    const session = await RefreshTokenModel.findOne({
+      _id: sessionId,
+      userId: userObjectId,
+      revokedAt: { $exists: false },
+    });
+
+    if (!session) {
+      throw AppError.notFound('Session not found or already terminated');
+    }
+
+    session.revokedAt = new Date();
+    await session.save();
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'SESSION_REVOKED',
+      resourceType: 'SESSION',
+      resourceId: sessionId,
+      requestId,
+      metadata: { sessionId },
+    });
+
+    return { message: 'Session revoked successfully' };
+  }
+
+  /**
+   * Revoke all other active sessions except current
+   */
+  async revokeOtherSessions(
+    userId: string,
+    currentTokenHash?: string,
+    requestId?: string
+  ): Promise<{ revokedCount: number }> {
+    const userObjectId = new Types.ObjectId(userId);
+    const query: any = {
+      userId: userObjectId,
+      revokedAt: { $exists: false },
+    };
+
+    if (currentTokenHash) {
+      query.tokenHash = { $ne: currentTokenHash };
+    }
+
+    const result = await RefreshTokenModel.updateMany(query, {
+      revokedAt: new Date(),
+    });
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'OTHER_SESSIONS_REVOKED',
+      resourceType: 'SESSION',
+      resourceId: userId,
+      requestId,
+      metadata: { revokedCount: result.modifiedCount },
+    });
+
+    return { revokedCount: result.modifiedCount };
+  }
+
+  /**
+   * Change password for pharmacy user
+   */
+  async changePassword(
+    userId: string,
+    input: ChangePharmacyPasswordDto,
+    requestId?: string
+  ): Promise<{ message: string }> {
+    const userObjectId = new Types.ObjectId(userId);
+    const user = await UserModel.findById(userObjectId).select('+passwordHash');
+    if (!user) {
+      throw AppError.notFound('Pharmacy user account not found');
+    }
+
+    const isCurrentValid = await bcryptjs.compare(input.currentPassword, user.passwordHash);
+    if (!isCurrentValid) {
+      await this.recordAudit({
+        actorId: userId,
+        action: 'PASSWORD_CHANGE_FAILED',
+        resourceType: 'USER',
+        resourceId: userId,
+        requestId,
+        metadata: { reason: 'INVALID_CURRENT_PASSWORD' },
+      });
+      throw AppError.badRequest('Current password is incorrect');
+    }
+
+    const isSamePassword = await bcryptjs.compare(input.newPassword, user.passwordHash);
+    if (isSamePassword) {
+      throw AppError.badRequest('New password cannot be identical to your current password');
+    }
+
+    const newHash = await bcryptjs.hash(input.newPassword, 10);
+    user.passwordHash = newHash;
+    await user.save();
+
+    if (input.revokeOtherSessions) {
+      await RefreshTokenModel.updateMany(
+        { userId: userObjectId, revokedAt: { $exists: false } },
+        { revokedAt: new Date() }
+      );
+    }
+
+    await this.recordAudit({
+      actorId: userId,
+      action: 'PASSWORD_CHANGED',
+      resourceType: 'USER',
+      resourceId: userId,
+      requestId,
+      metadata: { revokedOtherSessions: Boolean(input.revokeOtherSessions) },
+    });
+
+    return { message: 'Password changed successfully' };
+  }
 }
 
 export const pharmacyService = new PharmacyService();
 export default pharmacyService;
+

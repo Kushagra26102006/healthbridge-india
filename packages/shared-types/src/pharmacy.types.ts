@@ -89,10 +89,15 @@ export interface PharmacyProfileDto {
   phone: string;
   description?: string;
   logoUrl?: string;
+  websiteUrl?: string;
   address: PharmacyAddressDto;
   pharmacyLicenseNumber: string;
+  registrationNumber?: string;
   gstin?: string;
   issuingAuthority?: string;
+  licenseIssueDate?: string;
+  licenseExpiryDate?: string;
+  timezone?: string;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
   isVerified: boolean;
   documentSubmissionStatus: 'NOT_SUBMITTED' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED';
@@ -104,6 +109,10 @@ export interface PharmacyProfileDto {
   is24Hours: boolean;
   weeklyAvailability: string[];
   supportedServices: string[];
+  operatingHoursSchedule?: DayOperatingSchedule[];
+  temporaryClosure?: TemporaryClosureDto;
+  holidays?: HolidayDto[];
+  serviceSettings?: PharmacyServicesDto;
   createdAt: string;
   updatedAt: string;
 }
@@ -113,6 +122,11 @@ export interface UpdatePharmacyProfileDto {
   phone?: string;
   description?: string;
   logoUrl?: string;
+  websiteUrl?: string;
+  registrationNumber?: string;
+  licenseIssueDate?: string;
+  licenseExpiryDate?: string;
+  timezone?: string;
   address?: Partial<PharmacyAddressDto>;
   openingTime?: string;
   closingTime?: string;
@@ -1536,4 +1550,206 @@ export interface ProcurementMetricsDto {
   pendingInvoicesAmount: number;
   replenishmentSuggestionsCount: number;
 }
+
+/* ==========================================================================
+   DAY 5 TASK 07: PHARMACY SETTINGS, OPERATING HOURS, SERVICES, STAFF & SECURITY
+   ========================================================================== */
+
+export type DayOfWeek =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
+
+export interface OperatingBreakInterval {
+  id?: string;
+  breakName?: string;
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+}
+
+export interface DayOperatingSchedule {
+  dayOfWeek: DayOfWeek;
+  isOpen: boolean;
+  is24Hours: boolean;
+  openTime: string;  // HH:mm
+  closeTime: string; // HH:mm
+  breaks: OperatingBreakInterval[];
+}
+
+export interface TemporaryClosureDto {
+  isTemporarilyClosed: boolean;
+  reason?: string;
+  closureStartDate?: string;
+  closureEndDate?: string;
+  reopenDate?: string;
+}
+
+export interface HolidayDto {
+  id: string;
+  name: string;
+  date: string; // YYYY-MM-DD
+  isClosed: boolean;
+  customOpenTime?: string;
+  customCloseTime?: string;
+}
+
+export interface PharmacyOperatingHoursDto {
+  timezone: string;
+  is24Hours: boolean;
+  isOpenNow: boolean;
+  currentStatusReason?: string;
+  nextOpeningTime?: string;
+  weeklySchedule: DayOperatingSchedule[];
+  temporaryClosure?: TemporaryClosureDto;
+  holidays: HolidayDto[];
+}
+
+export interface UpdateOperatingHoursDto {
+  timezone?: string;
+  is24Hours?: boolean;
+  weeklySchedule?: DayOperatingSchedule[];
+  temporaryClosure?: TemporaryClosureDto;
+  holidays?: HolidayDto[];
+}
+
+export interface PharmacyServicesDto {
+  dispensingEnabled: boolean;
+  inStorePickupEnabled: boolean;
+  deliveryReady: boolean;
+  emergencyPrescriptionSupport: boolean;
+  scheduleHDispensingEnabled: boolean;
+  scheduleXDispensingEnabled: boolean;
+  chronicRefillProgramEnabled: boolean;
+  compoundingAvailable: boolean;
+  homeDeliveryRadiusKm?: number;
+  minimumOrderValueForDelivery?: number;
+  deliveryFee?: number;
+  freeDeliveryAbove?: number;
+  estimatedPickupReadyMinutes?: number;
+}
+
+export type UpdatePharmacyServicesDto = Partial<PharmacyServicesDto>;
+
+export interface UploadPharmacyDocumentDto {
+  documentType: PharmacyDocumentType;
+  documentNumber?: string;
+  documentUrl: string;
+  fileName: string;
+  fileSize?: number;
+  mimeType?: string;
+}
+
+export type PharmacyStaffRole =
+  | 'PHARMACY_OWNER'
+  | 'PHARMACY_MANAGER'
+  | 'PHARMACIST'
+  | 'INVENTORY_STAFF'
+  | 'PROCUREMENT_STAFF'
+  | 'ORDER_STAFF';
+
+export type PharmacyPermission =
+  | 'VIEW_DASHBOARD'
+  | 'MANAGE_INVENTORY'
+  | 'VERIFY_PRESCRIPTIONS'
+  | 'DISPENSE_MEDICINES'
+  | 'MANAGE_PROCUREMENT'
+  | 'MANAGE_ORDERS'
+  | 'VIEW_REPORTS'
+  | 'MANAGE_STAFF'
+  | 'MANAGE_SETTINGS'
+  | 'VIEW_AUDIT_LOGS';
+
+export type PharmacyStaffStatus =
+  | 'INVITED'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'REVOKED';
+
+export interface PharmacyStaffDto {
+  id: string;
+  pharmacyId: string;
+  userId?: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  staffId: string;
+  designation: string;
+  role: PharmacyStaffRole;
+  permissions: PharmacyPermission[];
+  status: PharmacyStaffStatus;
+  pharmacistRegistrationNumber?: string;
+  isOwner: boolean;
+  invitationSentAt?: string;
+  invitationExpiresAt?: string;
+  invitedBy?: string;
+  lastActiveAt?: string;
+  joinedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvitePharmacyStaffDto {
+  fullName: string;
+  email: string;
+  phone?: string;
+  designation: string;
+  role: PharmacyStaffRole;
+  permissions?: PharmacyPermission[];
+  pharmacistRegistrationNumber?: string;
+}
+
+export interface UpdatePharmacyStaffDto {
+  fullName?: string;
+  phone?: string;
+  designation?: string;
+  role?: PharmacyStaffRole;
+  permissions?: PharmacyPermission[];
+  pharmacistRegistrationNumber?: string;
+}
+
+export interface AcceptStaffInviteDto {
+  invitationToken: string;
+  password?: string;
+}
+
+export interface PharmacyStaffFilterDto {
+  role?: PharmacyStaffRole;
+  status?: PharmacyStaffStatus;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PharmacyStaffListResponseDto {
+  staff: PharmacyStaffDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PharmacySessionDto {
+  id: string;
+  deviceName?: string;
+  device?: string;
+  browser?: string;
+  os?: string;
+  ipAddress?: string;
+  lastActiveAt: string;
+  isCurrent: boolean;
+  createdAt: string;
+  expiresAt?: string;
+}
+
+export interface ChangePharmacyPasswordDto {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  revokeOtherSessions?: boolean;
+}
+
 

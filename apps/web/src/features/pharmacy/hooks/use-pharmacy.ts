@@ -46,6 +46,14 @@ import type {
   VerifyPickupDto,
   CancelOrderDto,
   OrderFilterDto,
+  UploadPharmacyDocumentDto,
+  UpdateOperatingHoursDto,
+  UpdatePharmacyServicesDto,
+  InvitePharmacyStaffDto,
+  UpdatePharmacyStaffDto,
+  AcceptStaffInviteDto,
+  PharmacyStaffFilterDto,
+  ChangePharmacyPasswordDto,
 } from '@healthbridge/shared-types';
 
 export const PHARMACY_QUERY_KEYS = {
@@ -91,6 +99,12 @@ export const PHARMACY_QUERY_KEYS = {
   replenishmentSuggestions: (filter?: ReplenishmentFilterDto) => ['pharmacy', 'replenishment-suggestions', filter] as const,
   replenishmentSettings: ['pharmacy', 'replenishment-settings'] as const,
   procurementMetrics: ['pharmacy', 'procurement-metrics'] as const,
+  // Day 5 Task 07: Profile, Settings, Staff & Security Keys
+  operatingHours: ['pharmacy', 'operating-hours'] as const,
+  services: ['pharmacy', 'services'] as const,
+  staffList: (filter?: PharmacyStaffFilterDto) => ['pharmacy', 'staff', filter] as const,
+  staffDetail: (id: string) => ['pharmacy', 'staff-detail', id] as const,
+  sessions: ['pharmacy', 'sessions'] as const,
 };
 
 /**
@@ -1025,5 +1039,206 @@ export function useProcurementMetrics() {
     queryKey: PHARMACY_QUERY_KEYS.procurementMetrics,
     queryFn: () => pharmacyApi.getProcurementMetrics(),
     staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 07: PROFILE DOCUMENTS HOOKS
+ * ============================================================================
+ */
+
+export function useUploadPharmacyDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: UploadPharmacyDocumentDto) => pharmacyApi.uploadDocument(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.profile });
+    },
+  });
+}
+
+export function useDeletePharmacyDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (documentId: string) => pharmacyApi.deleteDocument(documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.profile });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 07: OPERATING HOURS HOOKS
+ * ============================================================================
+ */
+
+export function usePharmacyOperatingHours() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.operatingHours,
+    queryFn: () => pharmacyApi.getOperatingHours(),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdateOperatingHours() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: UpdateOperatingHoursDto) => pharmacyApi.updateOperatingHours(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.operatingHours });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.profile });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 07: SERVICES HOOKS
+ * ============================================================================
+ */
+
+export function usePharmacyServices() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.services,
+    queryFn: () => pharmacyApi.getServices(),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdatePharmacyServices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: UpdatePharmacyServicesDto) => pharmacyApi.updateServices(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.services });
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.profile });
+    },
+  });
+}
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 07: PHARMACY STAFF MANAGEMENT HOOKS
+ * ============================================================================
+ */
+
+export function usePharmacyStaffList(filter?: PharmacyStaffFilterDto) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.staffList(filter),
+    queryFn: () => pharmacyApi.getStaffList(filter),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePharmacyStaffMember(id: string) {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.staffDetail(id),
+    queryFn: () => pharmacyApi.getStaffMember(id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useInvitePharmacyStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: InvitePharmacyStaffDto) => pharmacyApi.inviteStaff(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'staff'] });
+    },
+  });
+}
+
+export function useUpdatePharmacyStaffMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdatePharmacyStaffDto }) =>
+      pharmacyApi.updateStaffMember(id, dto),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.staffDetail(vars.id) });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'staff'] });
+    },
+  });
+}
+
+export function useSuspendPharmacyStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      pharmacyApi.suspendStaff(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'staff'] });
+    },
+  });
+}
+
+export function useReactivatePharmacyStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pharmacyApi.reactivateStaff(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'staff'] });
+    },
+  });
+}
+
+export function useRevokePharmacyStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pharmacyApi.revokeStaff(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'staff'] });
+    },
+  });
+}
+
+export function useAcceptPharmacyStaffInvite() {
+  return useMutation({
+    mutationFn: (dto: AcceptStaffInviteDto) => pharmacyApi.acceptStaffInvite(dto),
+  });
+}
+
+/**
+ * ============================================================================
+ * DAY 5 TASK 07: SESSIONS & ACCOUNT SECURITY HOOKS
+ * ============================================================================
+ */
+
+export function usePharmacySessions() {
+  return useQuery({
+    queryKey: PHARMACY_QUERY_KEYS.sessions,
+    queryFn: () => pharmacyApi.getSessions(),
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useRevokePharmacySession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => pharmacyApi.revokeSession(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.sessions });
+    },
+  });
+}
+
+export function useRevokeOtherPharmacySessions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => pharmacyApi.revokeOtherSessions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.sessions });
+    },
+  });
+}
+
+export function useChangePharmacyPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: ChangePharmacyPasswordDto) => pharmacyApi.changePassword(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PHARMACY_QUERY_KEYS.sessions });
+    },
   });
 }

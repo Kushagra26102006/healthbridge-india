@@ -51,3 +51,4 @@ export * from './FulfillmentProgress';
 export * from './OrderTimeline';
 export * from './PickupManagementPanel';
 export * from './PickupVerificationForm';
+export * from './settings/PharmacySettingsNav';

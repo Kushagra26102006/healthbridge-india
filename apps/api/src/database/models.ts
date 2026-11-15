@@ -19,6 +19,7 @@ export * from '../modules/pharmacy/models/purchase-requisition.model';
 export * from '../modules/pharmacy/models/purchase-order.model';
 export * from '../modules/pharmacy/models/goods-receipt.model';
 export * from '../modules/pharmacy/models/purchase-invoice.model';
+export * from '../modules/pharmacy/models/pharmacy-staff.model';
 
 export * from '../modules/healthcare/models/facility.model';
 export * from '../modules/healthcare/models/medical-record.model';

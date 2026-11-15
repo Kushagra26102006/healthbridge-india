@@ -5,7 +5,7 @@ import {
   usePharmacyProfile,
   useUpdatePharmacyProfile,
 } from '@/features/pharmacy/hooks/use-pharmacy';
-import { PharmacyProfileForm } from '@/components/pharmacy';
+import { PharmacyProfileForm, PharmacySettingsNav } from '@/components/pharmacy';
 import { Building2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function PharmacyProfilePage() {
@@ -14,7 +14,7 @@ export default function PharmacyProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto animate-pulse">
+      <div className="space-y-6 max-w-5xl mx-auto animate-pulse">
         <div className="h-20 bg-slate-200 rounded-2xl w-full"></div>
         <div className="h-64 bg-slate-200 rounded-2xl w-full"></div>
         <div className="h-64 bg-slate-200 rounded-2xl w-full"></div>
@@ -46,7 +46,7 @@ export default function PharmacyProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sky-600 mb-1">
@@ -60,6 +60,8 @@ export default function PharmacyProfilePage() {
           Manage your establishment contact details, operating schedules, and review ABDM/CDSCO drug license credentials.
         </p>
       </div>
+
+      <PharmacySettingsNav />
 
       {/* Main Profile Form */}
       <PharmacyProfileForm

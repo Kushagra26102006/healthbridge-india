@@ -72,12 +72,19 @@ export const updatePharmacyProfileSchema = z.object({
     .optional(),
   description: z.string().trim().max(2000, 'Description cannot exceed 2000 characters').optional(),
   logoUrl: z.string().url('Invalid logo URL format').optional(),
+  websiteUrl: z.string().url('Invalid website URL format').optional().or(z.literal('')),
+  registrationNumber: z.string().trim().max(100).optional(),
+  licenseIssueDate: z.string().optional(),
+  licenseExpiryDate: z.string().optional(),
+  timezone: z.string().trim().max(100).optional(),
   address: pharmacyAddressSchema.partial().optional(),
   openingTime: z.string().regex(timeRegex, 'Opening time must be in HH:MM 24h format').optional(),
   closingTime: z.string().regex(timeRegex, 'Closing time must be in HH:MM 24h format').optional(),
   is24Hours: z.boolean().optional(),
   weeklyAvailability: z.array(z.string().trim()).optional(),
   supportedServices: z.array(z.string().trim()).optional(),
+  verificationStatus: z.any().optional(),
+  documentSubmissionStatus: z.any().optional(),
 });
 
 /**
@@ -875,5 +882,220 @@ export type MarkReadyForPickupInput = z.infer<typeof markReadyForPickupSchema>;
 export type VerifyPickupInput = z.infer<typeof verifyPickupSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type PatientOrderQueryInput = z.infer<typeof patientOrderQuerySchema>;
+
+/* ==========================================================================
+   DAY 5 TASK 07: PROFILE, OPERATING HOURS, SERVICES, STAFF & SECURITY SCHEMAS
+   ========================================================================== */
+
+export const pharmacyDocumentTypeEnum = z.enum([
+  'DRUG_LICENSE',
+  'GST_CERTIFICATE',
+  'PHARMACIST_REGISTRATION',
+  'SHOP_ESTABLISHMENT',
+]);
+
+export const uploadPharmacyDocumentSchema = z.object({
+  documentType: pharmacyDocumentTypeEnum,
+  documentNumber: z.string().trim().max(100).optional(),
+  documentUrl: z.string().url('Invalid document URL format'),
+  fileName: z.string().trim().min(1, 'File name is required').max(255),
+  fileSize: z.number().int().positive().max(15 * 1024 * 1024, 'File size cannot exceed 15MB').optional(),
+  mimeType: z.string().trim().optional(),
+});
+
+export const documentIdParamSchema = z.object({
+  documentId: z.string().min(1, 'Document ID is required'),
+});
+
+export const dayOfWeekEnum = z.enum([
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+]);
+
+export const operatingBreakIntervalSchema = z
+  .object({
+    id: z.string().optional(),
+    breakName: z.string().trim().max(50).optional(),
+    startTime: z.string().regex(timeRegex, 'Start time must be in HH:MM format'),
+    endTime: z.string().regex(timeRegex, 'End time must be in HH:MM format'),
+  })
+  .refine((data) => data.startTime < data.endTime, {
+    message: 'Break start time must be before end time',
+    path: ['endTime'],
+  });
+
+export const dayOperatingScheduleSchema = z
+  .object({
+    dayOfWeek: dayOfWeekEnum,
+    isOpen: z.boolean().default(true),
+    is24Hours: z.boolean().default(false),
+    openTime: z.string().regex(timeRegex, 'Open time must be in HH:MM format').default('08:00'),
+    closeTime: z.string().regex(timeRegex, 'Close time must be in HH:MM format').default('22:00'),
+    breaks: z.array(operatingBreakIntervalSchema).default([]),
+  })
+  .refine(
+    (data) => !data.isOpen || data.is24Hours || data.openTime < data.closeTime,
+    {
+      message: 'Opening time must be earlier than closing time',
+      path: ['closeTime'],
+    }
+  );
+
+export const temporaryClosureSchema = z.object({
+  isTemporarilyClosed: z.boolean(),
+  reason: z.string().trim().max(500).optional(),
+  closureStartDate: z.string().optional(),
+  closureEndDate: z.string().optional(),
+  reopenDate: z.string().optional(),
+});
+
+export const holidaySchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(1, 'Holiday name is required').max(100),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format'),
+  isClosed: z.boolean().default(true),
+  customOpenTime: z.string().regex(timeRegex, 'Custom open time must be in HH:MM format').optional(),
+  customCloseTime: z.string().regex(timeRegex, 'Custom close time must be in HH:MM format').optional(),
+});
+
+export const updateOperatingHoursSchema = z.object({
+  timezone: z.string().trim().max(100).optional(),
+  is24Hours: z.boolean().optional(),
+  weeklySchedule: z.array(dayOperatingScheduleSchema).optional(),
+  temporaryClosure: temporaryClosureSchema.optional(),
+  holidays: z.array(holidaySchema).optional(),
+});
+
+export const updatePharmacyServicesSchema = z.object({
+  dispensingEnabled: z.boolean().optional(),
+  inStorePickupEnabled: z.boolean().optional(),
+  deliveryReady: z.boolean().optional(),
+  emergencyPrescriptionSupport: z.boolean().optional(),
+  scheduleHDispensingEnabled: z.boolean().optional(),
+  scheduleXDispensingEnabled: z.boolean().optional(),
+  chronicRefillProgramEnabled: z.boolean().optional(),
+  compoundingAvailable: z.boolean().optional(),
+  homeDeliveryRadiusKm: z.number().nonnegative().max(100).optional(),
+  minimumOrderValueForDelivery: z.number().nonnegative().optional(),
+  deliveryFee: z.number().nonnegative().optional(),
+  freeDeliveryAbove: z.number().nonnegative().optional(),
+  estimatedPickupReadyMinutes: z.number().int().nonnegative().max(1440).optional(),
+});
+
+export const pharmacyStaffRoleEnum = z.enum([
+  'PHARMACY_OWNER',
+  'PHARMACY_MANAGER',
+  'PHARMACIST',
+  'INVENTORY_STAFF',
+  'PROCUREMENT_STAFF',
+  'ORDER_STAFF',
+]);
+
+export const pharmacyPermissionEnum = z.enum([
+  'VIEW_DASHBOARD',
+  'MANAGE_INVENTORY',
+  'VERIFY_PRESCRIPTIONS',
+  'DISPENSE_MEDICINES',
+  'MANAGE_PROCUREMENT',
+  'MANAGE_ORDERS',
+  'VIEW_REPORTS',
+  'MANAGE_STAFF',
+  'MANAGE_SETTINGS',
+  'VIEW_AUDIT_LOGS',
+]);
+
+export const pharmacyStaffStatusEnum = z.enum([
+  'INVITED',
+  'ACTIVE',
+  'SUSPENDED',
+  'REVOKED',
+]);
+
+export const invitePharmacyStaffSchema = z.object({
+  fullName: z.string().trim().min(2, 'Full name is required').max(100),
+  email: z.string().trim().email('Invalid email address format').toLowerCase(),
+  phone: z
+    .string()
+    .trim()
+    .regex(indianPhoneRegex, 'Must be a valid 10-digit Indian phone number starting with 6-9')
+    .optional()
+    .or(z.literal('')),
+  designation: z.string().trim().min(2, 'Designation is required').max(100),
+  role: pharmacyStaffRoleEnum,
+  permissions: z.array(pharmacyPermissionEnum).optional(),
+  pharmacistRegistrationNumber: z.string().trim().max(100).optional(),
+});
+
+export const updatePharmacyStaffSchema = z.object({
+  fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100).optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(indianPhoneRegex, 'Must be a valid 10-digit Indian phone number starting with 6-9')
+    .optional()
+    .or(z.literal('')),
+  designation: z.string().trim().min(2).max(100).optional(),
+  role: pharmacyStaffRoleEnum.optional(),
+  permissions: z.array(pharmacyPermissionEnum).optional(),
+  pharmacistRegistrationNumber: z.string().trim().max(100).optional(),
+});
+
+export const acceptStaffInviteSchema = z.object({
+  invitationToken: z.string().trim().min(10, 'Invitation token is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(100).optional(),
+});
+
+export const pharmacyStaffQuerySchema = z.object({
+  role: pharmacyStaffRoleEnum.optional(),
+  status: pharmacyStaffStatusEnum.optional(),
+  search: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
+export const pharmacyStaffIdParamSchema = z.object({
+  id: z.string().regex(objectIdRegex, 'Invalid staff ObjectId format'),
+});
+
+export const changePharmacyPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(100, 'Password cannot exceed 100 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number')
+      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+    revokeOtherSessions: z.boolean().default(false),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'New passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export const sessionIdParamSchema = z.object({
+  sessionId: z.string().regex(objectIdRegex, 'Invalid session ObjectId format'),
+});
+
+export type UploadPharmacyDocumentInput = z.infer<typeof uploadPharmacyDocumentSchema>;
+export type DocumentIdParamInput = z.infer<typeof documentIdParamSchema>;
+export type UpdateOperatingHoursInput = z.infer<typeof updateOperatingHoursSchema>;
+export type UpdatePharmacyServicesInput = z.infer<typeof updatePharmacyServicesSchema>;
+export type InvitePharmacyStaffInput = z.infer<typeof invitePharmacyStaffSchema>;
+export type UpdatePharmacyStaffInput = z.infer<typeof updatePharmacyStaffSchema>;
+export type AcceptStaffInviteInput = z.infer<typeof acceptStaffInviteSchema>;
+export type PharmacyStaffQueryInput = z.infer<typeof pharmacyStaffQuerySchema>;
+export type PharmacyStaffIdParamInput = z.infer<typeof pharmacyStaffIdParamSchema>;
+export type ChangePharmacyPasswordInput = z.infer<typeof changePharmacyPasswordSchema>;
+export type SessionIdParamInput = z.infer<typeof sessionIdParamSchema>;
+
 
 

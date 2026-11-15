@@ -65,6 +65,17 @@ import {
   replenishmentQuerySchema,
   updateReplenishmentSettingsSchema,
   convertSuggestionsToRequisitionSchema,
+  uploadPharmacyDocumentSchema,
+  documentIdParamSchema,
+  updateOperatingHoursSchema,
+  updatePharmacyServicesSchema,
+  invitePharmacyStaffSchema,
+  updatePharmacyStaffSchema,
+  acceptStaffInviteSchema,
+  pharmacyStaffQuerySchema,
+  pharmacyStaffIdParamSchema,
+  changePharmacyPasswordSchema,
+  sessionIdParamSchema,
 } from '@healthbridge/validation';
 
 export const pharmacyRoutes = Router();
@@ -95,6 +106,28 @@ pharmacyRoutes.patch(
   '/profile',
   validateRequest({ body: updatePharmacyProfileSchema }),
   (req, res, next) => pharmacyController.updateProfile(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/profile/documents
+ * @desc    Upload statutory verification document
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/profile/documents',
+  validateRequest({ body: uploadPharmacyDocumentSchema }),
+  (req, res, next) => pharmacyController.uploadDocument(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/pharmacy/profile/documents/:documentId
+ * @desc    Delete statutory verification document
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.delete(
+  '/profile/documents/:documentId',
+  validateRequest({ params: documentIdParamSchema }),
+  (req, res, next) => pharmacyController.deleteDocument(req, res, next)
 );
 
 /* ==========================================================================
@@ -939,6 +972,193 @@ pharmacyRoutes.patch(
  */
 pharmacyRoutes.get('/procurement/metrics', (req, res, next) =>
   procurementController.getProcurementMetrics(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 07: OPERATING HOURS & TIMEZONE ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/settings/operating-hours
+ * @desc    Get pharmacy operating hours, holidays, and current open status
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get('/settings/operating-hours', (req, res, next) =>
+  pharmacyController.getOperatingHours(req, res, next)
+);
+
+/**
+ * @route   PUT /api/v1/pharmacy/settings/operating-hours
+ * @desc    Update weekly operating hours, breaks, timezone and closures
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.put(
+  '/settings/operating-hours',
+  validateRequest({ body: updateOperatingHoursSchema }),
+  (req, res, next) => pharmacyController.updateOperatingHours(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 07: PHARMACY SERVICE SETTINGS ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/settings/services
+ * @desc    Get pharmacy service settings & capabilities
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get('/settings/services', (req, res, next) =>
+  pharmacyController.getServices(req, res, next)
+);
+
+/**
+ * @route   PUT /api/v1/pharmacy/settings/services
+ * @desc    Update pharmacy service settings & capabilities
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.put(
+  '/settings/services',
+  validateRequest({ body: updatePharmacyServicesSchema }),
+  (req, res, next) => pharmacyController.updateServices(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 07: PHARMACY STAFF MANAGEMENT ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/staff
+ * @desc    List staff members scoped to authenticated pharmacy
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/staff',
+  validateRequest({ query: pharmacyStaffQuerySchema }),
+  (req, res, next) => pharmacyController.getStaffList(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/staff/invite
+ * @desc    Invite new staff member to pharmacy dispensary
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/staff/invite',
+  validateRequest({ body: invitePharmacyStaffSchema }),
+  (req, res, next) => pharmacyController.inviteStaff(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/staff/accept-invite
+ * @desc    Accept staff invitation token
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/staff/accept-invite',
+  validateRequest({ body: acceptStaffInviteSchema }),
+  (req, res, next) => pharmacyController.acceptStaffInvite(req, res, next)
+);
+
+/**
+ * @route   GET /api/v1/pharmacy/staff/:id
+ * @desc    Get single staff member details
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get(
+  '/staff/:id',
+  validateRequest({ params: pharmacyStaffIdParamSchema }),
+  (req, res, next) => pharmacyController.getStaffMember(req, res, next)
+);
+
+/**
+ * @route   PATCH /api/v1/pharmacy/staff/:id
+ * @desc    Update staff member designation, role, permissions or phone
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.patch(
+  '/staff/:id',
+  validateRequest({
+    params: pharmacyStaffIdParamSchema,
+    body: updatePharmacyStaffSchema,
+  }),
+  (req, res, next) => pharmacyController.updateStaffMember(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/staff/:id/suspend
+ * @desc    Suspend staff member dispensary access
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/staff/:id/suspend',
+  validateRequest({ params: pharmacyStaffIdParamSchema }),
+  (req, res, next) => pharmacyController.suspendStaff(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/staff/:id/reactivate
+ * @desc    Reactivate suspended staff member
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/staff/:id/reactivate',
+  validateRequest({ params: pharmacyStaffIdParamSchema }),
+  (req, res, next) => pharmacyController.reactivateStaff(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/staff/:id/revoke
+ * @desc    Permanently revoke staff member dispensary access
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/staff/:id/revoke',
+  validateRequest({ params: pharmacyStaffIdParamSchema }),
+  (req, res, next) => pharmacyController.revokeStaff(req, res, next)
+);
+
+/* ==========================================================================
+   DAY 5 TASK 07: ACTIVE SESSIONS & ACCOUNT SECURITY ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/pharmacy/sessions
+ * @desc    List active sessions for authenticated pharmacy
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.get('/sessions', (req, res, next) =>
+  pharmacyController.getSessions(req, res, next)
+);
+
+/**
+ * @route   DELETE /api/v1/pharmacy/sessions/:sessionId
+ * @desc    Revoke specific active session
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.delete(
+  '/sessions/:sessionId',
+  validateRequest({ params: sessionIdParamSchema }),
+  (req, res, next) => pharmacyController.revokeSession(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/sessions/revoke-others
+ * @desc    Revoke all other active sessions except the current one
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post('/sessions/revoke-others', (req, res, next) =>
+  pharmacyController.revokeOtherSessions(req, res, next)
+);
+
+/**
+ * @route   POST /api/v1/pharmacy/change-password
+ * @desc    Change authenticated pharmacy user account password
+ * @access  Private (PHARMACY role only)
+ */
+pharmacyRoutes.post(
+  '/change-password',
+  validateRequest({ body: changePharmacyPasswordSchema }),
+  (req, res, next) => pharmacyController.changePassword(req, res, next)
 );
 
 export default pharmacyRoutes;

@@ -270,7 +270,8 @@ describe('Pharmacy Dashboard, Profile, Inventory & Prescription Queue Tests (Day
           pharmacyLicenseNumber: 'FORGED-LICENSE-1234',
         });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
       // License number and verificationStatus must remain unchanged
       expect(mockPharmacyProfile.pharmacyLicenseNumber).toBe('DL-DEL-2024-99881');
       expect(mockPharmacyProfile.verificationStatus).toBe('VERIFIED');
