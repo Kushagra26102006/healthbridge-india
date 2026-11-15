@@ -6,12 +6,17 @@ import type { LabOrderStatus } from './healthcare.types';
 export type { LabOrderStatus };
 
 export type LabTestCategory =
+  | 'HEMATOLOGY'
+  | 'BIOCHEMISTRY'
+  | 'CLINICAL_PATHOLOGY'
+  | 'MICROBIOLOGY'
+  | 'SEROLOGY'
+  | 'IMMUNOLOGY'
+  | 'MOLECULAR_DIAGNOSTICS'
+  | 'RADIOLOGY'
   | 'BLOOD_TESTS'
   | 'URINE_TESTS'
-  | 'BIOCHEMISTRY'
-  | 'HEMATOLOGY'
   | 'IMAGING'
-  | 'MICROBIOLOGY'
   | 'OTHER';
 
 export type LabReportStatus = 'COMPLETED' | 'PENDING' | 'PRELIMINARY' | 'CANCELLED';

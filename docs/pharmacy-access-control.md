@@ -103,3 +103,4 @@ In compliance with Indian pharmacy regulations and NABH accreditation standards,
 - Schedule H/X dispensing transactions.
 
 Each log entry records `userId`, `action`, `resourceType`, `resourceId`, `ipAddress`, `userAgent`, and `timestamp`. Audit logs are append-only and cannot be altered or deleted by pharmacy users.
+

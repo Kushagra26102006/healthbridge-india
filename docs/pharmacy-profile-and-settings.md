@@ -148,3 +148,4 @@ The frontend settings interface is organized into modular routes located in `app
 - `/pharmacy/settings/security`: Master password change with live regex strength checklist.
 - `/pharmacy/settings/sessions`: Active JWT/refresh sessions table with instant device revocation.
 - `/pharmacy/settings/notifications`: Channel preferences (SMS, Email, In-App, WhatsApp) for 14 operational event types.
+

@@ -158,3 +158,4 @@ export const PharmacyStaffModel: Model<IPharmacyStaffDocument> =
   mongoose.model<IPharmacyStaffDocument>('PharmacyStaff', PharmacyStaffSchema);
 
 export default PharmacyStaffModel;
+

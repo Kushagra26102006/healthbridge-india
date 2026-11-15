@@ -110,3 +110,4 @@ When an administrator suspends or revokes a staff member:
 2. **Duplicate Protection:** Attempting to invite an existing active or pending email within the same pharmacy triggers `409 Conflict`.
 3. **Invitation Expiry:** Tokens carry a 7-day TTL (`Date.now() + 7 * 24 * 3600 * 1000`). Expired tokens are rejected with `400 Bad Request`.
 4. **Audit Logging:** Every invite, role change, status update, suspension, and revocation generates an immutable `AuditLogModel` entry recording the acting user, target staff ID, and timestamp.
+

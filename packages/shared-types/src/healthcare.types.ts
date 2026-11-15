@@ -166,7 +166,14 @@ export interface IAppointment {
 }
 
 export type LabOrderStatus =
-  'ORDERED' | 'SAMPLE_COLLECTED' | 'IN_ANALYSIS' | 'COMPLETED' | 'CANCELLED';
+  | 'ORDERED'
+  | 'ACCEPTED'
+  | 'SAMPLE_COLLECTED'
+  | 'IN_ANALYSIS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REJECTED'
+  | 'CLARIFICATION_REQUESTED';
 
 export interface LabTestItem {
   testCode: string;

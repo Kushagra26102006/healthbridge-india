@@ -134,3 +134,4 @@ With Day 5 fully completed and verified, the HealthBridge India development road
 - Lab profile management, accreditation registration (NABL / ICMR), and pathologist-in-charge credentials.
 - Diagnostic test catalogue management (LOINC-aligned test definitions, specimen types, reference ranges).
 - Doctor and patient lab order intake queue foundation.
+
