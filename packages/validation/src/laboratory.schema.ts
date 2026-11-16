@@ -470,3 +470,97 @@ export const qcRunFilterQuerySchema = z.object({
     .pipe(z.number().int().positive().max(100).default(20))
     .optional(),
 });
+
+// ============================================================================
+// 8. REPORT GENERATION, REVIEW, APPROVAL, PUBLICATION & AMENDMENT SCHEMAS
+// ============================================================================
+
+export const labReportStatuses = [
+  'DRAFT',
+  'GENERATED',
+  'PENDING_REVIEW',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'PUBLISHED',
+  'AMENDED',
+  'CANCELLED',
+  'COMPLETED',
+  'PENDING',
+  'PRELIMINARY',
+] as const;
+
+export const reportReviewDecisions = [
+  'APPROVED',
+  'REJECTED',
+  'CORRECTION_REQUESTED',
+] as const;
+
+export const generateReportDraftSchema = z.object({
+  orderId: z.string().min(1, 'Order ID is required'),
+  testCodes: z.array(z.string().min(1).toUpperCase()).optional(),
+  clinicalNotes: z.string().max(3000).optional(),
+  interpretation: z.string().max(5000).optional(),
+});
+
+export const submitReportForReviewSchema = z.object({
+  notes: z.string().max(1000).optional(),
+});
+
+export const reviewReportSchema = z.object({
+  decision: z.enum(reportReviewDecisions),
+  comments: z.string().min(3, 'Review comments/justification is required').max(3000),
+});
+
+export const approveReportSchema = z.object({
+  comments: z.string().max(2000).optional(),
+  designation: z.string().max(150).optional(),
+  registrationNumber: z.string().max(100).optional(),
+});
+
+export const publishReportSchema = z.object({
+  publicationNotes: z.string().max(1000).optional(),
+});
+
+export const requestAmendmentSchema = z.object({
+  amendmentReason: z
+    .string()
+    .min(5, 'Specific statutory amendment reason is required')
+    .max(500),
+  explanation: z
+    .string()
+    .min(10, 'Detailed clinical explanation of changes is required')
+    .max(3000),
+  changedResultCodes: z.array(z.string().min(1).toUpperCase()).optional(),
+});
+
+export const labReportFilterSchema = z.object({
+  search: z.string().optional(),
+  category: z.string().optional(),
+  status: z.string().optional(),
+  laboratoryId: z.string().optional(),
+  patientId: z.string().optional(),
+  doctorId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  page: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive().default(1))
+    .optional(),
+  limit: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive().max(100).default(20))
+    .optional(),
+  sortBy: z.enum(['reportDate', 'testDate', 'createdAt', 'publishedAt']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+});
+
+export type GenerateReportDraftInput = z.infer<typeof generateReportDraftSchema>;
+export type SubmitReportForReviewInput = z.infer<typeof submitReportForReviewSchema>;
+export type ReviewReportInput = z.infer<typeof reviewReportSchema>;
+export type ApproveReportInput = z.infer<typeof approveReportSchema>;
+export type PublishReportInput = z.infer<typeof publishReportSchema>;
+export type RequestAmendmentInput = z.infer<typeof requestAmendmentSchema>;
+export type LabReportFilterInput = z.infer<typeof labReportFilterSchema>;
+

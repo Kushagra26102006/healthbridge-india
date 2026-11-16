@@ -1,28 +1,190 @@
 import { Request, Response } from 'express';
-import { labReportService } from '../services/lab-report.service';
+import { Types } from 'mongoose';
+import { labReportService, UserContext } from '../services/lab-report.service';
+import { LaboratoryProfileModel } from '../../users/models/laboratory-profile.model';
 import { asyncHandler } from '../../../utils/async-handler';
 import { sendSuccess } from '../../../utils/api-response';
 import { AppError } from '../../../shared/errors/app-error';
 import {
-  labReportFilterQuerySchema,
   labReportIdParamSchema,
   labOrderFilterQuerySchema,
   labOrderIdParamSchema,
+  generateReportDraftSchema,
+  submitReportForReviewSchema,
+  reviewReportSchema,
+  approveReportSchema,
+  publishReportSchema,
+  requestAmendmentSchema,
+  labReportFilterSchema,
 } from '@healthbridge/validation';
 
 export class LabReportController {
-  /**
-   * GET /api/v1/lab-reports
-   * Retrieves paginated laboratory reports for the authenticated patient
-   */
-  getReports = asyncHandler(async (req: Request, res: Response) => {
-    const patientId = req.user?.userId;
-    if (!patientId) {
+  private async getUserContext(req: Request): Promise<UserContext> {
+    const user = req.user;
+    if (!user || !user.userId) {
       throw AppError.unauthorized('Authentication required');
     }
+    let laboratoryId: string | undefined = undefined;
+    if (user.role === 'LABORATORY') {
+      try {
+        if (Types.ObjectId.isValid(user.userId)) {
+          const profile = await LaboratoryProfileModel.findOne({ userId: new Types.ObjectId(user.userId) });
+          laboratoryId = profile?._id ? profile._id.toString() : user.userId;
+        } else {
+          laboratoryId = user.userId;
+        }
+      } catch {
+        laboratoryId = user.userId;
+      }
+    }
+    return {
+      id: user.userId,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      laboratoryId,
+    };
+  }
 
-    const query = labReportFilterQuerySchema.parse(req.query);
-    const result = await labReportService.getPatientReports(patientId, query);
+  /**
+   * POST /api/v1/laboratory/reports/test-results
+   * Records structured test result parameters
+   */
+  recordTestResult = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const result = await labReportService.recordTestResult(user, req.body);
+    sendSuccess(res, result, 'Test result recorded successfully', 201);
+  });
+
+  /**
+   * POST /api/v1/laboratory/reports/draft
+   * Compiles eligible test results into a laboratory report draft
+   */
+  generateReportDraft = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const input = generateReportDraftSchema.parse(req.body);
+    const draft = await labReportService.generateReportDraft(user, input);
+    sendSuccess(res, draft, 'Laboratory report draft generated successfully', 201);
+  });
+
+  /**
+   * POST /api/v1/laboratory/reports/:reportId/submit-review
+   * Submits draft report for authorized pathologist review
+   */
+  submitReportForReview = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const input = submitReportForReviewSchema.parse(req.body);
+    const report = await labReportService.submitReportForReview(user, reportId, input);
+    sendSuccess(res, report, 'Report submitted for review successfully');
+  });
+
+  /**
+   * POST /api/v1/laboratory/reports/:reportId/review
+   * Authorized review action (Approve, Reject, or Request Correction)
+   */
+  reviewReport = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const input = reviewReportSchema.parse(req.body);
+    const report = await labReportService.reviewReport(user, reportId, input);
+    sendSuccess(res, report, `Report review decision '${input.decision}' recorded successfully`);
+  });
+
+  /**
+   * POST /api/v1/laboratory/reports/:reportId/approve
+   * Direct authorization and approval endpoint
+   */
+  approveReport = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const input = approveReportSchema.parse(req.body);
+    const report = await labReportService.approveReport(user, reportId, input);
+    sendSuccess(res, report, 'Report approved successfully');
+  });
+
+  /**
+   * POST /api/v1/laboratory/reports/:reportId/publish
+   * Releases authorized report, generates PDF and cryptographic hash
+   */
+  publishReport = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const input = publishReportSchema.parse(req.body);
+    const report = await labReportService.publishReport(user, reportId, input);
+    sendSuccess(res, report, 'Laboratory report published successfully');
+  });
+
+  /**
+   * POST /api/v1/laboratory/reports/:reportId/amend
+   * Requests amendment, archives prior version and increments version counter
+   */
+  requestAmendment = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const input = requestAmendmentSchema.parse(req.body);
+    const report = await labReportService.requestAmendment(user, reportId, input);
+    sendSuccess(res, report, 'Report amendment initiated successfully', 201);
+  });
+
+  /**
+   * GET /api/v1/laboratory/reports/:reportId/versions
+   * GET /api/v1/lab-reports/:reportId/versions
+   * Retrieves full immutable version history ledger
+   */
+  getReportVersions = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const versions = await labReportService.getReportVersions(user, reportId);
+    sendSuccess(res, versions, 'Report version ledger retrieved successfully');
+  });
+
+  /**
+   * GET /api/v1/laboratory/reports/:reportId/pdf
+   * GET /api/v1/lab-reports/:reportId/download
+   * Streams verified PDF report buffer
+   */
+  downloadPdf = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const versionNumber = req.query.version ? parseInt(String(req.query.version), 10) : undefined;
+
+    const { buffer, mimeType, filename, documentHash } = await labReportService.downloadReportPdfWithAuth(
+      user,
+      reportId,
+      versionNumber
+    );
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('X-Document-SHA256', documentHash);
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+
+    res.status(200).send(buffer);
+  });
+
+  /**
+   * GET /api/v1/laboratory/reports/:reportId/fhir
+   * GET /api/v1/lab-reports/:reportId/fhir
+   * Generates HL7 FHIR R4 DiagnosticReport Bundle
+   */
+  getFhirReport = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const fhirBundle = await labReportService.getFhirDiagnosticReport(user, reportId);
+    sendSuccess(res, fhirBundle, 'HL7 FHIR R4 DiagnosticReport Bundle generated successfully');
+  });
+
+  /**
+   * GET /api/v1/laboratory/reports
+   * GET /api/v1/lab-reports
+   * Retrieves role-filtered, paginated diagnostic reports
+   */
+  listReports = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const query = labReportFilterSchema.parse(req.query);
+    const result = await labReportService.listReportsWithAuth(user, query);
 
     sendSuccess(res, result.items, 'Laboratory reports retrieved successfully', 200, {
       page: result.page,
@@ -32,6 +194,18 @@ export class LabReportController {
       hasNextPage: result.page < result.totalPages,
       hasPrevPage: result.page > 1,
     });
+  });
+
+  /**
+   * GET /api/v1/laboratory/reports/:reportId
+   * GET /api/v1/lab-reports/:reportId
+   * Retrieves single laboratory report details with strict RBAC
+   */
+  getReportById = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const report = await labReportService.getReportByIdWithAuth(user, reportId);
+    sendSuccess(res, report, 'Laboratory report details retrieved successfully');
   });
 
   /**
@@ -49,48 +223,18 @@ export class LabReportController {
   });
 
   /**
-   * GET /api/v1/lab-reports/:reportId
-   * Retrieves full details for a single laboratory report
+   * Legacy alias: GET /api/v1/lab-reports
    */
-  getReportById = asyncHandler(async (req: Request, res: Response) => {
-    const patientId = req.user?.userId;
-    if (!patientId) {
-      throw AppError.unauthorized('Authentication required');
-    }
-
-    const { reportId } = labReportIdParamSchema.parse(req.params);
-    const report = await labReportService.getPatientReportById(patientId, reportId);
-
-    sendSuccess(res, report, 'Laboratory report details retrieved successfully');
-  });
+  getReports = this.listReports;
 
   /**
-   * GET /api/v1/lab-reports/:reportId/download
-   * Streams authorized PDF/diagnostic report document
+   * Legacy alias: GET /api/v1/lab-reports/:reportId/download
    */
-  downloadReport = asyncHandler(async (req: Request, res: Response) => {
-    const patientId = req.user?.userId;
-    if (!patientId) {
-      throw AppError.unauthorized('Authentication required');
-    }
-
-    const { reportId } = labReportIdParamSchema.parse(req.params);
-    const { buffer, mimeType, filename } = await labReportService.downloadReportDocument(
-      patientId,
-      reportId
-    );
-
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', buffer.length);
-    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-
-    res.status(200).send(buffer);
-  });
+  downloadReport = this.downloadPdf;
 
   /**
    * GET /api/v1/lab-orders
-   * Retrieves paginated diagnostic test orders for the authenticated patient
+   * Retrieves paginated diagnostic test orders for authenticated patient
    */
   getOrders = asyncHandler(async (req: Request, res: Response) => {
     const patientId = req.user?.userId;
@@ -130,4 +274,3 @@ export class LabReportController {
 
 export const labReportController = new LabReportController();
 export default labReportController;
-

@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { laboratoryController } from '../controllers/laboratory.controller';
+import { labReportController } from '../controllers/lab-report.controller';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 
@@ -73,5 +74,21 @@ laboratoryRoutes.get('/samples/:sampleId/timeline', laboratoryController.getSamp
 laboratoryRoutes.get('/collection-centers', laboratoryController.listCollectionCenters);
 laboratoryRoutes.post('/collection-centers', laboratoryController.createCollectionCenter);
 laboratoryRoutes.patch('/collection-centers/:centerId', laboratoryController.updateCollectionCenter);
+
+// ============================================================================
+// 7. LABORATORY REPORTS, REVIEW & APPROVAL WORKFLOW
+// ============================================================================
+laboratoryRoutes.get('/reports', labReportController.listReports);
+laboratoryRoutes.post('/reports/test-results', labReportController.recordTestResult);
+laboratoryRoutes.post('/reports/draft', labReportController.generateReportDraft);
+laboratoryRoutes.get('/reports/:reportId', labReportController.getReportById);
+laboratoryRoutes.post('/reports/:reportId/submit-review', labReportController.submitReportForReview);
+laboratoryRoutes.post('/reports/:reportId/review', labReportController.reviewReport);
+laboratoryRoutes.post('/reports/:reportId/approve', labReportController.approveReport);
+laboratoryRoutes.post('/reports/:reportId/publish', labReportController.publishReport);
+laboratoryRoutes.post('/reports/:reportId/amend', labReportController.requestAmendment);
+laboratoryRoutes.get('/reports/:reportId/versions', labReportController.getReportVersions);
+laboratoryRoutes.get('/reports/:reportId/pdf', labReportController.downloadPdf);
+laboratoryRoutes.get('/reports/:reportId/fhir', labReportController.getFhirReport);
 
 export default laboratoryRoutes;

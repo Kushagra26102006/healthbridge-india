@@ -12,6 +12,8 @@ export * from '../modules/users/models/admin-profile.model';
 export * from '../modules/laboratory/models/lab-test.model';
 export * from '../modules/laboratory/models/lab-sample.model';
 export * from '../modules/laboratory/models/collection-center.model';
+export * from '../modules/laboratory/models/test-result.model';
+export * from '../modules/laboratory/models/lab-report-version.model';
 
 export * from '../modules/pharmacy/models/pharmacy-inventory.model';
 export * from '../modules/pharmacy/models/pharmacy-inventory-transaction.model';
