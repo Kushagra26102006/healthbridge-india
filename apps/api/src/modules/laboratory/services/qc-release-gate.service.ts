@@ -7,7 +7,18 @@ import { QCRunModel } from '../models/qc-run.model';
 import { LabInstrumentModel } from '../models/lab-instrument.model';
 import { QualityIncidentModel } from '../models/quality-incident.model';
 import { AuditLogModel } from '../../security/models/audit-log.model';
+import { AppError } from '../../../shared/errors/app-error';
 import crypto from 'crypto';
+
+const AUTHORIZED_OVERRIDE_ROLES = new Set([
+  'ADMIN',
+  'LABORATORY',
+  'LAB_ADMIN',
+  'LAB_MANAGER',
+  'LAB_QUALITY_MANAGER',
+  'LAB_PATHOLOGIST',
+  'LAB_SUPERVISOR',
+]);
 
 export class QCReleaseGateService {
   /**
@@ -52,6 +63,13 @@ export class QCReleaseGateService {
         if (instrument.calibrationStatus === 'FAILED') {
           reasons.push(
             `Instrument ${instrument.instrumentIdentifier} has a FAILED calibration and cannot be used for clinical testing.`
+          );
+        } else if (
+          instrument.calibrationStatus === 'OVERDUE' ||
+          (instrument.nextCalibrationDate && new Date(instrument.nextCalibrationDate) < new Date())
+        ) {
+          reasons.push(
+            `Instrument ${instrument.instrumentIdentifier} has an OVERDUE calibration and is blocked until recalibrated and cleared.`
           );
         }
       }
@@ -100,9 +118,22 @@ export class QCReleaseGateService {
    */
   async authorizeReleaseOverride(
     laboratoryId: string,
-    authorizedBy: { id: string; name: string; role: string },
+    authorizedBy: { id: string; name: string; role: string; labRole?: string },
     dto: AuthorizeQCOverrideDto
   ): Promise<{ authorized: boolean; overrideId: string; message: string }> {
+    const effectiveRole = authorizedBy.labRole || authorizedBy.role;
+    if (!AUTHORIZED_OVERRIDE_ROLES.has(effectiveRole)) {
+      throw AppError.forbidden(
+        `Unauthorized QC override: Role '${effectiveRole}' is not permitted to override blocking quality control conditions.`
+      );
+    }
+
+    if (!dto.reason || dto.reason.trim().length < 5) {
+      throw AppError.badRequest(
+        'A documented clinical/quality justification (minimum 5 characters) is required to authorize a QC release override.'
+      );
+    }
+
     const overrideId = `OVR-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
 
     // Write audit log entry

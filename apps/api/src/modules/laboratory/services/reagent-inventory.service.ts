@@ -116,16 +116,17 @@ export class ReagentInventoryService {
     if (query.category) filter.category = query.category;
     if (query.testCode) filter.associatedTestCodes = query.testCode.toUpperCase();
     if (query.search) {
+      const escapedSearch = query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { reagentCode: { $regex: query.search, $options: 'i' } },
-        { name: { $regex: query.search, $options: 'i' } },
-        { manufacturer: { $regex: query.search, $options: 'i' } },
-        { catalogNumber: { $regex: query.search, $options: 'i' } },
+        { reagentCode: { $regex: escapedSearch, $options: 'i' } },
+        { name: { $regex: escapedSearch, $options: 'i' } },
+        { manufacturer: { $regex: escapedSearch, $options: 'i' } },
+        { catalogNumber: { $regex: escapedSearch, $options: 'i' } },
       ];
     }
 
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 20;
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -250,8 +251,8 @@ export class ReagentInventoryService {
       filter.expiryDate = { $lte: targetDate, $gte: new Date() };
     }
 
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 20;
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -310,10 +311,29 @@ export class ReagentInventoryService {
     let actualDelta = 0;
 
     if (dto.transactionType === 'CONSUMPTION' || dto.transactionType === 'DISPOSAL') {
+      // Clinical CONSUMPTION must reject QUARANTINED, RECALLED, or EXPIRED lots
+      if (dto.transactionType === 'CONSUMPTION') {
+        if (lot.status === 'QUARANTINED') {
+          throw AppError.badRequest(
+            `Cannot consume stock from QUARANTINED lot ${lot.lotNumber} (${lot.quarantineReason || 'quality hold'}).`
+          );
+        }
+        if (lot.status === 'RECALLED') {
+          throw AppError.badRequest(
+            `Cannot consume stock from RECALLED lot ${lot.lotNumber} (${lot.recalledReason || 'recalled'}).`
+          );
+        }
+        if (lot.status === 'EXPIRED' || (lot.expiryDate && new Date(lot.expiryDate) < new Date())) {
+          throw AppError.badRequest(
+            `Cannot consume stock from EXPIRED lot ${lot.lotNumber}.`
+          );
+        }
+      }
+
       const deductionQty = Math.abs(requestedQty);
       actualDelta = -deductionQty;
 
-      // Atomic deduction with non-negative guarantee
+      // Atomic deduction with non-negative guarantee (concurrent-safe)
       updatedLot = await ReagentLotModel.findOneAndUpdate(
         {
           _id: lot._id,
@@ -364,16 +384,28 @@ export class ReagentInventoryService {
       );
     } else if (dto.transactionType === 'ADJUSTMENT' || dto.transactionType === 'REVERSAL') {
       actualDelta = requestedQty;
-      const targetQuantity = lot.availableQuantity + requestedQty;
-      if (targetQuantity < 0) {
+      if (lot.availableQuantity + requestedQty < 0) {
         throw AppError.badRequest(`Stock adjustment cannot result in negative inventory balance.`);
       }
 
+      // Atomic non-negative guard under concurrent negative adjustments
+      const atomicFilter: Record<string, unknown> = {
+        _id: lot._id,
+        laboratoryId: labObjId,
+      };
+      if (requestedQty < 0) {
+        atomicFilter.availableQuantity = { $gte: Math.abs(requestedQty) };
+      }
+
       updatedLot = await ReagentLotModel.findOneAndUpdate(
-        { _id: lot._id, laboratoryId: labObjId },
+        atomicFilter,
         { $inc: { availableQuantity: requestedQty } },
         { new: true }
       );
+
+      if (!updatedLot) {
+        throw AppError.badRequest(`Stock adjustment cannot result in negative inventory balance.`);
+      }
 
       await ReagentModel.updateOne(
         { _id: reagent._id },
@@ -614,8 +646,8 @@ export class ReagentInventoryService {
       filter.lotId = new Types.ObjectId(query.lotId);
     }
 
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 20;
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([

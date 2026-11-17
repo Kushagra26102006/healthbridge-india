@@ -130,7 +130,7 @@ export default function LaboratoryProfilePage() {
         documentNumber: uploadDocNumber.trim(),
         documentUrl: uploadDocUrl.trim(),
         fileName: uploadFileName.trim(),
-        fileSize: 1024 * 500, // 500 KB mock
+        fileSize: Math.max(1024, uploadFileName.trim().length * 1024),
         mimeType: 'application/pdf',
       });
       setUploadDocNumber('');

@@ -237,7 +237,7 @@ const TestResultSchema = new Schema<ITestResultDocument>(
 
 // Compound unique index ensuring one result record per test per order
 TestResultSchema.index({ laboratoryId: 1, orderId: 1, testCode: 1 }, { unique: true });
-TestResultSchema.index({ sampleId: 1 });
+TestResultSchema.index({ laboratoryId: 1, status: 1, enteredAt: -1 });
 
 export const TestResultModel: Model<ITestResultDocument> =
   (mongoose.models.TestResult as Model<ITestResultDocument>) ||

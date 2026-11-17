@@ -66,6 +66,10 @@ export class ReportPdfService {
     const interpretationText = report.interpretation || 'No acute pathological abnormality detected across evaluated parameters.';
     const clinicalNotes = report.clinicalNotes || 'Clinical correlation recommended.';
 
+    const accreditationLine = report.nablAccreditationNumber
+      ? `DIAGNOSTIC LABORATORY REPORT • REF: ${report.nablAccreditationNumber}`
+      : 'HEALTHBRIDGE INDIA DIAGNOSTIC LABORATORY REPORT';
+
     // Construct valid PDF-1.4 stream
     // Page 1 stream text
     const streamContent = `
@@ -73,7 +77,7 @@ BT
 /F1 14 Tf
 50 740 Td (${labName}) Tj
 /F2 9 Tf
-0 -14 Td (NABL ACCREDITED MEDICAL TESTING LABORATORY • ABDM DIAGNOSTIC COMPLIANT) Tj
+0 -14 Td (${accreditationLine}) Tj
 0 -10 Td (${facilityName}) Tj
 
 /F2 10 Tf

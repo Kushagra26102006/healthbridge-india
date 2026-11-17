@@ -74,7 +74,7 @@ export function TaskAssignmentModal({
         departmentId: departmentId || undefined,
         assignedStaffId,
         priority,
-        dueDate,
+        dueDate: dueDate.includes('T') ? dueDate : `${dueDate}T18:00:00.000Z`,
         relatedEntityType,
         relatedEntityId: relatedEntityId.trim() || undefined,
       });

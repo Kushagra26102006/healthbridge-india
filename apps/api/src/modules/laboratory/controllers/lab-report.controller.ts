@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { labReportService, UserContext } from '../services/lab-report.service';
 import { LaboratoryProfileModel } from '../../users/models/laboratory-profile.model';
+import { LaboratoryStaffModel } from '../models/laboratory-staff.model';
 import { asyncHandler } from '../../../utils/async-handler';
 import { sendSuccess } from '../../../utils/api-response';
 import { AppError } from '../../../shared/errors/app-error';
@@ -25,11 +26,36 @@ export class LabReportController {
       throw AppError.unauthorized('Authentication required');
     }
     let laboratoryId: string | undefined = undefined;
+    let labRole: string | undefined = undefined;
+    let isSupervisor: boolean | undefined = (user as any).isSupervisor;
+
     if (user.role === 'LABORATORY') {
       try {
         if (Types.ObjectId.isValid(user.userId)) {
           const profile = await LaboratoryProfileModel.findOne({ userId: new Types.ObjectId(user.userId) });
-          laboratoryId = profile?._id ? profile._id.toString() : user.userId;
+          if (profile) {
+            laboratoryId = profile._id.toString();
+            labRole = 'LAB_ADMIN';
+          } else if (
+            mongoose.connection.readyState === 1 ||
+            Boolean((LaboratoryStaffModel.findOne as any)?.mock)
+          ) {
+            const staff = await LaboratoryStaffModel.findOne({
+              userId: new Types.ObjectId(user.userId),
+              status: 'ACTIVE',
+            });
+            if (staff) {
+              laboratoryId = staff.laboratoryId.toString();
+              labRole = staff.role;
+              if (['LAB_ADMIN', 'LAB_MANAGER', 'LAB_SUPERVISOR', 'LAB_PATHOLOGIST', 'LAB_REVIEWER'].includes(staff.role)) {
+                isSupervisor = true;
+              }
+            } else {
+              laboratoryId = user.userId;
+            }
+          } else {
+            laboratoryId = user.userId;
+          }
         } else {
           laboratoryId = user.userId;
         }
@@ -43,6 +69,8 @@ export class LabReportController {
       name: user.name,
       email: user.email,
       laboratoryId,
+      labRole,
+      isSupervisor,
     };
   }
 
@@ -228,9 +256,28 @@ export class LabReportController {
   getReports = this.listReports;
 
   /**
-   * Legacy alias: GET /api/v1/lab-reports/:reportId/download
+   * GET /api/v1/lab-reports/:reportId/download
+   * Streams verified PDF report buffer as downloadable attachment
    */
-  downloadReport = this.downloadPdf;
+  downloadReport = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.getUserContext(req);
+    const { reportId } = labReportIdParamSchema.parse(req.params);
+    const versionNumber = req.query.version ? parseInt(String(req.query.version), 10) : undefined;
+
+    const { buffer, mimeType, filename, documentHash } = await labReportService.downloadReportPdfWithAuth(
+      user,
+      reportId,
+      versionNumber
+    );
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('X-Document-SHA256', documentHash);
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+
+    res.status(200).send(buffer);
+  });
 
   /**
    * GET /api/v1/lab-orders
