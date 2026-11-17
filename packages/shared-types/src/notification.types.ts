@@ -84,6 +84,12 @@ export type NotificationEventType =
   | 'TASK_REASSIGNED'
   | 'TASK_DUE_SOON'
   | 'TASK_OVERDUE'
+  // ABDM / ABHA Identity Notifications
+  | 'ABHA_LINKING_INITIATED'
+  | 'ABHA_VERIFICATION_PENDING'
+  | 'ABHA_LINKING_COMPLETED'
+  | 'ABHA_VERIFICATION_FAILED'
+  | 'ABHA_UNLINKED'
   | 'SYSTEM_ALERT';
 
 export type NotificationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';

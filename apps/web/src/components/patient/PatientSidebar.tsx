@@ -20,6 +20,7 @@ import {
   Stethoscope,
   ShoppingBag,
   Bell,
+  Fingerprint,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ export const PATIENT_NAV_ITEMS: NavItem[] = [
   { label: 'Prescriptions', href: '/patient/prescriptions', icon: Pill },
   { label: 'Pharmacy Orders', href: '/patient/orders', icon: ShoppingBag },
   { label: 'Lab Reports', href: '/patient/lab-reports', icon: FlaskConical },
+  { label: 'ABHA Identity', href: '/patient/abha', icon: Fingerprint },
   { label: 'Consent Management', href: '/patient/consent', icon: ShieldCheck },
   { label: 'Notifications', href: '/patient/notifications', icon: Bell },
   { label: 'My Profile', href: '/patient/profile', icon: User },

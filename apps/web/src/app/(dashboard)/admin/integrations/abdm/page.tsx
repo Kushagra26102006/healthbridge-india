@@ -17,12 +17,14 @@ import {
   Lock,
   ArrowLeft,
   Clock,
+  Fingerprint,
+  Activity,
 } from 'lucide-react';
 import type {
   AbdmIntegrationStatus,
-  AbdmIntegrationStatusDashboardDto,
+  AbhaIntegrationAnalyticsDto,
 } from '@healthbridge/shared-types';
-import { abdmApi } from '@/features/abdm/api/abdm-api';
+import { abdmApi, type AbdmAdminStatusWithAbhaDto } from '@/features/abdm/api/abdm-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -53,7 +55,8 @@ function StatusPill({ status }: { status: AbdmIntegrationStatus }) {
 }
 
 export default function AdminAbdmIntegrationStatusPage() {
-  const [data, setData] = useState<AbdmIntegrationStatusDashboardDto | null>(null);
+  const [data, setData] = useState<AbdmAdminStatusWithAbhaDto | null>(null);
+  const [abhaAnalytics, setAbhaAnalytics] = useState<AbhaIntegrationAnalyticsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +66,12 @@ export default function AdminAbdmIntegrationStatusPage() {
       setError(null);
       const res = await abdmApi.getIntegrationStatus();
       setData(res);
+      if (res.abhaAnalytics) {
+        setAbhaAnalytics(res.abhaAnalytics);
+      } else {
+        const analytics = await abdmApi.getAbhaAnalytics();
+        setAbhaAnalytics(analytics);
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -90,7 +99,7 @@ export default function AdminAbdmIntegrationStatusPage() {
               </Button>
             </Link>
             <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border-none">
-              Day 7 Task 01 — Integration Foundation
+              Day 7 Tasks 01–02 — ABDM &amp; ABHA Integration
             </Badge>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5 pt-1">
@@ -337,6 +346,180 @@ export default function AdminAbdmIntegrationStatusPage() {
               </p>
             </div>
           </div>
+
+          {/* ABHA Identity Integration Section (Day 7 Task 02) */}
+          {abhaAnalytics && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Fingerprint className="h-5 w-5 text-teal-600" />
+                      ABHA Identity Integration &amp; Persisted Verification Telemetry
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Aggregate counts derived strictly from persisted ABHA link &amp; transaction
+                      records. Zero patient identifiers, tokens, or secrets are exposed.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] text-slate-500">Auth:</span>
+                    <StatusPill status={abhaAnalytics.authReadiness} />
+                    <span className="text-[11px] text-slate-500">ABHA API:</span>
+                    <StatusPill status={abhaAnalytics.abhaApiConfigStatus} />
+                    <span className="text-[11px] text-slate-500">Sandbox:</span>
+                    <StatusPill status={abhaAnalytics.sandboxAvailability} />
+                  </div>
+                </div>
+
+                {/* Persisted Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-[11px] text-slate-500">Successful Verifications</p>
+                    <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                      {abhaAnalytics.metrics.successfulVerifications}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-[11px] text-slate-500">Failed Verifications</p>
+                    <p className="text-xl font-bold text-rose-700 dark:text-rose-400 mt-1">
+                      {abhaAnalytics.metrics.failedVerifications}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-[11px] text-slate-500">Pending Linking</p>
+                    <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">
+                      {abhaAnalytics.metrics.pendingLinkingRequests}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-[11px] text-slate-500">Active Linked Patients</p>
+                    <p className="text-xl font-bold text-teal-700 dark:text-teal-400 mt-1">
+                      {abhaAnalytics.metrics.activeLinkedPatients}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-[11px] text-slate-500">Total Transactions</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">
+                      {abhaAnalytics.metrics.totalTransactions}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-[11px] text-slate-500">Unlinked Records</p>
+                    <p className="text-xl font-bold text-slate-600 dark:text-slate-300 mt-1">
+                      {abhaAnalytics.metrics.unlinkedLinks}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Last Request Timestamps */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between">
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Last Successful
+                      ABHA Request
+                    </span>
+                    <span className="font-mono text-slate-900 dark:text-white">
+                      {abhaAnalytics.lastSuccessfulRequestAt
+                        ? new Date(abhaAnalytics.lastSuccessfulRequestAt).toLocaleString()
+                        : 'None recorded'}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between">
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <XCircle className="h-3.5 w-3.5 text-rose-600" /> Last Failed ABHA Request
+                    </span>
+                    <span className="font-mono text-slate-900 dark:text-white">
+                      {abhaAnalytics.lastFailedRequestAt
+                        ? new Date(abhaAnalytics.lastFailedRequestAt).toLocaleString()
+                        : 'None recorded'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Supported ABHA V3 Workflows Matrix */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Activity className="h-3.5 w-3.5 text-teal-600" /> Verified ABHA V3 Workflows
+                  </h3>
+                  <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300">
+                        <tr>
+                          <th className="px-3 py-2 font-semibold">Workflow</th>
+                          <th className="px-3 py-2 font-semibold">Official API</th>
+                          <th className="px-3 py-2 font-semibold">Version</th>
+                          <th className="px-3 py-2 font-semibold">Implementation Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                        {abhaAnalytics.supportedWorkflows.map((wf) => (
+                          <tr key={wf.workflow}>
+                            <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">
+                              {wf.workflow}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                              {wf.officialApi}
+                            </td>
+                            <td className="px-3 py-2 font-mono">{wf.version}</td>
+                            <td className="px-3 py-2">
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-[10px]"
+                              >
+                                {wf.implementationStatus}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Recent Sanitized Integration Errors */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Recent Sanitized ABHA Integration Errors ({abhaAnalytics.recentErrors.length})
+                  </h3>
+                  {abhaAnalytics.recentErrors.length === 0 ? (
+                    <p className="text-xs text-slate-500">
+                      No recent ABHA integration failures recorded.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800">
+                      {abhaAnalytics.recentErrors.map((errItem, idx) => (
+                        <div
+                          key={`${errItem.correlationId}-${idx}`}
+                          className="px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-rose-100 text-rose-800 border-none font-mono text-[10px]">
+                                {errItem.failureCategory || 'ERROR'}
+                              </Badge>
+                              <span className="font-medium text-slate-900 dark:text-white">
+                                {errItem.workflowType}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-300">
+                              {errItem.failureMessage || 'Verification error'}
+                            </p>
+                            <p className="font-mono text-[10px] text-slate-400">
+                              Correlation: {errItem.correlationId}
+                            </p>
+                          </div>
+                          <span className="text-[11px] text-slate-500 shrink-0">
+                            {new Date(errItem.occurredAt).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Pending Onboarding Tasks Table */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">

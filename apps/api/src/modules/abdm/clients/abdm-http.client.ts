@@ -21,6 +21,8 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 
 export interface AbdmHttpRequestOptions {
   method: HttpMethod;
   path: string;
+  /** Target ABDM service base URL: 'gateway' (default) or 'abha' (ABHA V3 host) */
+  service?: 'gateway' | 'abha';
   body?: unknown;
   headers?: Record<string, string>;
   timeoutMs?: number;
@@ -78,7 +80,23 @@ export class AbdmHttpClient {
       });
     }
 
-    const baseUrl = (config.baseUrl || 'https://dev.abdm.gov.in').replace(/\/+$/, '');
+    const rawBaseUrl =
+      options.service === 'abha'
+        ? config.abhaBaseUrl || 'https://abhasbx.abdm.gov.in/abha/api/v3'
+        : config.baseUrl || 'https://dev.abdm.gov.in';
+    const baseUrl = rawBaseUrl.replace(/\/+$/, '');
+
+    if (
+      (config.environment === 'sandbox' || config.environment === 'production') &&
+      !baseUrl.startsWith('https://')
+    ) {
+      throw new AbdmIntegrationError({
+        message: 'ABDM outbound requests must use HTTPS in sandbox and production environments.',
+        abdmCode: 'ABDM_VALIDATION_ERROR',
+        statusCode: 503,
+      });
+    }
+
     const normalizedPath = options.path.startsWith('/') ? options.path : `/${options.path}`;
     const url = `${baseUrl}${normalizedPath}`;
     const timeoutMs = options.timeoutMs ?? config.requestTimeoutMs;
@@ -165,8 +183,11 @@ export class AbdmHttpClient {
 
         if (TRANSIENT_STATUS_CODES.has(res.status)) {
           lastError = new AbdmIntegrationError({
-            message: `ABDM transient gateway error (HTTP ${res.status})`,
-            abdmCode: 'ABDM_TRANSIENT_ERROR',
+            message:
+              res.status === 429
+                ? 'ABDM external service rate limit exceeded (HTTP 429)'
+                : `ABDM transient gateway error (HTTP ${res.status})`,
+            abdmCode: res.status === 429 ? 'ABDM_RATE_LIMITED' : 'ABDM_TRANSIENT_ERROR',
             statusCode: res.status,
             retryable: true,
             correlationId,

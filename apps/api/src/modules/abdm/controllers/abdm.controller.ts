@@ -7,6 +7,7 @@ import { asyncHandler } from '../../../utils/async-handler';
 import { sendSuccess } from '../../../utils/api-response';
 import { abdmConfigurationService } from '../services/abdm-configuration.service';
 import { abdmHealthInformationAdapter } from '../adapters/abdm-health-information.adapter';
+import { abhaIdentityService } from '../services/abha-identity.service';
 import { fhirR4Validator } from '../validators/fhir-r4.validator';
 import { abdmWebhookService } from '../webhooks/abdm-webhook.service';
 import {
@@ -23,6 +24,7 @@ export class AbdmController {
     const dashboard = abdmConfigurationService.getIntegrationStatusDashboard();
     const hipDetails = abdmHealthInformationAdapter.getHipReadiness();
     const hiuDetails = abdmHealthInformationAdapter.getHiuReadiness();
+    const abhaAnalytics = await abhaIdentityService.getAdminAbhaAnalytics();
 
     sendSuccess(
       res,
@@ -30,6 +32,7 @@ export class AbdmController {
         ...dashboard,
         hipDetails,
         hiuDetails,
+        abhaAnalytics,
       },
       'ABDM integration status retrieved successfully'
     );

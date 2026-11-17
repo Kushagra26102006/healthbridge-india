@@ -1,8 +1,8 @@
 /**
- * HealthBridge India — ABDM Log & Payload Sensitive-Field Redaction (Day 7 Task 01)
+ * HealthBridge India — ABDM Log & Payload Sensitive-Field Redaction (Day 7 Tasks 01 & 02)
  *
- * Guarantees that client secrets, access tokens, ABHA numbers, Aadhaar numbers,
- * consent tokens, and sensitive clinical health payloads are NEVER written to logs.
+ * Guarantees that client secrets, access tokens, X-Tokens, OTP values, Aadhaar numbers,
+ * full ABHA numbers, consent tokens, and sensitive clinical health payloads are NEVER written to logs.
  */
 
 const SENSITIVE_KEY_PATTERNS = [
@@ -13,8 +13,12 @@ const SENSITIVE_KEY_PATTERNS = [
   /abha/i,
   /healthid/i,
   /aadhaar/i,
+  /otp/i,
+  /loginid/i,
+  /x-token/i,
   /consenttoken/i,
   /encrypteddata/i,
+  /ciphertext/i,
   /privatekey/i,
   /x-webhook-secret/i,
   /clinicalnotes/i,
@@ -25,17 +29,48 @@ const SENSITIVE_KEY_PATTERNS = [
   /content/i,
 ];
 
-const ABHA_NUMBER_REGEX = /\b\d{2}-\d{4}-\d{4}-\d{4}\b|\b\d{14}\b/g;
+const ABHA_NUMBER_REGEX = /(?<![0-9a-fA-F-])(?:\d{2}-\d{4}-\d{4}-\d{4}|\d{14})(?![0-9a-fA-F-])/g;
+const AADHAAR_NUMBER_REGEX = /(?<![0-9a-fA-F-])(?:\d{4}[\s-]\d{4}[\s-]\d{4}|\d{12})(?![0-9a-fA-F-])/g;
 const BEARER_REGEX = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+const OTP_PHRASE_REGEX = /\b(otp|otpValue)\s*[:=]\s*["']?\d{4,8}["']?/gi;
 
 export function isSensitiveFieldName(key: string): boolean {
   return SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key));
 }
 
+export function normalizeAbhaNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length !== 14) {
+    return raw.trim();
+  }
+  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6, 10)}-${digits.slice(10, 14)}`;
+}
+
+export function maskAbhaNumber(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length !== 14) {
+    return 'XX-XXXX-XXXX-XXXX';
+  }
+  return `${digits.slice(0, 2)}-XXXX-XXXX-${digits.slice(10, 14)}`;
+}
+
+export function maskAbhaAddress(address?: string | null): string | undefined {
+  if (!address) return undefined;
+  const trimmed = address.trim().toLowerCase();
+  const [local, domain] = trimmed.split('@');
+  if (!local) return '***';
+  const maskedLocal =
+    local.length <= 3 ? `${local[0]}***` : `${local.slice(0, 2)}***${local.slice(-1)}`;
+  return domain ? `${maskedLocal}@${domain}` : maskedLocal;
+}
+
 export function redactStringSecrets(input: string): string {
   return input
     .replace(BEARER_REGEX, 'Bearer [REDACTED]')
-    .replace(ABHA_NUMBER_REGEX, '[REDACTED_ABHA]');
+    .replace(OTP_PHRASE_REGEX, '$1=[REDACTED_OTP]')
+    .replace(ABHA_NUMBER_REGEX, '[REDACTED_ABHA]')
+    .replace(AADHAAR_NUMBER_REGEX, '[REDACTED_AADHAAR]');
 }
 
 export function redactAbdmLogPayload(value: unknown, depth = 0): unknown {

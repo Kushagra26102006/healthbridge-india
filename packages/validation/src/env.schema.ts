@@ -48,6 +48,7 @@ export const backendEnvSchema = z.object({
   ABDM_CLIENT_SECRET: z.string().optional(),
   ABDM_CALLBACK_URL: z.string().optional(),
   ABDM_WEBHOOK_SECRET: z.string().optional(),
+  ABDM_IDENTIFIER_ENCRYPTION_KEY: z.string().optional(),
   ABDM_REQUEST_TIMEOUT_MS: z
     .string()
     .optional()

@@ -26,6 +26,13 @@ export interface InternalPatientInput {
   email?: string;
   abhaAddress?: string;
   abhaNumber?: string;
+  /**
+   * Only map ABHA Number / ABHA Address as official NRCeS identifiers when explicitly verified
+   * via an authorized ABHA V3 workflow. Defaults to true when abhaAddress is supplied without
+   * explicit verification flag for backwards compatibility with Day 7 Task 01 callers, while
+   * abhaNumber requires explicit verification (`abhaVerified: true`).
+   */
+  abhaVerified?: boolean;
   bloodGroup?: string;
   extraUnmappedFields?: Record<string, unknown>;
 }
@@ -69,12 +76,54 @@ export class AbdmFhirMapperService {
 
     const identifiers: Array<Record<string, unknown>> = [
       {
+        use: 'usual',
+        type: {
+          coding: [
+            {
+              system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+              code: 'MR',
+              display: 'Medical record number',
+            },
+          ],
+        },
         system: 'https://healthbridge.in/identifiers',
         value: input.id,
       },
     ];
-    if (input.abhaAddress) {
+
+    // Map verified 14-digit ABHA Number as official national health identifier
+    if (input.abhaNumber) {
+      if (input.abhaVerified === true) {
+        identifiers.push({
+          use: 'official',
+          type: {
+            coding: [
+              {
+                system: 'https://nrces.in/ndhm/fhir/r4/CodeSystem/ndhm-identifier-type-code',
+                code: 'ABHA',
+                display: 'ABHA Number',
+              },
+            ],
+          },
+          system: 'https://healthid.ndhm.gov.in',
+          value: input.abhaNumber,
+        });
+      } else {
+        unmappedFields.push('abhaNumber (omitted because ABHA ownership is not verified)');
+        warnings.push({
+          severity: 'WARNING',
+          code: 'UNVERIFIED_ABHA_NUMBER_OMITTED',
+          path: 'Patient.identifier',
+          message:
+            'ABHA number was not mapped to Patient.identifier because ownership has not been verified through ABDM.',
+        });
+      }
+    }
+
+    // Map ABHA Address distinctly from ABHA Number (PHR routing alias)
+    if (input.abhaAddress && input.abhaVerified !== false) {
       identifiers.push({
+        use: 'secondary',
         type: {
           coding: [
             {
@@ -85,15 +134,17 @@ export class AbdmFhirMapperService {
           ],
         },
         system: 'https://healthid.ndhm.gov.in',
-        value: input.abhaAddress,
+        value: input.abhaAddress.trim().toLowerCase(),
       });
-    } else {
+    } else if (!input.abhaAddress) {
       warnings.push({
         severity: 'WARNING',
         code: 'ABHA_ADDRESS_ABSENT',
         path: 'Patient.identifier',
         message: 'Patient has no verified ABHA address; only internal HealthBridge ID was mapped.',
       });
+    } else {
+      unmappedFields.push('abhaAddress (omitted because ABHA ownership is not verified)');
     }
 
     const genderMap: Record<string, string> = {
