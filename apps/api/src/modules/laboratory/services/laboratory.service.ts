@@ -11,6 +11,7 @@ import {
   LaboratoryProfileModel,
   ILaboratoryProfileDocument,
 } from '../../users/models/laboratory-profile.model';
+import { LaboratoryStaffModel } from '../models/laboratory-staff.model';
 import { LabTestModel } from '../models/lab-test.model';
 import { LaboratoryOrderModel } from '../../healthcare/models/lab-order.model';
 import { LabSampleModel } from '../models/lab-sample.model';
@@ -49,15 +50,24 @@ export class LaboratoryService {
    * Throws 404 if not found.
    */
   async resolveLaboratoryProfile(userId: string): Promise<ILaboratoryProfileDocument> {
+    const userObjectId = new Types.ObjectId(userId);
     const profile = await LaboratoryProfileModel.findOne({
-      userId: new Types.ObjectId(userId),
+      userId: userObjectId,
     });
 
-    if (!profile) {
-      throw AppError.notFound('Laboratory profile not found for authenticated user');
+    if (profile) return profile;
+
+    // Check if user is an active staff member of a laboratory
+    const staff = await LaboratoryStaffModel.findOne({
+      userId: userObjectId,
+      status: 'ACTIVE',
+    });
+    if (staff) {
+      const staffLab = await LaboratoryProfileModel.findById(staff.laboratoryId);
+      if (staffLab) return staffLab;
     }
 
-    return profile;
+    throw AppError.notFound('Laboratory profile not found for authenticated user');
   }
 
   // ===========================================================================

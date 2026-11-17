@@ -57,3 +57,20 @@ export * from '../modules/notifications/models/notification.model';
 export * from '../modules/notifications/models/notification-preference.model';
 export * from '../modules/notifications/models/notification-delivery.model';
 export * from '../modules/auth/models/verification-token.model';
+
+// Laboratory Models
+export * from '../modules/laboratory/models/laboratory-staff.model';
+export * from '../modules/laboratory/models/laboratory-department.model';
+export * from '../modules/laboratory/models/laboratory-shift.model';
+export * from '../modules/laboratory/models/laboratory-leave.model';
+export * from '../modules/laboratory/models/laboratory-task-assignment.model';
+export * from '../modules/laboratory/models/qc-profile.model';
+export * from '../modules/laboratory/models/qc-run.model';
+export * from '../modules/laboratory/models/quality-incident.model';
+export * from '../modules/laboratory/models/capa.model';
+export * from '../modules/laboratory/models/lab-instrument.model';
+export * from '../modules/laboratory/models/instrument-calibration.model';
+export * from '../modules/laboratory/models/instrument-maintenance.model';
+export * from '../modules/laboratory/models/reagent.model';
+export * from '../modules/laboratory/models/reagent-transaction.model';
+

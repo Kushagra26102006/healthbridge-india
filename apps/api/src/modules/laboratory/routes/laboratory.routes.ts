@@ -6,15 +6,28 @@
 import { Router } from 'express';
 import { laboratoryController } from '../controllers/laboratory.controller';
 import { labReportController } from '../controllers/lab-report.controller';
+import { laboratoryWorkforceController } from '../controllers/workforce.controller';
 import { qualityRoutes } from './quality.routes';
+import { workforceRoutes } from './workforce.routes';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
+import { validate } from '../../../middleware/validate';
+import { acceptLaboratoryStaffInviteSchema } from '@healthbridge/validation';
 
 export const laboratoryRoutes = Router();
 
-// Enforce authentication & LABORATORY role authorization across all endpoints
+// ============================================================================
+// PUBLIC / ONBOARDING ENDPOINT (Accept Staff Invitation)
+// ============================================================================
+laboratoryRoutes.post(
+  '/staff/accept-invite',
+  validate(acceptLaboratoryStaffInviteSchema),
+  laboratoryWorkforceController.acceptInvitation.bind(laboratoryWorkforceController)
+);
+
+// Enforce authentication & LABORATORY / ADMIN role authorization across all endpoints
 laboratoryRoutes.use(authenticate);
-laboratoryRoutes.use(authorize(['LABORATORY']));
+laboratoryRoutes.use(authorize(['LABORATORY', 'ADMIN']));
 
 // ============================================================================
 // 1. DASHBOARD ANALYTICS
@@ -96,5 +109,10 @@ laboratoryRoutes.get('/reports/:reportId/fhir', labReportController.getFhirRepor
 // 8. QUALITY MANAGEMENT SYSTEM (QMS), QC, INSTRUMENTS & REAGENTS
 // ============================================================================
 laboratoryRoutes.use(qualityRoutes);
+
+// ============================================================================
+// 9. WORKFORCE MANAGEMENT, ROLES, SHIFTS, LEAVE & WORKLOAD
+// ============================================================================
+laboratoryRoutes.use(workforceRoutes);
 
 export default laboratoryRoutes;

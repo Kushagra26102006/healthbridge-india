@@ -25,6 +25,13 @@ import {
   Boxes,
   Wrench,
   BarChart3,
+  Users,
+  Calendar,
+  Clock,
+  Briefcase,
+  Network,
+  KeyRound,
+  CalendarCheck,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +81,18 @@ export const LAB_NAV_SECTIONS: { title: string; items: LabNavItem[] }[] = [
       { label: 'Maintenance', href: '/laboratory/quality/maintenance', icon: Wrench },
       { label: 'Reagent Stock', href: '/laboratory/inventory/reagents', icon: Boxes },
       { label: 'Quality Analytics', href: '/laboratory/quality/analytics', icon: BarChart3 },
+    ],
+  },
+  {
+    title: 'Workforce & Scheduling',
+    items: [
+      { label: 'Staff Directory', href: '/laboratory/staff', icon: Users },
+      { label: 'Departments', href: '/laboratory/departments', icon: Network },
+      { label: 'Shift Roster', href: '/laboratory/scheduling/shifts', icon: Clock },
+      { label: 'Shift Calendar', href: '/laboratory/scheduling/calendar', icon: Calendar },
+      { label: 'Leave & Availability', href: '/laboratory/scheduling/leave', icon: CalendarCheck },
+      { label: 'Workload Board', href: '/laboratory/workload', icon: Briefcase },
+      { label: 'Role Permissions', href: '/laboratory/staff/permissions', icon: KeyRound },
     ],
   },
   {
