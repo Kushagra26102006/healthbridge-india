@@ -18,6 +18,13 @@ import {
   X,
   Scan,
   PlusCircle,
+  ShieldCheck,
+  AlertTriangle,
+  Cpu,
+  Gauge,
+  Boxes,
+  Wrench,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +60,20 @@ export const LAB_NAV_SECTIONS: { title: string; items: LabNavItem[] }[] = [
     items: [
       { label: 'Diagnostic Reports', href: '/laboratory/reports', icon: FileText },
       { label: 'Notifications', href: '/laboratory/notifications', icon: Bell },
+    ],
+  },
+  {
+    title: 'Quality & QMS',
+    items: [
+      { label: 'Quality Dashboard', href: '/laboratory/quality', icon: ShieldCheck },
+      { label: 'Quality Control', href: '/laboratory/quality/control', icon: Gauge },
+      { label: 'Incidents', href: '/laboratory/quality/incidents', icon: AlertTriangle },
+      { label: 'CAPA Actions', href: '/laboratory/quality/capa', icon: ShieldCheck },
+      { label: 'Instruments', href: '/laboratory/quality/instruments', icon: Cpu },
+      { label: 'Calibration', href: '/laboratory/quality/calibration', icon: Gauge },
+      { label: 'Maintenance', href: '/laboratory/quality/maintenance', icon: Wrench },
+      { label: 'Reagent Stock', href: '/laboratory/inventory/reagents', icon: Boxes },
+      { label: 'Quality Analytics', href: '/laboratory/quality/analytics', icon: BarChart3 },
     ],
   },
   {

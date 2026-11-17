@@ -455,7 +455,7 @@ export const qcMaterialIdParamSchema = z.object({
   materialId: z.string().min(1),
 });
 
-export const qcRunFilterQuerySchema = z.object({
+export const legacyQcRunFilterQuerySchema = z.object({
   materialId: z.string().optional(),
   testCode: z.string().optional(),
   qcStatus: z.enum(qcStatuses).optional(),
@@ -509,16 +509,22 @@ export const submitReportForReviewSchema = z.object({
 export const reviewReportSchema = z.object({
   decision: z.enum(reportReviewDecisions),
   comments: z.string().min(3, 'Review comments/justification is required').max(3000),
+  overrideApproval: z.boolean().optional(),
+  overrideReason: z.string().max(1000).optional(),
 });
 
 export const approveReportSchema = z.object({
   comments: z.string().max(2000).optional(),
   designation: z.string().max(150).optional(),
   registrationNumber: z.string().max(100).optional(),
+  overrideApproval: z.boolean().optional(),
+  overrideReason: z.string().max(1000).optional(),
 });
 
 export const publishReportSchema = z.object({
   publicationNotes: z.string().max(1000).optional(),
+  overrideApproval: z.boolean().optional(),
+  overrideReason: z.string().max(1000).optional(),
 });
 
 export const requestAmendmentSchema = z.object({

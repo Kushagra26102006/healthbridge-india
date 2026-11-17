@@ -140,16 +140,22 @@ export interface SubmitReportForReviewDto {
 export interface ReviewReportDto {
   decision: ReportReviewDecision;
   comments: string;
+  overrideApproval?: boolean;
+  overrideReason?: string;
 }
 
 export interface ApproveReportDto {
   comments?: string;
   designation?: string;
   registrationNumber?: string;
+  overrideApproval?: boolean;
+  overrideReason?: string;
 }
 
 export interface PublishReportDto {
   publicationNotes?: string;
+  overrideApproval?: boolean;
+  overrideReason?: string;
 }
 
 export interface RequestAmendmentDto {

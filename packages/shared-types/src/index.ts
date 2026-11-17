@@ -18,3 +18,4 @@ export * from './encounter.types';
 export * from './pharmacy.types';
 export * from './notification.types';
 export * from './laboratory.types';
+export * from './laboratory-qms.types';

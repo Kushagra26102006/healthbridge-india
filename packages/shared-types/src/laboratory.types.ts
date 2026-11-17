@@ -768,7 +768,7 @@ export interface CreateQCMaterialDto {
   isActive?: boolean;
 }
 
-export interface QCRunDto {
+export interface LegacyQCRunDto {
   id: string;
   laboratoryId: string;
   materialId: string;

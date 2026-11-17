@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { laboratoryController } from '../controllers/laboratory.controller';
 import { labReportController } from '../controllers/lab-report.controller';
+import { qualityRoutes } from './quality.routes';
 import { authenticate } from '../../../middleware/authenticate';
 import { authorize } from '../../../middleware/authorize';
 
@@ -90,5 +91,10 @@ laboratoryRoutes.post('/reports/:reportId/amend', labReportController.requestAme
 laboratoryRoutes.get('/reports/:reportId/versions', labReportController.getReportVersions);
 laboratoryRoutes.get('/reports/:reportId/pdf', labReportController.downloadPdf);
 laboratoryRoutes.get('/reports/:reportId/fhir', labReportController.getFhirReport);
+
+// ============================================================================
+// 8. QUALITY MANAGEMENT SYSTEM (QMS), QC, INSTRUMENTS & REAGENTS
+// ============================================================================
+laboratoryRoutes.use(qualityRoutes);
 
 export default laboratoryRoutes;

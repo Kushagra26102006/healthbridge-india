@@ -14,6 +14,16 @@ export * from '../modules/laboratory/models/lab-sample.model';
 export * from '../modules/laboratory/models/collection-center.model';
 export * from '../modules/laboratory/models/test-result.model';
 export * from '../modules/laboratory/models/lab-report-version.model';
+export * from '../modules/laboratory/models/qc-profile.model';
+export * from '../modules/laboratory/models/qc-run.model';
+export * from '../modules/laboratory/models/quality-incident.model';
+export * from '../modules/laboratory/models/capa.model';
+export * from '../modules/laboratory/models/lab-instrument.model';
+export * from '../modules/laboratory/models/instrument-calibration.model';
+export * from '../modules/laboratory/models/instrument-maintenance.model';
+export * from '../modules/laboratory/models/reagent.model';
+export * from '../modules/laboratory/models/reagent-transaction.model';
+export * from '../modules/laboratory/models/test-instrument-mapping.model';
 
 export * from '../modules/pharmacy/models/pharmacy-inventory.model';
 export * from '../modules/pharmacy/models/pharmacy-inventory-transaction.model';

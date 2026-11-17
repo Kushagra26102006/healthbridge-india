@@ -15,4 +15,5 @@ export * from './doctor-schedule.schema';
 export * from './pharmacy.schema';
 export * from './notification.schema';
 export * from './laboratory.schema';
+export * from './laboratory-qms.schema';
 

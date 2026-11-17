@@ -13,6 +13,7 @@ import { AuditLogModel } from '../../security/models/audit-log.model';
 import { notificationService } from '../../notifications/services/notification.service';
 import { ReportPdfService } from './report-pdf.service';
 import { FhirDiagnosticReportService } from './fhir-diagnostic-report.service';
+import { qcReleaseGateService } from './qc-release-gate.service';
 import { AppError } from '../../../shared/errors/app-error';
 import type {
   LabReportDetailDto,
@@ -673,6 +674,34 @@ export class LabReportService {
           );
         }
       }
+
+      // Quality Control Release Gate Safety Check
+      if (report.laboratoryId) {
+        const labId = (report.laboratoryId as any)?._id
+          ? (report.laboratoryId as any)._id.toString()
+          : report.laboratoryId.toString();
+        for (const t of report.tests || []) {
+          if (t.testCode) {
+            const check = await qcReleaseGateService.checkQCEligibility(labId, t.testCode);
+            if (!check.eligible && !dto.overrideApproval) {
+              throw AppError.badRequest(
+                `Quality Control Release Gate Blocked: ${check.reasons.join(' ')}`
+              );
+            }
+            if (!check.eligible && dto.overrideApproval) {
+              await qcReleaseGateService.authorizeReleaseOverride(
+                labId,
+                { id: user.id, name: user.name || 'Supervisor', role: user.role },
+                {
+                  testCode: t.testCode,
+                  reason: dto.overrideReason || dto.comments,
+                  reportId: report._id.toString(),
+                }
+              );
+            }
+          }
+        }
+      }
     }
 
     if (dto.decision === 'REJECTED' || dto.decision === 'CORRECTION_REQUESTED') {
@@ -776,6 +805,34 @@ export class LabReportService {
 
     if (report.status !== 'APPROVED' && report.status !== 'AMENDED') {
       throw AppError.badRequest(`Cannot publish report in status: ${report.status}. Only APPROVED reports can be published.`);
+    }
+
+    // Quality Control Release Gate Safety Check for Publication
+    if (report.laboratoryId) {
+      const labId = (report.laboratoryId as any)?._id
+        ? (report.laboratoryId as any)._id.toString()
+        : report.laboratoryId.toString();
+      for (const t of report.tests || []) {
+        if (t.testCode) {
+          const check = await qcReleaseGateService.checkQCEligibility(labId, t.testCode);
+          if (!check.eligible && !_dto.overrideApproval) {
+            throw AppError.badRequest(
+              `Quality Control Release Gate Blocked: Cannot publish report. ${check.reasons.join(' ')}`
+            );
+          }
+          if (!check.eligible && _dto.overrideApproval) {
+            await qcReleaseGateService.authorizeReleaseOverride(
+              labId,
+              { id: user.id, name: user.name || 'Supervisor', role: user.role },
+              {
+                testCode: t.testCode,
+                reason: _dto.overrideReason || _dto.publicationNotes || 'Authorized publication override',
+                reportId: report._id.toString(),
+              }
+            );
+          }
+        }
+      }
     }
 
     const detailDto = this.mapToDetailDto(report);
