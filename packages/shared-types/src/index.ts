@@ -20,3 +20,4 @@ export * from './notification.types';
 export * from './laboratory.types';
 export * from './laboratory-qms.types';
 export * from './laboratory-workforce.types';
+export * from './abdm.types';

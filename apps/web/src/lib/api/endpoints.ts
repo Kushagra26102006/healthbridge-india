@@ -291,6 +291,11 @@ export const API_ENDPOINTS = {
   LAB_REPORTS: '/lab-reports',
   LAB_ORDERS: '/lab-orders',
   AUDIT: '/audit',
+  ABDM_INTEGRATION: {
+    ROOT: '/abdm',
+    STATUS: '/abdm/status',
+    FHIR_VALIDATE: '/abdm/fhir/validate',
+  },
   NOTIFICATIONS: {
     ROOT: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

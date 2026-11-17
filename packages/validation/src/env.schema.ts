@@ -32,8 +32,35 @@ export const backendEnvSchema = z.object({
     .string()
     .min(16, 'COOKIE_SECRET must be at least 16 characters')
     .default('dev_cookie_secret_hb_platform_cookie_key'),
+  ABDM_ENABLED: z
+    .enum(['true', 'false'])
+    .optional()
+    .default('false')
+    .transform((v) => v === 'true'),
+  ABDM_ENVIRONMENT: z
+    .enum(['disabled', 'development', 'sandbox', 'production'])
+    .optional()
+    .default('disabled'),
+  ABDM_BASE_URL: z.string().optional(),
+  ABDM_ABHA_BASE_URL: z.string().optional(),
+  ABDM_X_CM_ID: z.string().optional(),
   ABDM_CLIENT_ID: z.string().optional(),
   ABDM_CLIENT_SECRET: z.string().optional(),
+  ABDM_CALLBACK_URL: z.string().optional(),
+  ABDM_WEBHOOK_SECRET: z.string().optional(),
+  ABDM_REQUEST_TIMEOUT_MS: z
+    .string()
+    .optional()
+    .default('15000')
+    .transform((val) => {
+      const n = parseInt(val, 10);
+      return Number.isNaN(n) ? 15000 : Math.min(60000, Math.max(1000, n));
+    }),
+  ABDM_ALLOW_PRODUCTION: z
+    .enum(['true', 'false'])
+    .optional()
+    .default('false')
+    .transform((v) => v === 'true'),
   ADMIN_REGISTRATION_KEY: z
     .string()
     .optional()

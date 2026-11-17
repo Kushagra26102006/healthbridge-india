@@ -64,6 +64,7 @@ export * from '../modules/laboratory/models/laboratory-department.model';
 export * from '../modules/laboratory/models/laboratory-shift.model';
 export * from '../modules/laboratory/models/laboratory-leave.model';
 export * from '../modules/laboratory/models/laboratory-task-assignment.model';
+export * from '../modules/abdm/models/abdm-webhook-event.model';
 export * from '../modules/laboratory/models/qc-profile.model';
 export * from '../modules/laboratory/models/qc-run.model';
 export * from '../modules/laboratory/models/quality-incident.model';
