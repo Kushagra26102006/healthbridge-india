@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Menu,
-  Search,
   Building2,
   Settings,
   LogOut,
@@ -17,6 +16,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
+import { GlobalSearchCommand } from '@/components/search/GlobalSearchCommand';
 
 export interface PharmacyTopbarProps {
   onOpenMobileSidebar?: () => void;
@@ -79,16 +79,9 @@ export function PharmacyTopbar({ onOpenMobileSidebar, className }: PharmacyTopba
         </div>
       </div>
 
-      {/* Center: Search Bar */}
+      {/* Center: Global Authorized Search */}
       <div className="hidden lg:flex items-center flex-1 max-w-md mx-4">
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search medicines, batch numbers, or prescriptions..."
-            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-xl bg-muted/50 border border-border/80 focus:bg-background focus:border-teal-500 focus:outline-none transition-all placeholder:text-muted-foreground"
-          />
-        </div>
+        <GlobalSearchCommand placeholder="Search medicines, batch numbers, or prescriptions..." />
       </div>
 
       {/* Right: Notification, Theme, and User Profile */}

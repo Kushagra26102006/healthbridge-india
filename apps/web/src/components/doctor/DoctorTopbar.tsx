@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Menu,
-  Search,
   User as UserIcon,
   Settings,
   LogOut,
@@ -20,6 +19,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
+import { GlobalSearchCommand } from '@/components/search/GlobalSearchCommand';
 
 export interface DoctorTopbarProps {
   onOpenMobileSidebar?: () => void;
@@ -90,16 +90,9 @@ export function DoctorTopbar({ onOpenMobileSidebar, className }: DoctorTopbarPro
         </div>
       </div>
 
-      {/* Middle: Quick Patient Search Placeholder */}
+      {/* Middle: Global Authorized Search */}
       <div className="hidden md:flex items-center flex-1 max-w-xs xl:max-w-md mx-4">
-        <div className="relative w-full">
-          <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search scheduled patients, IDs or visits..."
-            className="w-full bg-muted/60 hover:bg-muted focus:bg-background text-sm rounded-xl pl-9 pr-4 py-2 border border-input text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-          />
-        </div>
+        <GlobalSearchCommand placeholder="Search scheduled patients, IDs or visits..." />
       </div>
 
       {/* Right Action Icons & Profile Trigger */}

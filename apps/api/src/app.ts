@@ -36,6 +36,7 @@ export const createApp = (): Application => {
         'X-Requested-With',
         'X-Request-Id',
         'X-ABDM-Auth',
+        'Last-Event-ID',
       ],
       exposedHeaders: [
         'X-Request-Id',

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Menu,
-  Search,
   User as UserIcon,
   Settings,
   LogOut,
@@ -17,6 +16,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
+import { GlobalSearchCommand } from '@/components/search/GlobalSearchCommand';
 
 export interface PatientTopbarProps {
   onOpenMobileSidebar?: () => void;
@@ -86,23 +86,9 @@ export function PatientTopbar({ onOpenMobileSidebar, className }: PatientTopbarP
         </div>
       </div>
 
-      {/* Middle: Quick Search Input Placeholder */}
+      {/* Middle: Global Authorized Search */}
       <div className="hidden md:flex items-center flex-1 max-w-xs xl:max-w-md mx-4">
-        <div className="relative w-full">
-          <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-2.5" />
-          <input
-            type="text"
-            readOnly
-            placeholder="Search health records, doctors, prescriptions..."
-            className="w-full pl-9 pr-12 py-1.5 text-xs rounded-xl border border-border bg-muted/40 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer hover:bg-muted/70 transition-colors"
-            onClick={() => {
-              // Smooth focus interaction placeholder
-            }}
-          />
-          <kbd className="absolute right-2.5 top-2 text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded border border-border bg-background">
-            ⌘K
-          </kbd>
-        </div>
+        <GlobalSearchCommand placeholder="Search health records, doctors, prescriptions..." />
       </div>
 
       {/* Right Action Cluster */}

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { ShieldCheck, Activity, Bell, LayoutDashboard } from 'lucide-react';
 import { ProtectedRoute } from '@/features/auth/components/protected-route';
 import { NotificationBell } from '@/components/notifications';
+import { GlobalSearchCommand } from '@/components/search/GlobalSearchCommand';
 
 const ADMIN_NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -55,6 +56,7 @@ export default function AdminPortalLayout({ children }: { children: React.ReactN
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <GlobalSearchCommand compact placeholder="Search platform entities..." />
               <NotificationBell />
             </div>
           </div>
