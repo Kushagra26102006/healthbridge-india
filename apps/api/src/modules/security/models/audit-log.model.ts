@@ -3,11 +3,13 @@ import { AuditOutcome } from '@healthbridge/shared-types';
 
 export interface IAuditLogDocument extends Document {
   actorId?: Types.ObjectId;
+  actorRole?: string;
   action: string;
   resourceType: string;
   resourceId?: string;
   timestamp: Date;
   requestId: string;
+  correlationId?: string;
   outcome: AuditOutcome;
   metadata?: Record<string, unknown>;
 }
@@ -17,6 +19,11 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
     actorId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
+      index: true,
+    },
+    actorRole: {
+      type: String,
+      trim: true,
       index: true,
     },
     action: {
@@ -45,6 +52,11 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
     requestId: {
       type: String,
       required: [true, 'Request tracing ID is required'],
+      trim: true,
+      index: true,
+    },
+    correlationId: {
+      type: String,
       trim: true,
       index: true,
     },
@@ -105,6 +117,14 @@ AuditLogSchema.pre('findOneAndUpdate', function () {
 });
 
 AuditLogSchema.pre('deleteOne', function () {
+  throw new Error('AuditLog entries cannot be deleted');
+});
+
+AuditLogSchema.pre('deleteMany', function () {
+  throw new Error('AuditLog entries cannot be deleted');
+});
+
+AuditLogSchema.pre('findOneAndDelete', function () {
   throw new Error('AuditLog entries cannot be deleted');
 });
 

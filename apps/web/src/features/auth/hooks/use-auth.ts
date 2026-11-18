@@ -45,6 +45,8 @@ export const useAuth = () => {
       dispatch(setError(null));
     },
     onSuccess: (data) => {
+      // Wipe any prior user's cached clinical queries on account switch
+      queryClient.clear();
       dispatch(setSession({ user: data.user }));
       queryClient.invalidateQueries({ queryKey: ['current-user'] });
     },
@@ -99,6 +101,12 @@ export const useAuth = () => {
   const logoutAllMutation = useMutation({
     mutationFn: () => authApi.logoutAll(),
     onSuccess: () => {
+      broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
+      dispatch(clearSession());
+      queryClient.clear();
+    },
+    onError: () => {
+      broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
       queryClient.clear();
     },

@@ -46,7 +46,9 @@ router.post('/login', loginRateLimiter, validateRequest(loginValidationSchema), 
  * @desc    Rotate refresh token and issue fresh JWT access token
  * @access  Public (Requires valid refresh token)
  */
-router.post('/refresh', (req, res, next) => authController.refresh(req, res, next));
+router.post('/refresh', authGeneralLimiter, (req, res, next) =>
+  authController.refresh(req, res, next)
+);
 
 /**
  * @route   POST /api/v1/auth/logout
@@ -88,8 +90,11 @@ router.post(
  * @desc    Reset password using one-time cryptographic token
  * @access  Public
  */
-router.post('/reset-password', validateRequest(resetPasswordValidationSchema), (req, res, next) =>
-  authController.resetPassword(req, res, next)
+router.post(
+  '/reset-password',
+  passwordResetRateLimiter,
+  validateRequest(resetPasswordValidationSchema),
+  (req, res, next) => authController.resetPassword(req, res, next)
 );
 
 /**
@@ -97,8 +102,11 @@ router.post('/reset-password', validateRequest(resetPasswordValidationSchema), (
  * @desc    Verify email address using verification token
  * @access  Public
  */
-router.post('/verify-email', validateRequest(verifyEmailValidationSchema), (req, res, next) =>
-  authController.verifyEmail(req, res, next)
+router.post(
+  '/verify-email',
+  authGeneralLimiter,
+  validateRequest(verifyEmailValidationSchema),
+  (req, res, next) => authController.verifyEmail(req, res, next)
 );
 
 /**

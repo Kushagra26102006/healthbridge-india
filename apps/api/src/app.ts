@@ -9,6 +9,11 @@ import { notFoundHandler } from './middleware/not-found';
 import { errorHandler } from './middleware/error-handler';
 import { v1Router } from './routes/v1.routes';
 import { APP_CONFIG } from '@healthbridge/config';
+import {
+  nosqlSanitizerMiddleware,
+  hppGuardMiddleware,
+  csrfProtectionMiddleware,
+} from './security';
 
 export const createApp = (): Application => {
   const app: Application = express();
@@ -21,6 +26,12 @@ export const createApp = (): Application => {
     helmet({
       contentSecurityPolicy: false, // Allows flexible API documentation rendering
       crossOriginEmbedderPolicy: false,
+      frameguard: { action: 'deny' },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      hsts:
+        env.NODE_ENV === 'production'
+          ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+          : false,
     })
   );
 
@@ -52,6 +63,11 @@ export const createApp = (): Application => {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser(env.COOKIE_SECRET));
+
+  // Global Input, NoSQL Operator Injection, HPP & Cookie CSRF Defense
+  app.use(hppGuardMiddleware);
+  app.use(nosqlSanitizerMiddleware);
+  app.use(csrfProtectionMiddleware);
 
   // Structured HTTP Request Logger (Pino-backed)
   app.use(requestLogger);

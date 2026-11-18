@@ -4,7 +4,7 @@ import {
   IMedicalRecordDocument,
 } from '../../healthcare/models/medical-record.model';
 import { AppError } from '../../../shared/errors/app-error';
-import { RECORD_CONFIG, HEALTH_RECORD_TYPES } from '@healthbridge/config';
+import { HEALTH_RECORD_TYPES } from '@healthbridge/config';
 import type {
   MedicalRecordType,
   MedicalRecordSummaryDto,
@@ -13,6 +13,8 @@ import type {
 } from '@healthbridge/shared-types';
 import type { CreateRecordInput, RecordFilterQueryInput } from '@healthbridge/validation';
 import mongoose from 'mongoose';
+import { fileSecurityService } from '../../../security/file-security.service';
+import { securityAuditMonitor } from '../../../security/security-audit.monitor';
 
 /**
  * Maps an internal MedicalRecord document to an HL7 FHIR R4 DocumentReference resource
@@ -506,23 +508,35 @@ export class RecordService {
   async createPatientRecord(
     patientId: string,
     creatorId: string,
-    data: CreateRecordInput
+    data: CreateRecordInput,
+    requestId?: string
   ): Promise<IMedicalRecord> {
-    // Validate file size if provided
-    if (data.fileSize && data.fileSize > RECORD_CONFIG.maxFileSize) {
-      throw AppError.badRequest('File size exceeds maximum permitted limit of 10MB');
-    }
-
-    // Validate MIME type if provided
-    if (
-      data.mimeType &&
-      !RECORD_CONFIG.allowedMimeTypes.includes(
-        data.mimeType as unknown as (typeof RECORD_CONFIG.allowedMimeTypes)[number]
-      )
-    ) {
-      throw AppError.badRequest(
-        `File format ${data.mimeType} is not supported for clinical uploads`
-      );
+    // Defense-in-depth file validation (MIME + extension + magic-byte signature + decoded byte size + safe filename)
+    let validatedFile: Awaited<ReturnType<typeof fileSecurityService.validateUpload>> | null = null;
+    if (data.fileName || data.mimeType || data.fileSize || data.fileData) {
+      try {
+        validatedFile = await fileSecurityService.validateUpload({
+          fileName: data.fileName,
+          mimeType: data.mimeType,
+          fileSize: data.fileSize,
+          fileData: data.fileData,
+        });
+      } catch (err) {
+        await securityAuditMonitor.record({
+          actorId: creatorId,
+          actorRole: 'PATIENT',
+          action: 'FILE_SIGNATURE_REJECTED',
+          resourceType: 'MEDICAL_RECORD',
+          resourceId: patientId,
+          requestId,
+          outcome: 'BLOCKED',
+          metadata: {
+            declaredMimeType: data.mimeType,
+            reason: err instanceof Error ? err.message : 'Invalid clinical upload',
+          },
+        });
+        throw err;
+      }
     }
 
     const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -538,9 +552,9 @@ export class RecordService {
       recordDate: new Date(data.recordDate),
       doctorName: data.doctorName,
       facilityName: data.facilityName,
-      fileName: data.fileName,
-      fileSize: data.fileSize,
-      mimeType: data.mimeType || 'application/pdf',
+      fileName: validatedFile ? validatedFile.safeFileName : data.fileName,
+      fileSize: validatedFile ? validatedFile.byteSize || data.fileSize : data.fileSize,
+      mimeType: validatedFile ? validatedFile.mimeType : data.mimeType || 'application/pdf',
       fileData: data.fileData,
       verificationStatus: 'SELF_SUBMITTED',
       createdBy: new Types.ObjectId(creatorId),
@@ -550,6 +564,22 @@ export class RecordService {
     if (isConnected) {
       await newRecord.save();
     }
+
+    await securityAuditMonitor.record({
+      actorId: creatorId,
+      action: 'DOCUMENT_UPLOADED',
+      resourceType: 'MEDICAL_RECORD',
+      resourceId: newRecord.id || newRecord._id.toString(),
+      requestId,
+      outcome: 'SUCCESS',
+      metadata: {
+        recordType: data.recordType,
+        mimeType: validatedFile?.mimeType || data.mimeType || 'application/pdf',
+        storageId: validatedFile?.storageId,
+        signatureVerified: validatedFile?.signatureVerified ?? false,
+        malwareScanStatus: validatedFile?.malwareScan.status ?? 'SCAN_NOT_CONFIGURED',
+      },
+    });
 
     return {
       id: newRecord.id || newRecord._id.toString(),

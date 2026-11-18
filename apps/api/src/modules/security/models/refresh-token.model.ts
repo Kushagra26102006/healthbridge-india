@@ -53,6 +53,17 @@ const RefreshTokenSchema = new Schema<IRefreshTokenDocument>(
     toJSON: {
       virtuals: true,
       transform: (_doc, ret: Record<string, unknown>) => {
+        delete ret.tokenHash;
+        delete ret.__v;
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        delete ret.tokenHash;
         delete ret.__v;
         ret.id = ret._id;
         delete ret._id;

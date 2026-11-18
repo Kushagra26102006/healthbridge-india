@@ -5,6 +5,8 @@ import { HttpStatus } from '../../../shared/constants/http-status';
 import { asyncHandler } from '../../../utils/async-handler';
 import { AppError } from '../../../shared/errors/app-error';
 import { consentEnforcementService } from '../../consent/services/consent-enforcement.service';
+import { fileSecurityService } from '../../../security/file-security.service';
+import { securityAuditMonitor } from '../../../security/security-audit.monitor';
 import type { CreateRecordInput, RecordFilterQueryInput } from '@healthbridge/validation';
 
 export class RecordController {
@@ -138,11 +140,24 @@ export class RecordController {
     }
 
     const doc = await recordService.getRecordForDownload(targetPatientId, recordId);
+    const safeFileName = fileSecurityService.sanitizeFileName(doc.fileName, doc.mimeType);
+
+    await securityAuditMonitor.record({
+      actorId: req.user.userId,
+      actorRole: req.user.role,
+      action: 'DOCUMENT_DOWNLOADED',
+      resourceType: 'MEDICAL_RECORD',
+      resourceId: recordId,
+      requestId: req.requestId,
+      outcome: 'SUCCESS',
+      metadata: { mimeType: doc.mimeType, byteSize: doc.fileSize },
+    });
 
     res.setHeader('Content-Type', doc.mimeType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(doc.fileName)}"`
+      `attachment; filename="${encodeURIComponent(safeFileName)}"`
     );
     res.setHeader('Content-Length', doc.fileSize);
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -161,7 +176,12 @@ export class RecordController {
     }
 
     const body = req.body as CreateRecordInput;
-    const record = await recordService.createPatientRecord(req.user.userId, req.user.userId, body);
+    const record = await recordService.createPatientRecord(
+      req.user.userId,
+      req.user.userId,
+      body,
+      req.requestId
+    );
 
     sendSuccess(res, record, 'Health record created successfully', HttpStatus.CREATED);
   });
