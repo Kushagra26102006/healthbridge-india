@@ -15,8 +15,26 @@ import {
   csrfProtectionMiddleware,
 } from './security';
 
+export const parseCorsOrigins = (rawOrigin: string): string[] =>
+  rawOrigin
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0 && origin !== '*');
+
 export const createApp = (): Application => {
   const app: Application = express();
+
+  // Behind cloud reverse proxies / load balancers (Render, Railway, AWS ALB, Nginx),
+  // trust proxy hops so rate limiters, audit logs, and Secure cookies evaluate real client IPs/TLS.
+  const trustProxyHops =
+    env.TRUST_PROXY_HOPS !== undefined
+      ? env.TRUST_PROXY_HOPS
+      : env.NODE_ENV === 'production'
+        ? 1
+        : 0;
+  if (trustProxyHops > 0) {
+    app.set('trust proxy', trustProxyHops);
+  }
 
   // Request correlation & cryptographic tracing ID
   app.use(requestIdMiddleware);
@@ -35,10 +53,11 @@ export const createApp = (): Application => {
     })
   );
 
-  // CORS Configuration
+  // CORS Configuration (supports comma-separated explicit allowlist; never allows '*' with credentials)
+  const allowedOrigins = parseCorsOrigins(env.CORS_ORIGIN);
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: allowedOrigins.length <= 1 ? allowedOrigins[0] || false : allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
@@ -48,6 +67,7 @@ export const createApp = (): Application => {
         'X-Request-Id',
         'X-ABDM-Auth',
         'Last-Event-ID',
+        'X-Video-Room-Token',
       ],
       exposedHeaders: [
         'X-Request-Id',

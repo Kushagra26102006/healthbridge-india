@@ -30,7 +30,9 @@ import {
   Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EditorialVisual } from '@/components/ui/visual-asset';
 import { Badge } from '@/components/ui/badge';
+import { useClinicalActionFeedback } from '@/components/motion';
 import type {
   AbdmConsentArtefactRecordDto,
   AbdmConsentRequestDto,
@@ -45,6 +47,7 @@ export default function PatientConsentPage() {
   const approveMutation = useApproveConsent();
   const rejectMutation = useRejectConsent();
   const revokeMutation = useRevokeConsent();
+  const feedback = useClinicalActionFeedback();
 
   const [activeConsentForRevoke, setActiveConsentForRevoke] = useState<ConsentListItemDto | null>(
     null
@@ -88,8 +91,20 @@ export default function PatientConsentPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Page Header */}
-      <ConsentHeader />
+      {/* Page Header + Granular Consent Visual */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-center">
+        <div className="xl:col-span-8">
+          <ConsentHeader />
+        </div>
+        <div className="hidden xl:block xl:col-span-4">
+          <EditorialVisual
+            asset="serviceConsentControl"
+            aspectClassName="aspect-[16/9]"
+            sizes="360px"
+            className="rounded-xl shadow-xs"
+          />
+        </div>
+      </div>
 
       {/* Explicit Boundary Banner: Internal Consent vs ABDM HIE-CM Consent */}
       <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/30 p-4 flex items-start gap-3">
@@ -113,62 +128,62 @@ export default function PatientConsentPage() {
       <ConsentSummary summary={summary} isLoading={isSummaryLoading} />
 
       {/* ABDM HIE-CM Consent Manager Section (Day 7 Task 03) */}
-      <div className="rounded-2xl border border-teal-200/80 dark:border-teal-900/50 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+      <div className="rounded-xl border border-secondary/30 bg-card p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <FileKey2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2 flex-wrap">
+              <FileKey2 className="h-5 w-5 text-secondary" />
+              <h2 className="text-base font-bold text-foreground">
                 ABDM Consent Manager (HIE-CM)
               </h2>
-              <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border-none text-[10px]">
+              <Badge variant="teal" size="sm">
                 External Exchange Layer
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Track synchronized ABDM consent requests, inspect externally issued consent artefacts,
               view audit events, or initiate revocation.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Link href="/patient/consent/requests">
-              <Button variant="outline" size="sm" className="text-xs rounded-xl gap-1.5">
-                <ClipboardList className="h-3.5 w-3.5 text-teal-600" />
-                ABDM Requests ({abdmLoading ? '…' : abdmRequests.length})
-              </Button>
-            </Link>
-            <Link href="/patient/consent/artefacts">
-              <Button variant="outline" size="sm" className="text-xs rounded-xl gap-1.5">
-                <FileKey2 className="h-3.5 w-3.5 text-teal-600" />
-                Consent Artefacts ({abdmLoading ? '…' : abdmArtefacts.length})
-              </Button>
-            </Link>
-            <Link href="/patient/consent/history">
-              <Button variant="outline" size="sm" className="text-xs rounded-xl gap-1.5">
-                <History className="h-3.5 w-3.5 text-teal-600" />
-                History
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" asChild className="text-xs gap-1.5">
+              <Link href="/patient/consent/requests">
+                <ClipboardList className="h-3.5 w-3.5 text-secondary" />
+                <span>ABDM Requests ({abdmLoading ? '…' : abdmRequests.length})</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild className="text-xs gap-1.5">
+              <Link href="/patient/consent/artefacts">
+                <FileKey2 className="h-3.5 w-3.5 text-secondary" />
+                <span>Consent Artefacts ({abdmLoading ? '…' : abdmArtefacts.length})</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild className="text-xs gap-1.5">
+              <Link href="/patient/consent/history">
+                <History className="h-3.5 w-3.5 text-secondary" />
+                <span>Expired &amp; Revoked History</span>
+              </Link>
+            </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3.5">
-            <p className="text-[11px] font-medium text-slate-500">Awaiting ABDM PHR Action</p>
-            <p className="text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1">
+          <div className="rounded-md bg-muted/40 border border-border/70 p-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Awaiting ABDM PHR Action</p>
+            <p className="text-metric text-amber-700 dark:text-amber-400 mt-1">
               {abdmLoading ? '—' : abdmPendingCount}
             </p>
           </div>
-          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3.5">
-            <p className="text-[11px] font-medium text-slate-500">Active External Artefacts</p>
-            <p className="text-2xl font-bold text-teal-700 dark:text-teal-400 mt-1">
+          <div className="rounded-md bg-muted/40 border border-border/70 p-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Active External Artefacts</p>
+            <p className="text-metric text-secondary mt-1">
               {abdmLoading ? '—' : abdmActiveArtefactCount}
             </p>
           </div>
-          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3.5">
-            <p className="text-[11px] font-medium text-slate-500">Total Synchronized Artefacts</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+          <div className="rounded-md bg-muted/40 border border-border/70 p-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Total Synchronized Artefacts</p>
+            <p className="text-metric mt-1">
               {abdmLoading ? '—' : abdmArtefacts.length}
             </p>
           </div>
@@ -248,7 +263,17 @@ export default function PatientConsentPage() {
         onClose={() => setActiveConsentForRevoke(null)}
         consent={activeConsentForRevoke}
         onConfirmRevoke={async (id, reason) => {
-          await revokeMutation.mutateAsync({ consentId: id, input: { reason } });
+          const targetOrg = activeConsentForRevoke?.organization;
+          try {
+            await revokeMutation.mutateAsync({ consentId: id, input: { reason } });
+            feedback.notifyConsentRevoked(targetOrg);
+          } catch (err) {
+            feedback.notifyOperationError(
+              'Unable to revoke consent',
+              err instanceof Error ? err.message : undefined
+            );
+            throw err;
+          }
         }}
         isLoading={revokeMutation.isPending}
       />
@@ -259,7 +284,17 @@ export default function PatientConsentPage() {
         onClose={() => setActiveConsentForApprove(null)}
         consent={activeConsentForApprove}
         onConfirmApprove={async (id, signature) => {
-          await approveMutation.mutateAsync({ consentId: id, input: { signature } });
+          const targetOrg = activeConsentForApprove?.organization;
+          try {
+            await approveMutation.mutateAsync({ consentId: id, input: { signature } });
+            feedback.notifyConsentApproved(targetOrg);
+          } catch (err) {
+            feedback.notifyOperationError(
+              'Unable to approve consent',
+              err instanceof Error ? err.message : undefined
+            );
+            throw err;
+          }
         }}
         isLoading={approveMutation.isPending}
       />
@@ -270,7 +305,16 @@ export default function PatientConsentPage() {
         onClose={() => setActiveConsentForReject(null)}
         consent={activeConsentForReject}
         onConfirmReject={async (id, reason) => {
-          await rejectMutation.mutateAsync({ consentId: id, input: { reason } });
+          try {
+            await rejectMutation.mutateAsync({ consentId: id, input: { reason } });
+            feedback.notifyConsentRevoked(activeConsentForReject?.organization);
+          } catch (err) {
+            feedback.notifyOperationError(
+              'Unable to reject consent request',
+              err instanceof Error ? err.message : undefined
+            );
+            throw err;
+          }
         }}
         isLoading={rejectMutation.isPending}
       />

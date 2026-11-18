@@ -23,14 +23,23 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        surface: {
+          DEFAULT: 'hsl(var(--surface))',
+          elevated: 'hsl(var(--surface-elevated))',
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
+          hover: 'hsl(var(--primary-hover))',
           foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
@@ -40,6 +49,22 @@ const config: Config = {
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
+        error: {
+          DEFAULT: 'hsl(var(--error))',
+          foreground: 'hsl(var(--error-foreground))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
@@ -57,31 +82,69 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        chart: {
+          1: 'hsl(var(--chart-1))',
+          2: 'hsl(var(--chart-2))',
+          3: 'hsl(var(--chart-3))',
+          4: 'hsl(var(--chart-4))',
+          5: 'hsl(var(--chart-5))',
+        },
         brand: {
-          blue: '#1d4ed8',
+          blue: '#2563eb',
+          blueHover: '#1d4ed8',
           deepBlue: '#0f2b5c',
           teal: '#0d9488',
           cyan: '#06b6d4',
-          navy: '#0b1329',
+          navy: '#080f1e',
           ash: '#f8fafc',
           indiaOrange: '#ff9933',
           indiaGreen: '#138808',
         },
       },
-      boxShadow: {
-        subtle: '0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04)',
-        card: '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
-        cardHover:
-          '0 12px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04)',
-        glow: '0 0 25px -5px rgba(13, 148, 136, 0.25)',
-        glowBlue: '0 0 25px -5px rgba(29, 78, 216, 0.25)',
+      spacing: {
+        // Explicit design system spacing tokens (4px..80px)
+        'ds-1': '4px',
+        'ds-2': '8px',
+        'ds-3': '12px',
+        'ds-4': '16px',
+        'ds-5': '20px',
+        'ds-6': '24px',
+        'ds-8': '32px',
+        'ds-10': '40px',
+        'ds-12': '48px',
+        'ds-16': '64px',
+        'ds-20': '80px',
       },
       borderRadius: {
-        '2xl': '1rem',
-        xl: 'calc(var(--radius) + 2px)',
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        sm: 'var(--radius-sm)', // 6px
+        md: 'var(--radius-md)', // 10px
+        lg: 'var(--radius-lg)', // 14px
+        xl: 'var(--radius-xl)', // 20px
+        '2xl': 'var(--radius-xl)', // 20px
+        pill: 'var(--radius-pill)', // 9999px
+      },
+      boxShadow: {
+        xs: 'var(--shadow-xs)',
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        hover: 'var(--shadow-hover)',
+        nav: 'var(--shadow-nav)',
+        dropdown: 'var(--shadow-dropdown)',
+        float: 'var(--shadow-float)',
+        dialog: 'var(--shadow-dialog)',
+        // Legacy aliases preserved for existing portal components
+        subtle: 'var(--shadow-xs)',
+        card: 'var(--shadow-sm)',
+        cardHover: 'var(--shadow-hover)',
+        glow: '0 0 22px -6px rgba(13, 148, 136, 0.28)',
+        glowBlue: '0 0 22px -6px rgba(37, 99, 235, 0.28)',
+      },
+      backdropBlur: {
+        xs: '4px',
+      },
+      opacity: {
+        '98': '0.98',
       },
       keyframes: {
         float: {
@@ -92,10 +155,14 @@ const config: Config = {
           '0%, 100%': { opacity: '0.4' },
           '50%': { opacity: '0.8' },
         },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
       animation: {
         float: 'float 6s ease-in-out infinite',
         'pulse-slow': 'pulseGlow 4s ease-in-out infinite',
+        shimmer: 'shimmer 1.8s ease-in-out infinite',
       },
     },
   },

@@ -7,6 +7,16 @@ const apiOrigin = (() => {
   }
 })();
 
+const videoWsOrigin = (() => {
+  const raw = process.env.NEXT_PUBLIC_VIDEO_WS_ORIGIN;
+  if (!raw) return '';
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return '';
+  }
+})();
+
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -14,7 +24,7 @@ const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'off' },
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+    value: 'camera=(self), microphone=(self), geolocation=(), browsing-topics=()',
   },
   {
     key: 'Strict-Transport-Security',
@@ -28,17 +38,24 @@ const securityHeaders = [
       "form-action 'self'",
       "frame-ancestors 'none'",
       "img-src 'self' data: blob:",
+      "media-src 'self' blob:",
       "font-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      `connect-src 'self' ${apiOrigin}`,
+      `connect-src 'self' ${apiOrigin}${videoWsOrigin ? ` ${videoWsOrigin}` : ''}`,
     ].join('; '),
   },
 ];
 
 const nextConfig = {
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [320, 430, 640, 768, 1024, 1280, 1440],
+    imageSizes: [64, 128, 256, 384, 512],
+  },
   transpilePackages: ['@healthbridge/shared-types', '@healthbridge/validation', '@healthbridge/config'],
   async headers() {
     return [

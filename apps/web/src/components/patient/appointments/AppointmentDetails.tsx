@@ -159,15 +159,43 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               {appointment.consultationType === 'IN_PERSON'
                 ? appointment.facilityName || 'Clinic Consultation'
-                : 'Digital Health Room'}
+                : 'Encrypted Teleconsultation Room'}
             </p>
             <p className="text-xs text-slate-500">
               {appointment.consultationType === 'IN_PERSON'
                 ? `${appointment.facilityAddress || ''} ${appointment.facilityCity || ''}`
-                : 'Encrypted teleconsultation video room link will appear 10 mins before session.'}
+                : 'WebRTC DTLS-SRTP encrypted room • Recording disabled • Audio-only fallback supported'}
             </p>
           </div>
         </div>
+
+        {/* Patient Join Video Consultation Action Banner */}
+        {appointment.consultationType === 'TELECONSULTATION' &&
+          ['CONFIRMED', 'SCHEDULED', 'CHECKED_IN', 'IN_PROGRESS'].includes(appointment.status) && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50 via-teal-50/70 to-cyan-50/60 dark:from-blue-950/35 dark:via-teal-950/25 dark:to-slate-900 border border-teal-200/80 dark:border-teal-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
+                    Video Consultation Ready
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Enter the encrypted waiting room with {appointment.doctorName}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Test your camera and microphone before connecting, or join in Audio-Only mode. Not
+                  for medical emergencies (dial 112 / 108).
+                </p>
+              </div>
+              <Button variant="teal" size="default" asChild className="shrink-0 shadow-sm">
+                <Link href={`/patient/appointments/${appointment.id}/consultation`}>
+                  <Video className="h-4 w-4 mr-1.5" />
+                  <span>Join Video Consultation</span>
+                </Link>
+              </Button>
+            </div>
+          )}
 
         {/* Doctor and Facility Information */}
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">

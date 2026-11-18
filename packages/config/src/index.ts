@@ -39,9 +39,12 @@ export const HEALTH_RECORD_TYPES = [
   'OP_CONSULTATION',
   'DISCHARGE_SUMMARY',
   'DIAGNOSTIC_REPORT',
+  'IMAGING_REPORT',
   'PRESCRIPTION',
+  'MEDICAL_CERTIFICATE',
   'IMMUNIZATION_RECORD',
   'WELLNESS_RECORD',
+  'OTHER_MEDICAL_DOCUMENT',
 ] as const;
 
 export const RECORD_VERIFICATION_STATUSES = ['VERIFIED', 'PENDING', 'SELF_SUBMITTED'] as const;
@@ -49,16 +52,21 @@ export const RECORD_VERIFICATION_STATUSES = ['VERIFIED', 'PENDING', 'SELF_SUBMIT
 export const RECORD_SOURCES = ['MANUAL_ENTRY', 'ABDM_INGESTION', 'EHR_SYNC'] as const;
 
 export const RECORD_TYPE_LABELS: Record<string, string> = {
-  OP_CONSULTATION: 'Doctor Consultation',
+  OP_CONSULTATION: 'Consultation Record',
   DISCHARGE_SUMMARY: 'Discharge Summary',
-  DIAGNOSTIC_REPORT: 'Diagnostic & Lab Report',
+  DIAGNOSTIC_REPORT: 'Laboratory Report',
+  IMAGING_REPORT: 'Imaging Report',
   PRESCRIPTION: 'Prescription',
+  MEDICAL_CERTIFICATE: 'Medical Certificate',
   IMMUNIZATION_RECORD: 'Immunization Record',
-  WELLNESS_RECORD: 'Wellness & Medical Record',
+  WELLNESS_RECORD: 'Wellness Record',
+  OTHER_MEDICAL_DOCUMENT: 'Other Medical Document',
 };
 
 export const RECORD_CONFIG = {
-  maxFileSize: 10 * 1024 * 1024, // 10MB
+  maxFileSize: 10 * 1024 * 1024, // 10MB per document
+  maxPatientStorageBytes: 100 * 1024 * 1024, // 100MB per patient vault
+  signedAccessTtlSeconds: 180, // 3 minutes short-lived signed access link
   allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const,
   allowedFileExtensions: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'] as const,
 } as const;

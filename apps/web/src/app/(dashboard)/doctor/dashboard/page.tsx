@@ -1,17 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Calendar,
   Users,
   Stethoscope,
-  Pill,
-  Clock,
-  AlertCircle,
+  CheckCircle2,
+  FlaskConical,
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/alert';
+import { StaggerList, StaggerItem } from '@/components/motion';
 import { useDoctorDashboard } from '@/features/doctor/hooks/use-doctor';
+import { laboratoryReportsApi } from '@/features/laboratory/api/laboratory-reports-api';
 import {
   DoctorWelcome,
   DoctorProfileCard,
@@ -22,9 +25,33 @@ import {
   ClinicalActivity,
   DoctorDashboardSkeleton,
 } from '@/components/doctor';
+import { UpcomingVideoConsultations } from '@/components/doctor/UpcomingVideoConsultations';
 
 export default function DoctorDashboardPage() {
   const { summary, isLoading, isError, error, refetch } = useDoctorDashboard();
+
+  // Fetch real authorized diagnostic reports for pending lab review count (never hardcoded)
+  const { data: doctorReportsData, isLoading: isReportsLoading } = useQuery({
+    queryKey: ['doctor', 'dashboard-lab-reports-summary'],
+    queryFn: () => laboratoryReportsApi.getDoctorReports({ limit: 50 }).catch(() => ({ items: [], total: 0 })),
+    enabled: Boolean(summary),
+    staleTime: 60 * 1000,
+  });
+
+  const labMetrics = useMemo(() => {
+    const items = doctorReportsData?.items ?? [];
+    const pendingReview = items.filter((r) =>
+      ['PENDING', 'PENDING_REVIEW', 'UNDER_REVIEW', 'PRELIMINARY', 'DRAFT', 'GENERATED'].includes(
+        String(r.status).toUpperCase()
+      )
+    ).length;
+    const abnormalCount = items.filter((r) => r.hasAbnormalResults).length;
+    return {
+      total: doctorReportsData?.total ?? items.length,
+      pendingReview,
+      abnormalCount,
+    };
+  }, [doctorReportsData]);
 
   if (isLoading) {
     return <DoctorDashboardSkeleton />;
@@ -32,38 +59,44 @@ export default function DoctorDashboardPage() {
 
   if (isError || !summary) {
     return (
-      <div className="py-16 text-center space-y-4">
-        <div className="mx-auto w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center">
-          <AlertCircle className="h-6 w-6" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-lg font-bold text-foreground">
-            Failed to Load Doctor Workspace
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            {error?.message || 'Unable to retrieve clinical metrics. Please verify network connectivity.'}
-          </p>
-        </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Retry
-        </Button>
+      <div className="max-w-xl mx-auto py-12">
+        <Alert
+          variant="error"
+          title="Failed to Load Doctor Clinical Workspace"
+          description={
+            error?.message ||
+            'Unable to retrieve clinical metrics. Please verify connectivity and retry.'
+          }
+          action={
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              <span>Retry</span>
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   const { profile, stats, todayAppointments, upcomingAppointments, recentActivities } = summary;
 
-  // Derive assigned patients from appointments for the roster preview
-  const patientMap = new Map<string, {
-    id: string;
-    patientId: string;
-    name: string;
-    phone?: string;
-    gender?: string;
-    totalAppointments: number;
-    accessStatus: 'ACTIVE_CONSENT' | 'ENCOUNTER_BOUND';
-  }>();
+  const completedConsultationsToday = todayAppointments.filter(
+    (apt) => apt.status === 'COMPLETED'
+  ).length;
+
+  // Derive authorized patients preview from active scheduled appointments
+  const patientMap = new Map<
+    string,
+    {
+      id: string;
+      patientId: string;
+      name: string;
+      phone?: string;
+      gender?: string;
+      totalAppointments: number;
+      accessStatus: 'ACTIVE_CONSENT' | 'ENCOUNTER_BOUND';
+    }
+  >();
 
   todayAppointments.concat(upcomingAppointments).forEach((apt) => {
     if (!patientMap.has(apt.patientId)) {
@@ -77,15 +110,15 @@ export default function DoctorDashboardPage() {
         accessStatus: 'ENCOUNTER_BOUND',
       });
     } else {
-      const existing = patientMap.get(apt.patientId)!;
-      existing.totalAppointments += 1;
+      const existing = patientMap.get(apt.patientId);
+      if (existing) existing.totalAppointments += 1;
     }
   });
 
   const assignedPatientsPreview = Array.from(patientMap.values());
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in">
+    <div className="space-y-6 sm:space-y-8">
       {/* 1. Clinical Welcome Section */}
       <DoctorWelcome
         profile={profile}
@@ -93,62 +126,83 @@ export default function DoctorDashboardPage() {
         upcomingCount={stats.upcomingAppointments}
       />
 
-      {/* 2. Doctor Professional Profile Card */}
+      {/* 2. Clinical Overview KPI Cards (100% Real API Data) */}
+      <StaggerList
+        inView={false}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4"
+      >
+        <StaggerItem>
+          <ClinicalStatCard
+            title="Today's Appointments"
+            value={stats.todayAppointments}
+            subtitle={`${stats.upcomingAppointments} upcoming`}
+            icon={Calendar}
+            href="/doctor/appointments/today"
+            colorScheme="blue"
+          />
+        </StaggerItem>
+
+        <StaggerItem>
+          <ClinicalStatCard
+            title="Assigned Patients"
+            value={stats.totalAssignedPatients}
+            subtitle="Authorized roster"
+            icon={Users}
+            href="/doctor/patients"
+            colorScheme="indigo"
+          />
+        </StaggerItem>
+
+        <StaggerItem>
+          <ClinicalStatCard
+            title="Completed Today"
+            value={completedConsultationsToday}
+            subtitle="Consultations closed"
+            icon={CheckCircle2}
+            href="/doctor/appointments/history"
+            colorScheme="teal"
+          />
+        </StaggerItem>
+
+        <StaggerItem>
+          <ClinicalStatCard
+            title="Pending Consultations"
+            value={stats.pendingEncounters}
+            subtitle={`${stats.pendingPrescriptions} pending Rx`}
+            icon={Stethoscope}
+            href="/doctor/encounters"
+            colorScheme="amber"
+          />
+        </StaggerItem>
+
+        <StaggerItem>
+          <ClinicalStatCard
+            title="Pending Lab Reports"
+            value={labMetrics.pendingReview}
+            subtitle={
+              labMetrics.abnormalCount > 0
+                ? `${labMetrics.total} total • ${labMetrics.abnormalCount} flagged`
+                : `${labMetrics.total} available reports`
+            }
+            icon={FlaskConical}
+            href="/doctor/reports"
+            colorScheme="purple"
+            isLoading={isReportsLoading}
+          />
+        </StaggerItem>
+      </StaggerList>
+
+      {/* 3. Doctor Professional Profile Summary */}
       <DoctorProfileCard profile={profile} />
 
-      {/* 3. Clinical Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <ClinicalStatCard
-          title="Today's Consults"
-          value={stats.todayAppointments}
-          subtitle="Scheduled today"
-          icon={Calendar}
-          href="/doctor/appointments"
-          colorScheme="blue"
-        />
-        <ClinicalStatCard
-          title="Upcoming"
-          value={stats.upcomingAppointments}
-          subtitle="Next 7 days"
-          icon={Clock}
-          href="/doctor/appointments"
-          colorScheme="teal"
-        />
-        <ClinicalStatCard
-          title="Assigned Patients"
-          value={stats.totalAssignedPatients}
-          subtitle="Authorized roster"
-          icon={Users}
-          href="/doctor/patients"
-          colorScheme="indigo"
-        />
-        <ClinicalStatCard
-          title="Encounters"
-          value={stats.pendingEncounters}
-          subtitle="Pending completion"
-          icon={Stethoscope}
-          href="/doctor/encounters"
-          colorScheme="amber"
-        />
-        <ClinicalStatCard
-          title="Prescriptions"
-          value={stats.pendingPrescriptions}
-          subtitle="Pending issuance"
-          icon={Pill}
-          href="/doctor/prescriptions"
-          colorScheme="purple"
-        />
-      </div>
-
-      {/* 4. Two-Column Clinical Schedule & Activity Layout */}
+      {/* 4. Two-Column Clinical Schedule & Activity Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Today's Consultations + Recent Clinical Feed */}
         <div className="lg:col-span-2 space-y-6">
+          <UpcomingVideoConsultations />
           <TodaysAppointments appointments={todayAppointments} />
           <ClinicalActivity activities={recentActivities} />
         </div>
 
-        {/* Right Column: Upcoming Consultations + Compact Patient Roster */}
         <div className="space-y-6">
           <UpcomingAppointments appointments={upcomingAppointments} />
           <AssignedPatients patients={assignedPatientsPreview} />

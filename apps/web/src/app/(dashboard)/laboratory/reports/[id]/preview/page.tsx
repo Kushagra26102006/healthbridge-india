@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -10,6 +10,8 @@ import {
   FileCheck,
   ShieldCheck,
   RefreshCw,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { useLaboratoryReportDetail } from '@/features/laboratory/hooks/use-laboratory-reports';
 import { ReportStatusBadge } from '@/features/laboratory/components/ReportStatusBadge';
@@ -17,6 +19,7 @@ import { ReportStatusBadge } from '@/features/laboratory/components/ReportStatus
 export default function LaboratoryReportPreviewPage() {
   const params = useParams();
   const reportId = String(params?.id || '');
+  const [zoomPercent, setZoomPercent] = useState(100);
 
   const {
     report,
@@ -74,7 +77,35 @@ export default function LaboratoryReportPreviewPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-1 px-1.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs">
+            <button
+              type="button"
+              onClick={() => setZoomPercent((z) => Math.max(75, z - 15))}
+              disabled={zoomPercent <= 75}
+              aria-label="Zoom out report preview"
+              className="p-1 text-slate-600 dark:text-slate-300 disabled:opacity-40"
+            >
+              <ZoomOut className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomPercent(100)}
+              className="font-mono text-[11px] px-1 text-slate-700 dark:text-slate-200"
+            >
+              {zoomPercent}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomPercent((z) => Math.min(145, z + 15))}
+              disabled={zoomPercent >= 145}
+              aria-label="Zoom in report preview"
+              className="p-1 text-slate-600 dark:text-slate-300 disabled:opacity-40"
+            >
+              <ZoomIn className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          </div>
+
           {report.status === 'APPROVED' && (
             <button
               onClick={() => publishReport({ publicationNotes: 'Released via Preview' })}
@@ -111,7 +142,11 @@ export default function LaboratoryReportPreviewPage() {
       )}
 
       {/* Actual Printable Document Sheet */}
-      <div className="bg-white text-slate-900 p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-lg font-sans print:border-none print:shadow-none print:p-0">
+      <div className="overflow-x-auto print:overflow-visible">
+      <div
+        style={{ zoom: `${zoomPercent}%` }}
+        className="bg-white text-slate-900 p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-lg font-sans print:border-none print:shadow-none print:p-0"
+      >
         {/* Document Header */}
         <div className="border-b-2 border-slate-900 pb-4 mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
@@ -182,8 +217,8 @@ export default function LaboratoryReportPreviewPage() {
         </div>
 
         {/* Investigation Parameters Table */}
-        <div className="border border-slate-300 rounded-lg overflow-hidden mb-6">
-          <table className="w-full text-left text-xs">
+        <div className="border border-slate-300 rounded-lg overflow-x-auto mb-6">
+          <table className="w-full min-w-[540px] text-left text-xs">
             <thead className="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
               <tr>
                 <th className="px-4 py-2.5">Investigation Parameter</th>
@@ -265,6 +300,7 @@ export default function LaboratoryReportPreviewPage() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import { laboratoryReportsApi } from '@/features/laboratory/api/laboratory-reports-api';
 import { ReportStatusBadge } from '@/features/laboratory/components/ReportStatusBadge';
+import { useClinicalActionFeedback } from '@/components/motion';
 import type { LabReportListItemDto } from '@healthbridge/shared-types';
 
 export default function DoctorReportsPage() {
+  const feedback = useClinicalActionFeedback();
   const [reports, setReports] = useState<LabReportListItemDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,10 @@ export default function DoctorReportsPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert('Failed to download PDF document');
+      feedback.notifyOperationError(
+        'PDF Download Failed',
+        'Unable to download the diagnostic report PDF right now.'
+      );
     }
   };
 

@@ -11,10 +11,24 @@ import {
 
 export const recordRoutes = Router();
 
-// All record endpoints require active session authentication
+// Short-lived signed-token preview route:
+// Allows secure inline rendering via HMAC-signed ?token=... OR falls back to JWT authenticate middleware.
+recordRoutes.get(
+  '/:recordId/preview',
+  validateRequest({ params: recordIdParamSchema }),
+  (req, res, next) => {
+    if (typeof req.query.token === 'string' && req.query.token.length > 0) {
+      return next();
+    }
+    return authenticate(req, res, next);
+  },
+  recordController.previewRecord
+);
+
+// All remaining record endpoints require active session authentication
 recordRoutes.use(authenticate);
 
-// 1. GET /api/v1/records/summary — Summary counts across clinical record types
+// 1. GET /api/v1/records/summary — Summary counts & storage usage across clinical record types
 recordRoutes.get(
   '/summary',
   authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
@@ -37,7 +51,15 @@ recordRoutes.post(
   recordController.createRecord
 );
 
-// 4. GET /api/v1/records/:recordId/download — Authorized document download
+// 4. GET /api/v1/records/:recordId/access-token — Short-lived signed preview/download link
+recordRoutes.get(
+  '/:recordId/access-token',
+  authorize(['PATIENT', 'DOCTOR']),
+  validateRequest({ params: recordIdParamSchema }),
+  recordController.issueAccessToken
+);
+
+// 5. GET /api/v1/records/:recordId/download — Authorized document download
 recordRoutes.get(
   '/:recordId/download',
   authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
@@ -45,7 +67,15 @@ recordRoutes.get(
   recordController.downloadRecord
 );
 
-// 5. GET /api/v1/records/:recordId — Single record details with ownership verification
+// 6. DELETE /api/v1/records/:recordId — Safe patient-owned document archival
+recordRoutes.delete(
+  '/:recordId',
+  authorize(['PATIENT']),
+  validateRequest({ params: recordIdParamSchema }),
+  recordController.archiveRecord
+);
+
+// 7. GET /api/v1/records/:recordId — Single record details with ownership verification
 recordRoutes.get(
   '/:recordId',
   authorize(['PATIENT', 'DOCTOR', 'ADMIN']),

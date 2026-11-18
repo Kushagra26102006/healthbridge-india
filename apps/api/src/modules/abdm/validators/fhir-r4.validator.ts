@@ -33,6 +33,10 @@ const KNOWN_TERMINOLOGY_SYSTEMS = new Set([
   'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
   'http://terminology.hl7.org/CodeSystem/v3-ActCode',
   'http://terminology.hl7.org/CodeSystem/provenance-participant-type',
+  'http://terminology.hl7.org/CodeSystem/condition-clinical',
+  'http://terminology.hl7.org/CodeSystem/condition-ver-status',
+  'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical',
+  'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification',
   'http://hl7.org/fhir/sid/icd-10',
   'https://nrces.in/ndhm/fhir/r4/CodeSystem/ndhm-identifier-type-code',
   'https://abdm.gov.in/hiecm/purpose',
@@ -50,12 +54,15 @@ const SUPPORTED_RESOURCE_TYPES = new Set<string>([
   'Practitioner',
   'Organization',
   'Encounter',
+  'Appointment',
   'Observation',
   'DiagnosticReport',
   'ServiceRequest',
   'Specimen',
   'MedicationRequest',
   'MedicationStatement',
+  'Condition',
+  'AllergyIntolerance',
   'DocumentReference',
   'Consent',
   'Provenance',
@@ -152,8 +159,20 @@ export class FhirR4Validator {
       case 'Encounter':
         this.validateEncounter(resource, errors);
         break;
+      case 'Appointment':
+        this.validateAppointment(resource, errors);
+        break;
       case 'MedicationRequest':
         this.validateMedicationRequest(resource, errors);
+        break;
+      case 'MedicationStatement':
+        this.validateMedicationStatement(resource, errors);
+        break;
+      case 'Condition':
+        this.validateCondition(resource, errors, warnings);
+        break;
+      case 'AllergyIntolerance':
+        this.validateAllergyIntolerance(resource, errors, warnings);
         break;
       case 'ServiceRequest':
         this.validateServiceRequest(resource, errors);
@@ -745,6 +764,123 @@ export class FhirR4Validator {
           });
         }
       }
+    }
+  }
+
+  private validateAppointment(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    const validStatuses = [
+      'proposed',
+      'pending',
+      'booked',
+      'arrived',
+      'fulfilled',
+      'cancelled',
+      'noshow',
+      'entered-in-error',
+      'checked-in',
+      'waitlist',
+    ];
+    if (!r.status || !validStatuses.includes(String(r.status))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'APPOINTMENT_STATUS_INVALID',
+        path: 'Appointment.status',
+        message: 'Appointment.status must be a valid FHIR R4 AppointmentStatus code.',
+      });
+    }
+    if (!Array.isArray(r.participant) || r.participant.length === 0) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'APPOINTMENT_PARTICIPANT_REQUIRED',
+        path: 'Appointment.participant',
+        message: 'Appointment requires at least one participant entry.',
+      });
+    }
+    if (r.start && !ISO_DATE_OR_DATETIME_REGEX.test(String(r.start))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'INVALID_DATE_FORMAT',
+        path: 'Appointment.start',
+        message: 'Appointment.start must follow ISO-8601 date/time format.',
+      });
+    }
+    if (r.end && !ISO_DATE_OR_DATETIME_REGEX.test(String(r.end))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'INVALID_DATE_FORMAT',
+        path: 'Appointment.end',
+        message: 'Appointment.end must follow ISO-8601 date/time format.',
+      });
+    }
+  }
+
+  private validateMedicationStatement(
+    r: Record<string, unknown>,
+    errors: FhirValidationIssueDto[]
+  ): void {
+    const validStatuses = [
+      'active',
+      'completed',
+      'entered-in-error',
+      'intended',
+      'stopped',
+      'on-hold',
+      'unknown',
+      'not-taken',
+    ];
+    if (!r.status || !validStatuses.includes(String(r.status))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'MEDICATION_STATEMENT_STATUS_INVALID',
+        path: 'MedicationStatement.status',
+        message: 'MedicationStatement.status must be a valid FHIR R4 status code.',
+      });
+    }
+    if (!r.medicationCodeableConcept && !r.medicationReference) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'MEDICATION_REQUIRED',
+        path: 'MedicationStatement.medication[x]',
+        message: 'MedicationStatement requires medicationCodeableConcept or medicationReference.',
+      });
+    }
+    this.validateReference(r.subject, 'MedicationStatement.subject', errors);
+  }
+
+  private validateCondition(
+    r: Record<string, unknown>,
+    errors: FhirValidationIssueDto[],
+    warnings: FhirValidationIssueDto[]
+  ): void {
+    this.validateReference(r.subject, 'Condition.subject', errors);
+    this.validateCodeableConcept(r.code, 'Condition.code', errors, warnings);
+    if (r.recordedDate && !ISO_DATE_OR_DATETIME_REGEX.test(String(r.recordedDate))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'INVALID_DATE_FORMAT',
+        path: 'Condition.recordedDate',
+        message: 'Condition.recordedDate must follow ISO-8601 format.',
+      });
+    }
+  }
+
+  private validateAllergyIntolerance(
+    r: Record<string, unknown>,
+    errors: FhirValidationIssueDto[],
+    warnings: FhirValidationIssueDto[]
+  ): void {
+    this.validateReference(r.patient, 'AllergyIntolerance.patient', errors);
+    this.validateCodeableConcept(r.code, 'AllergyIntolerance.code', errors, warnings);
+    if (
+      r.criticality &&
+      !['low', 'high', 'unable-to-assess'].includes(String(r.criticality))
+    ) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'ALLERGY_CRITICALITY_INVALID',
+        path: 'AllergyIntolerance.criticality',
+        message: "AllergyIntolerance.criticality must be 'low' | 'high' | 'unable-to-assess'.",
+      });
     }
   }
 

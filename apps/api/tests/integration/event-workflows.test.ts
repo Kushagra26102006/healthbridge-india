@@ -196,7 +196,7 @@ describe('Cross-Module Workflow Automation & Event Recovery — Integration Test
 
       expect(upsertSpy).toHaveBeenCalledTimes(8);
       // Verify ABDM external record preserves ABDM_EXTERNAL_IMPORT provenance
-      const abdmCall = upsertSpy.mock.calls[7][1] as any;
+      const abdmCall = (upsertSpy.mock.calls[7] as unknown as any[])[1];
       expect(abdmCall.$setOnInsert.provenance).toBe('ABDM_EXTERNAL_IMPORT');
     });
 

@@ -26,10 +26,48 @@ import type {
   AbdmIntegrationStatus,
   AbhaIntegrationAnalyticsDto,
 } from '@healthbridge/shared-types';
-import { abdmApi, type AbdmAdminStatusWithAbhaDto } from '@/features/abdm/api/abdm-api';
+import {
+  abdmApi,
+  type AbdmAdminStatusWithAbhaDto,
+  type AbdmFhirValidationResultDto,
+} from '@/features/abdm/api/abdm-api';
 import { abdmConsentApi } from '@/features/abdm/api/abdm-consent-api';
+import { ErrorState } from '@/components/ui/error-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DiagramVisual } from '@/components/ui/visual-asset';
+
+const SYNTHETIC_FHIR_SAMPLE = JSON.stringify(
+  {
+    resourceType: 'Condition',
+    id: 'synthetic-cond-001',
+    meta: {
+      profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition'],
+    },
+    clinicalStatus: {
+      coding: [
+        {
+          system: 'http://terminology.hl7.org/CodeSystem/condition-clinical',
+          code: 'active',
+        },
+      ],
+    },
+    code: {
+      coding: [
+        {
+          system: 'http://snomed.info/sct',
+          code: '59621000',
+          display: 'Essential hypertension',
+        },
+      ],
+      text: 'Essential hypertension',
+    },
+    subject: { reference: 'Patient/synthetic-patient-001' },
+    recordedDate: '2026-11-10T10:00:00Z',
+  },
+  null,
+  2
+);
 
 const STATUS_BADGE_MAP: Record<AbdmIntegrationStatus, string> = {
   NOT_CONFIGURED: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
@@ -68,6 +106,10 @@ export default function AdminAbdmIntegrationStatusPage() {
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fhirInput, setFhirInput] = useState(SYNTHETIC_FHIR_SAMPLE);
+  const [fhirValidating, setFhirValidating] = useState(false);
+  const [fhirResult, setFhirResult] = useState<AbdmFhirValidationResultDto | null>(null);
+  const [fhirParseError, setFhirParseError] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -120,6 +162,27 @@ export default function AdminAbdmIntegrationStatusPage() {
     }
   };
 
+  const handleValidateFhir = async () => {
+    setFhirParseError(null);
+    setFhirResult(null);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(fhirInput);
+    } catch {
+      setFhirParseError('Input is not valid JSON. Please check syntax and retry.');
+      return;
+    }
+    try {
+      setFhirValidating(true);
+      const result = await abdmApi.validateFhirResource(parsed, true);
+      setFhirResult(result);
+    } catch (err: any) {
+      setFhirParseError(err?.response?.data?.message || 'FHIR validation request failed.');
+    } finally {
+      setFhirValidating(false);
+    }
+  };
+
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);
@@ -160,6 +223,12 @@ export default function AdminAbdmIntegrationStatusPage() {
         </Button>
       </div>
 
+      {/* Neutral ABDM & HL7 FHIR R4 Architecture Diagrams */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <DiagramVisual asset="abdmEcosystemFlow" />
+        <DiagramVisual asset="fhirInteroperability" />
+      </div>
+
       {/* Security & Non-Production Governance Banner */}
       <div className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30 p-4 flex items-start gap-3">
         <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -177,12 +246,12 @@ export default function AdminAbdmIntegrationStatusPage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-center justify-between">
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={loadStatus}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          compact
+          title="ABDM Integration Telemetry Unavailable"
+          message={error}
+          onRetry={loadStatus}
+        />
       )}
 
       {loading && !data ? (
@@ -810,6 +879,184 @@ export default function AdminAbdmIntegrationStatusPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Inbound Webhook & Callback Processing Telemetry (PII-Free) */}
+          {data.webhookAnalytics && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Webhook className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                    Inbound Callback &amp; Webhook Processing Status (Zero Patient PII)
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Authenticated ABDM callback receipts, replay/duplicate idempotency guards, and failure counters.
+                  </p>
+                </div>
+                <span className="text-xs text-slate-500 font-mono">
+                  Last received:{' '}
+                  {data.webhookAnalytics.lastReceivedAt
+                    ? new Date(data.webhookAnalytics.lastReceivedAt).toLocaleString()
+                    : 'None recorded'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-slate-500">Total Callbacks</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">
+                    {data.webhookAnalytics.totalReceived}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-slate-500">Processed</p>
+                  <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                    {data.webhookAnalytics.processed}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-slate-500">Duplicates Ignored</p>
+                  <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">
+                    {data.webhookAnalytics.duplicatesIgnored}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-slate-500">Failed Callbacks</p>
+                  <p className="text-xl font-bold text-rose-700 dark:text-rose-400 mt-1">
+                    {data.webhookAnalytics.failed}
+                  </p>
+                </div>
+              </div>
+
+              {data.webhookAnalytics.recentEvents.length > 0 ? (
+                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold">Event Type</th>
+                        <th className="px-3 py-2 font-semibold">Correlation ID</th>
+                        <th className="px-3 py-2 font-semibold">Status</th>
+                        <th className="px-3 py-2 font-semibold">Received At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      {data.webhookAnalytics.recentEvents.map((ev) => (
+                        <tr key={`${ev.requestId}-${ev.eventType}`}>
+                          <td className="px-3 py-2 font-mono text-[11px]">{ev.eventType}</td>
+                          <td className="px-3 py-2 font-mono text-[11px] text-slate-500">
+                            {ev.correlationId}
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge variant="outline" className="font-mono text-[10px]">
+                              {ev.processingStatus}
+                            </Badge>
+                          </td>
+                          <td className="px-3 py-2 text-slate-500">
+                            {new Date(ev.receivedAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  No inbound ABDM webhook callbacks have been received yet.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Interactive FHIR R4 Structural Validator (Synthetic Test Payloads Only) */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileCode2 className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                  NRCeS FHIR R4 Structural Validator (Synthetic Payloads Only)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Tests internal structural validation via <code>POST /api/v1/abdm/fhir/validate</code>. Never paste real patient data.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFhirInput(SYNTHETIC_FHIR_SAMPLE);
+                    setFhirResult(null);
+                    setFhirParseError(null);
+                  }}
+                  className="text-xs h-8"
+                >
+                  Load Synthetic Sample
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleValidateFhir}
+                  disabled={fhirValidating}
+                  className="text-xs h-8"
+                >
+                  {fhirValidating ? 'Validating...' : 'Validate FHIR JSON'}
+                </Button>
+              </div>
+            </div>
+
+            <textarea
+              value={fhirInput}
+              onChange={(e) => setFhirInput(e.target.value)}
+              rows={8}
+              aria-label="Synthetic FHIR R4 JSON resource input"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 font-mono text-xs text-slate-900 dark:text-slate-100 focus-ring"
+            />
+
+            {fhirParseError && (
+              <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+                {fhirParseError}
+              </p>
+            )}
+
+            {fhirResult && (
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3.5 text-xs space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    Resource: <code className="font-mono">{fhirResult.resourceType}</code>
+                  </span>
+                  <Badge
+                    className={
+                      fhirResult.valid
+                        ? 'bg-emerald-100 text-emerald-800 border-none font-mono text-[10px]'
+                        : 'bg-rose-100 text-rose-800 border-none font-mono text-[10px]'
+                    }
+                  >
+                    {fhirResult.valid ? 'STRUCTURALLY VALID' : 'VALIDATION FAILED'}
+                  </Badge>
+                </div>
+                {fhirResult.errors.length > 0 && (
+                  <ul className="list-disc pl-5 text-rose-700 dark:text-rose-300 space-y-1">
+                    {fhirResult.errors.map((e, i) => (
+                      <li key={i}>
+                        <code className="font-mono">{e.path}</code>: {e.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {fhirResult.warnings.length > 0 && (
+                  <ul className="list-disc pl-5 text-amber-700 dark:text-amber-300 space-y-1">
+                    {fhirResult.warnings.map((w, i) => (
+                      <li key={i}>
+                        <code className="font-mono">{w.path}</code>: {w.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         </>
       ) : null}

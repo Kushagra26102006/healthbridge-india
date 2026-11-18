@@ -105,6 +105,8 @@ describe('Global Search & Discovery — HTTP Integration Tests', () => {
             destinationRoute: '/patient/prescriptions',
             date: '2026-11-18T08:00:00.000Z',
             status: 'ACTIVE',
+            sourceModule: 'healthcare',
+            metadata: {},
             score: 90,
           },
         ];
@@ -120,6 +122,8 @@ describe('Global Search & Discovery — HTTP Integration Tests', () => {
             destinationRoute: '/pharmacy/inventory',
             date: '2026-11-18T09:00:00.000Z',
             status: 'AVAILABLE',
+            sourceModule: 'pharmacy',
+            metadata: {},
             score: 85,
           },
         ];
@@ -135,6 +139,8 @@ describe('Global Search & Discovery — HTTP Integration Tests', () => {
             destinationRoute: '/laboratory/orders',
             date: '2026-11-18T09:30:00.000Z',
             status: 'SAMPLE_COLLECTED',
+            sourceModule: 'laboratory',
+            metadata: {},
             score: 95,
           },
         ];
@@ -150,6 +156,8 @@ describe('Global Search & Discovery — HTTP Integration Tests', () => {
             destinationRoute: '/admin/dashboard',
             date: '2026-11-18T07:00:00.000Z',
             status: 'ACTIVE',
+            sourceModule: 'admin',
+            metadata: {},
             score: 80,
           },
         ];
@@ -165,6 +173,8 @@ describe('Global Search & Discovery — HTTP Integration Tests', () => {
             destinationRoute: '/doctor/patients',
             date: '2026-11-18T06:00:00.000Z',
             status: 'ACTIVE',
+            sourceModule: 'users',
+            metadata: {},
             score: 95,
           },
         ];

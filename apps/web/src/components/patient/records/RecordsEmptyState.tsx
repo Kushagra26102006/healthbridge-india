@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { SearchX, FolderPlus, RotateCcw } from 'lucide-react';
+import { FolderPlus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyIllustration } from '@/components/ui/visual-asset';
 import { cn } from '@/lib/utils';
 
 export interface RecordsEmptyStateProps {
@@ -26,9 +27,7 @@ export function RecordsEmptyState({
           className
         )}
       >
-        <div className="w-12 h-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center">
-          <SearchX className="h-6 w-6" />
-        </div>
+        <EmptyIllustration asset="no-search-results" compact />
         <div className="space-y-1 max-w-sm">
           <h4 className="text-sm font-bold text-foreground">No matching health records</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
@@ -58,9 +57,7 @@ export function RecordsEmptyState({
         className
       )}
     >
-      <div className="w-12 h-12 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-        <FolderPlus className="h-6 w-6" />
-      </div>
+      <EmptyIllustration asset={onUploadClick ? 'upload-documents' : 'no-records'} />
       <div className="space-y-1 max-w-sm">
         <h4 className="text-sm font-bold text-foreground">No Health Records Available</h4>
         <p className="text-xs text-muted-foreground leading-relaxed">

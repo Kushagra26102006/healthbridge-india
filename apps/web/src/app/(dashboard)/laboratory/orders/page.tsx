@@ -134,7 +134,8 @@ export default function LaboratoryOrdersQueuePage() {
                         {order.patient?.name || 'Patient'}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-mono">
-                        {order.patient?.abhaAddress || order.patientId}
+                        {order.patient?.abhaAddress ||
+                          (typeof order.patientId === 'string' ? order.patientId : order.patient?.id || '—')}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">

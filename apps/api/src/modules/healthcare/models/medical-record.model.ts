@@ -4,6 +4,7 @@ import {
   MedicalRecordType,
   MedicalRecordSource,
   RecordVerificationStatus,
+  DocumentMalwareScanStatus,
 } from '@healthbridge/shared-types';
 
 export interface IMedicalRecordDocument extends Document {
@@ -18,11 +19,18 @@ export interface IMedicalRecordDocument extends Document {
   doctorId?: Types.ObjectId;
   facilityName?: string;
   facilityId?: Types.ObjectId;
+  appointmentId?: Types.ObjectId;
   fileUrl?: string;
   fileName?: string;
   mimeType?: string;
   fileSize?: number;
   fileData?: string;
+  storageId?: string;
+  sha256Checksum?: string;
+  scanStatus?: DocumentMalwareScanStatus;
+  isArchived?: boolean;
+  archivedAt?: Date;
+  archivedBy?: Types.ObjectId;
   verificationStatus: RecordVerificationStatus;
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -91,6 +99,11 @@ const MedicalRecordSchema = new Schema<IMedicalRecordDocument>(
       type: Schema.Types.ObjectId,
       index: true,
     },
+    appointmentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Appointment',
+      index: true,
+    },
     fileUrl: {
       type: String,
       trim: true,
@@ -109,6 +122,33 @@ const MedicalRecordSchema = new Schema<IMedicalRecordDocument>(
     },
     fileData: {
       type: String,
+    },
+    storageId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    sha256Checksum: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    scanStatus: {
+      type: String,
+      enum: ['CLEAN', 'INFECTED', 'SCAN_NOT_CONFIGURED'],
+      default: 'SCAN_NOT_CONFIGURED',
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    archivedAt: {
+      type: Date,
+    },
+    archivedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     verificationStatus: {
       type: String,
@@ -138,12 +178,14 @@ const MedicalRecordSchema = new Schema<IMedicalRecordDocument>(
   }
 );
 
-// High performance compound indexes for patient timeline and filter queries
+// High performance compound indexes for patient timeline, duplicate detection, and filter queries
 MedicalRecordSchema.index({ patientId: 1, recordType: 1, recordDate: -1 });
 MedicalRecordSchema.index({ patientId: 1, recordDate: -1 });
 MedicalRecordSchema.index({ patientId: 1, createdAt: -1 });
 MedicalRecordSchema.index({ patientId: 1, verificationStatus: 1 });
 MedicalRecordSchema.index({ patientId: 1, source: 1 });
+MedicalRecordSchema.index({ patientId: 1, isArchived: 1, recordDate: -1 });
+MedicalRecordSchema.index({ patientId: 1, sha256Checksum: 1, isArchived: 1 });
 
 export const MedicalRecordModel: Model<IMedicalRecordDocument> =
   (mongoose.models.MedicalRecord as Model<IMedicalRecordDocument>) ||

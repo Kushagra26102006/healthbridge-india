@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, m } from 'framer-motion';
 import {
   LayoutDashboard,
   Pill,
@@ -23,14 +24,16 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  ShieldCheck,
   Truck,
   FileSpreadsheet,
   RefreshCw,
   Users,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { modalBackdrop } from '@/lib/motion/variants';
+import { MOTION_DURATION, MOTION_EASE } from '@/lib/motion/tokens';
 import { cn } from '@/lib/utils';
 
 export interface PharmacyNavItem {
@@ -38,49 +41,47 @@ export interface PharmacyNavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
-  section?: string;
 }
 
-export const PHARMACY_NAV_SECTIONS = [
+export const PHARMACY_NAV_SECTIONS: { title: string; items: PharmacyNavItem[] }[] = [
   {
-    title: 'Clinical Operations',
+    title: 'Dispensing & Operations',
     items: [
-      { label: 'Dashboard', href: '/pharmacy/dashboard', icon: LayoutDashboard },
+      { label: 'Overview', href: '/pharmacy/dashboard', icon: LayoutDashboard },
       { label: 'Prescription Queue', href: '/pharmacy/prescriptions', icon: Pill },
-      { label: 'Dispensing Console', href: '/pharmacy/dispensing', icon: CheckCircle2 },
-      { label: 'Dispensing History', href: '/pharmacy/dispensing/history', icon: History },
-      { label: 'Orders & Fulfillment', href: '/pharmacy/orders', icon: ShoppingCart },
+      { label: 'Dispensing', href: '/pharmacy/dispensing', icon: CheckCircle2 },
+      { label: 'Orders', href: '/pharmacy/orders', icon: ShoppingCart },
+      { label: 'Analytics', href: '/pharmacy/analytics', icon: BarChart3 },
     ],
   },
   {
-    title: 'Inventory & Stock Management',
+    title: 'Inventory & Expiry',
     items: [
-      { label: 'Inventory Overview', href: '/pharmacy/inventory', icon: Package },
+      { label: 'Medicine Inventory', href: '/pharmacy/inventory', icon: Package },
       { label: 'Medicine Catalogue', href: '/pharmacy/inventory/medicines', icon: BookOpen },
-      { label: 'Batch Management', href: '/pharmacy/inventory/batches', icon: Boxes },
-      { label: 'Stock-In / Receiving', href: '/pharmacy/inventory/stock-in', icon: ArrowDownToLine },
-      { label: 'Stock Adjustment', href: '/pharmacy/inventory/stock-adjustment', icon: SlidersHorizontal },
-      { label: 'Transaction Ledger', href: '/pharmacy/inventory/transactions', icon: History },
-      { label: 'Expiry Tracking', href: '/pharmacy/inventory/expiry', icon: Clock },
       { label: 'Stock Alerts', href: '/pharmacy/inventory/alerts', icon: AlertTriangle },
+      { label: 'Expiry Management', href: '/pharmacy/inventory/expiry', icon: Clock },
+      { label: 'Batches & Stock-In', href: '/pharmacy/inventory/batches', icon: Boxes },
+      { label: 'Stock Adjustments', href: '/pharmacy/inventory/stock-adjustment', icon: SlidersHorizontal },
+      { label: 'Transaction Ledger', href: '/pharmacy/inventory/transactions', icon: History },
     ],
   },
   {
-    title: 'Procurement & Purchasing',
+    title: 'Suppliers & Procurement',
     items: [
       { label: 'Suppliers', href: '/pharmacy/suppliers', icon: Truck },
       { label: 'Purchase Orders', href: '/pharmacy/purchases', icon: FileSpreadsheet },
-      { label: 'Goods Receipts (GRN)', href: '/pharmacy/purchases/history', icon: ArrowDownToLine },
-      { label: 'Stock Replenishment', href: '/pharmacy/replenishment', icon: RefreshCw },
+      { label: 'Goods Receipts', href: '/pharmacy/purchases/history', icon: ArrowDownToLine },
+      { label: 'Replenishment', href: '/pharmacy/replenishment', icon: RefreshCw },
     ],
   },
   {
-    title: 'Organization & Account',
+    title: 'Organization & Settings',
     items: [
       { label: 'Notifications', href: '/pharmacy/notifications', icon: Bell },
       { label: 'Pharmacy Profile', href: '/pharmacy/profile', icon: Building2 },
       { label: 'Staff Management', href: '/pharmacy/settings/staff', icon: Users },
-      { label: 'Settings', href: '/pharmacy/settings', icon: Settings },
+      { label: 'Profile & Settings', href: '/pharmacy/settings', icon: Settings },
     ],
   },
 ];
@@ -101,94 +102,113 @@ export function PharmacySidebar({
   className,
 }: PharmacySidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
 
   const isLinkActive = (href: string) => {
+    if (href.includes('#')) return false;
     if (href === '/pharmacy/dashboard') {
       return pathname === '/pharmacy/dashboard' || pathname === '/pharmacy';
     }
     if (href === '/pharmacy/inventory') {
       return pathname === '/pharmacy/inventory';
     }
+    if (href === '/pharmacy/settings') {
+      return pathname === '/pharmacy/settings';
+    }
     return pathname.startsWith(href);
   };
 
   const navContent = (
-    <div className="flex flex-col h-full bg-slate-900 text-slate-100 border-r border-slate-800">
+    <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border select-none">
       {/* Brand Header */}
-      <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800 shrink-0">
-        <Link href="/pharmacy/dashboard" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform">
-            <Pill className="w-5 h-5 text-slate-950" />
+      <div className="h-16 md:h-[72px] flex items-center justify-between px-4 border-b border-border/80 shrink-0">
+        <Link
+          href="/pharmacy/dashboard"
+          className="flex items-center gap-2.5 group focus-ring rounded-md p-1 min-w-0"
+          aria-label="HealthBridge Pharmacy Workspace"
+        >
+          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand-teal via-emerald-600 to-brand-cyan text-white flex items-center justify-center shrink-0 shadow-xs group-hover:shadow-glow transition-shadow">
+            <Pill className="w-5 h-5" aria-hidden="true" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-bold text-base tracking-tight text-white leading-none">
-                HealthBridge
+            <div className="flex flex-col leading-none min-w-0">
+              <span className="font-bold text-base tracking-tight text-foreground truncate">
+                Health<span className="text-secondary">Bridge</span>
               </span>
-              <span className="text-[11px] font-semibold text-teal-400 uppercase tracking-wider mt-1">
-                Pharmacy Portal
+              <span className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                Pharmacy Workspace
               </span>
             </div>
           )}
         </Link>
-        {onCloseMobile && (
+
+        {mobileOpen && (
           <button
+            type="button"
             onClick={onCloseMobile}
-            className="md:hidden text-slate-400 hover:text-white p-1 rounded-lg"
-            aria-label="Close menu"
+            className="lg:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-ring"
+            aria-label="Close navigation menu"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {onToggleCollapse && !mobileOpen && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:inline-flex items-center justify-center h-7 w-7 rounded-sm border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-ring shrink-0"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            )}
           </button>
         )}
       </div>
 
-      {/* Verified Badge Pill */}
-      {!collapsed && (
-        <div className="px-4 py-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0">
-          <div className="flex items-center gap-2 text-xs text-slate-300">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="truncate font-medium">{user?.name || 'Verified Pharmacy'}</span>
-            <Badge
-              variant="outline"
-              className="ml-auto text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10 font-mono"
-            >
-              PHARMACY
-            </Badge>
-          </div>
-        </div>
-      )}
-
-      {/* Nav Menu Items */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
-        {PHARMACY_NAV_SECTIONS.map((section, sIdx) => (
-          <div key={sIdx} className="space-y-1">
+      {/* Navigation Sections */}
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-4"
+        aria-label="Pharmacy Portal Navigation"
+      >
+        {PHARMACY_NAV_SECTIONS.map((section) => (
+          <div key={section.title} className="space-y-1">
             {!collapsed && (
-              <p className="px-3 text-[10px] font-semibold tracking-wider uppercase text-slate-400/90 mb-1.5">
+              <p className="px-3 text-[11px] font-semibold tracking-wider uppercase text-muted-foreground mb-1.5">
                 {section.title}
               </p>
             )}
             {section.items.map((item) => {
               const active = isLinkActive(item.href);
               const Icon = item.icon;
-
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onCloseMobile}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-xs md:text-sm transition-all duration-150 group',
-                    active
-                      ? 'bg-gradient-to-r from-teal-500/20 to-teal-500/5 text-teal-300 border-l-4 border-teal-400 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                  )}
+                  onClick={() => onCloseMobile?.()}
+                  aria-current={active ? 'page' : undefined}
                   title={collapsed ? item.label : undefined}
+                  className={cn(
+                    'group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 relative focus-ring',
+                    active
+                      ? 'bg-secondary/12 text-secondary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/75',
+                    collapsed && 'justify-center px-2'
+                  )}
                 >
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-pill bg-secondary"
+                    />
+                  )}
                   <Icon
                     className={cn(
-                      'w-4 h-4 shrink-0 transition-colors',
-                      active ? 'text-teal-400' : 'text-slate-400 group-hover:text-slate-200'
+                      'w-[18px] h-[18px] shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
+                      active ? 'text-secondary' : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   />
                   {!collapsed && <span className="truncate">{item.label}</span>}
@@ -199,33 +219,39 @@ export function PharmacySidebar({
         ))}
       </nav>
 
-      {/* Bottom Footer Area */}
-      <div className="p-3 border-t border-slate-800 space-y-2 shrink-0">
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            className="hidden md:flex items-center justify-center w-full py-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-lg transition-colors"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      {/* Footer Identity & Sign Out */}
+      <div className="p-3 border-t border-border/80 bg-muted/25 space-y-2 shrink-0">
+        {!collapsed ? (
+          <Link
+            href="/pharmacy/profile"
+            onClick={() => onCloseMobile?.()}
+            className="flex items-center gap-2.5 p-2 rounded-md bg-surface border border-border/70 hover:border-secondary/30 transition-colors focus-ring"
           >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <span className="flex items-center gap-2">
-                <ChevronLeft className="w-4 h-4" /> Collapse Sidebar
-              </span>
-            )}
-          </button>
+            <Avatar name={user?.name || 'Pharmacy'} size="sm" status="online" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">
+                {user?.name || 'Pharmacy'}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex justify-center py-1">
+            <Avatar name={user?.name || 'Pharmacy'} size="sm" status="online" />
+          </div>
         )}
 
         <button
+          type="button"
           onClick={() => logout()}
+          disabled={isLoading}
+          aria-label="Sign out of pharmacy portal"
           className={cn(
-            'flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors',
-            collapsed && 'justify-center'
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-semibold text-error hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors focus-ring disabled:opacity-50',
+            collapsed && 'justify-center px-2'
           )}
-          title="Sign out of pharmacy portal"
         >
-          <LogOut className="w-5 h-5 shrink-0" />
+          <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -234,35 +260,52 @@ export function PharmacySidebar({
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside
         className={cn(
-          'hidden md:flex flex-col shrink-0 transition-all duration-200 sticky top-0 h-screen z-30',
-          collapsed ? 'w-20' : 'w-64',
+          'hidden lg:flex flex-col shrink-0 transition-[width] duration-200 ease-out sticky top-0 h-screen z-30',
+          collapsed ? 'w-[76px]' : 'w-64 xl:w-72',
           className
         )}
       >
         {navContent}
       </aside>
 
-      {/* Mobile Drawer Backdrop */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden animate-fade-in"
-          onClick={onCloseMobile}
-        />
-      )}
-
-      {/* Mobile Drawer Slider */}
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 md:hidden transform transition-transform duration-200 ease-in-out',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      <AnimatePresence>
+        {mobileOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Pharmacy Navigation Drawer"
+            className="lg:hidden fixed inset-0 z-50 flex"
+          >
+            <m.div
+              variants={modalBackdrop}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 bg-slate-950/55 backdrop-blur-xs"
+              onClick={onCloseMobile}
+              aria-hidden="true"
+            />
+            <m.div
+              initial={{ x: '-100%' }}
+              animate={{
+                x: 0,
+                transition: { duration: MOTION_DURATION.normal, ease: MOTION_EASE.standard },
+              }}
+              exit={{
+                x: '-100%',
+                transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.exit },
+              }}
+              className="relative w-72 max-w-[85vw] h-full shadow-dialog z-10"
+            >
+              {navContent}
+            </m.div>
+          </div>
         )}
-      >
-        {navContent}
-      </aside>
+      </AnimatePresence>
     </>
   );
 }
+
 export default PharmacySidebar;

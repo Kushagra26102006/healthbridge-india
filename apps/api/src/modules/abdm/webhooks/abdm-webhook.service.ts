@@ -17,6 +17,7 @@ import mongoose from 'mongoose';
 import type {
   AbdmWebhookCallbackPayloadDto,
   AbdmWebhookAckDto,
+  AbdmWebhookAdminAnalyticsDto,
 } from '@healthbridge/shared-types';
 import { AbdmWebhookEventModel } from '../models/abdm-webhook-event.model';
 import { abdmConfigurationService } from '../services/abdm-configuration.service';
@@ -285,6 +286,71 @@ export class AbdmWebhookService {
     }
 
     return ack;
+  }
+
+  /**
+   * Returns aggregate, PII-free webhook/callback telemetry for Admin Integration Monitoring.
+   */
+  async getAdminWebhookAnalytics(): Promise<AbdmWebhookAdminAnalyticsDto> {
+    const evaluatedAt = new Date().toISOString();
+    const dbReady = mongoose.connection.readyState === 1;
+
+    if (dbReady) {
+      try {
+        const [totalReceived, processed, duplicatesIgnored, failed, recentDocs] = await Promise.all([
+          AbdmWebhookEventModel.countDocuments({}),
+          AbdmWebhookEventModel.countDocuments({ processingStatus: 'PROCESSED' }),
+          AbdmWebhookEventModel.countDocuments({ processingStatus: 'DUPLICATE_IGNORED' }),
+          AbdmWebhookEventModel.countDocuments({ processingStatus: 'FAILED' }),
+          AbdmWebhookEventModel.find({})
+            .sort({ receivedAt: -1 })
+            .limit(10)
+            .select('requestId correlationId eventType processingStatus errorMessage receivedAt processedAt')
+            .lean(),
+        ]);
+
+        return {
+          totalReceived,
+          processed,
+          duplicatesIgnored,
+          failed,
+          lastReceivedAt: recentDocs[0]?.receivedAt
+            ? new Date(recentDocs[0].receivedAt).toISOString()
+            : null,
+          recentEvents: recentDocs.map((doc) => ({
+            requestId: doc.requestId,
+            correlationId: doc.correlationId,
+            eventType: doc.eventType,
+            processingStatus: doc.processingStatus,
+            errorMessage: doc.errorMessage,
+            receivedAt: new Date(doc.receivedAt).toISOString(),
+            processedAt: doc.processedAt ? new Date(doc.processedAt).toISOString() : undefined,
+          })),
+          evaluatedAt,
+        };
+      } catch {
+        // Fall through to in-memory telemetry if DB unavailable
+      }
+    }
+
+    const inMem = Array.from(this.inMemoryProcessedKeys.values()).sort(
+      (a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
+    );
+    return {
+      totalReceived: inMem.length,
+      processed: inMem.filter((e) => e.status === 'PROCESSED').length,
+      duplicatesIgnored: inMem.filter((e) => e.status === 'DUPLICATE_IGNORED').length,
+      failed: inMem.filter((e) => e.status === 'FAILED').length,
+      lastReceivedAt: inMem[0]?.receivedAt || null,
+      recentEvents: inMem.slice(0, 10).map((e) => ({
+        requestId: e.requestId,
+        correlationId: e.correlationId,
+        eventType: e.eventType,
+        processingStatus: e.status,
+        receivedAt: e.receivedAt,
+      })),
+      evaluatedAt,
+    };
   }
 
   clearInMemoryCache(): void {

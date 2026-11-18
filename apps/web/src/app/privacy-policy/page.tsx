@@ -17,7 +17,7 @@ export default function PublicPrivacyPolicyPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
+    <main id="main-content" className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between gap-4">
           <Link
@@ -84,18 +84,18 @@ export default function PublicPrivacyPolicyPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-muted/40 p-6 text-xs text-muted-foreground space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Grievance & Privacy Contact</h3>
+          <h2 className="text-sm font-semibold text-foreground">Grievance & Privacy Contact</h2>
           <p>{notice?.organization.grievanceChannelLabel}</p>
           <p>
             Signed-in patients can manage consents, review access history, request data exports,
             submit corrections, or request account closure directly from{' '}
-            <Link href="/patient/privacy" className="text-teal-600 dark:text-teal-400 underline">
+            <Link href="/patient/privacy" className="text-teal-700 dark:text-teal-300 underline">
               the Patient Privacy Dashboard
             </Link>
             .
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

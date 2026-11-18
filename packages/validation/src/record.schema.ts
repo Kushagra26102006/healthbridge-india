@@ -4,9 +4,12 @@ export const HEALTH_RECORD_TYPES_LIST = [
   'OP_CONSULTATION',
   'DISCHARGE_SUMMARY',
   'DIAGNOSTIC_REPORT',
+  'IMAGING_REPORT',
   'PRESCRIPTION',
+  'MEDICAL_CERTIFICATE',
   'IMMUNIZATION_RECORD',
   'WELLNESS_RECORD',
+  'OTHER_MEDICAL_DOCUMENT',
 ] as const;
 
 export const RECORD_SOURCES_LIST = ['MANUAL_ENTRY', 'ABDM_INGESTION', 'EHR_SYNC'] as const;
@@ -40,6 +43,10 @@ export const createRecordSchema = z.object({
   description: z.string().trim().max(5000, 'Description cannot exceed 5000 characters').optional(),
   doctorName: z.string().trim().max(200, 'Doctor name cannot exceed 200 characters').optional(),
   facilityName: z.string().trim().max(200, 'Facility name cannot exceed 200 characters').optional(),
+  appointmentId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid appointment ID format')
+    .optional(),
   fileName: z.string().trim().max(255, 'File name cannot exceed 255 characters').optional(),
   fileSize: z
     .number()
@@ -47,6 +54,7 @@ export const createRecordSchema = z.object({
     .optional(),
   mimeType: allowedMimeTypesEnum.optional(),
   fileData: z.string().optional(),
+  allowDuplicate: z.boolean().optional(),
 });
 
 export const recordFilterQuerySchema = z.object({
@@ -57,8 +65,10 @@ export const recordFilterQuerySchema = z.object({
   recordType: recordTypeEnum.optional(),
   source: recordSourceEnum.optional(),
   verificationStatus: recordVerificationStatusEnum.optional(),
+  provider: z.string().trim().max(100).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  includeArchived: z.coerce.boolean().optional(),
   sortBy: z.enum(['recordDate', 'createdAt', 'title']).default('recordDate'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

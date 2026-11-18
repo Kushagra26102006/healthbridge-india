@@ -3,9 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, m } from 'framer-motion';
 import {
   LayoutDashboard,
-  TestTube2,
   ClipboardList,
   FlaskConical,
   Building2,
@@ -14,11 +14,10 @@ import {
   Settings,
   UserCheck,
   ChevronLeft,
+  ChevronRight,
   LogOut,
   X,
   Scan,
-  PlusCircle,
-  ShieldCheck,
   AlertTriangle,
   Cpu,
   Gauge,
@@ -27,14 +26,15 @@ import {
   BarChart3,
   Users,
   Calendar,
-  Clock,
-  Briefcase,
   Network,
   KeyRound,
-  CalendarCheck,
+  Activity,
+  CheckSquare,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { modalBackdrop } from '@/lib/motion/variants';
+import { MOTION_DURATION, MOTION_EASE } from '@/lib/motion/tokens';
 import { cn } from '@/lib/utils';
 
 export interface LabNavItem {
@@ -46,60 +46,44 @@ export interface LabNavItem {
 
 export const LAB_NAV_SECTIONS: { title: string; items: LabNavItem[] }[] = [
   {
-    title: 'Operations',
+    title: 'Diagnostic Operations',
     items: [
       { label: 'Overview', href: '/laboratory/dashboard', icon: LayoutDashboard },
-      { label: 'Lab Orders', href: '/laboratory/orders', icon: ClipboardList },
-      { label: 'Samples', href: '/laboratory/samples', icon: FlaskConical },
-      { label: 'Barcode Scan', href: '/laboratory/samples/scan', icon: Scan },
+      { label: 'Test Orders', href: '/laboratory/orders', icon: ClipboardList },
+      { label: 'Sample Tracking', href: '/laboratory/samples', icon: FlaskConical },
+      { label: 'Barcode Accessioning', href: '/laboratory/samples/scan', icon: Scan },
+      { label: 'Test Processing', href: '/laboratory/workload', icon: Activity },
+      { label: 'Test Results', href: '/laboratory/tests', icon: CheckSquare },
+      { label: 'Report Management', href: '/laboratory/reports', icon: FileText },
     ],
   },
   {
-    title: 'Catalogue & Network',
+    title: 'Quality & Equipment',
     items: [
-      { label: 'Test Catalogue', href: '/laboratory/tests', icon: TestTube2 },
-      { label: 'Add New Test', href: '/laboratory/tests/new', icon: PlusCircle },
-      { label: 'Collection Centers', href: '/laboratory/collection-centers', icon: Building2 },
-    ],
-  },
-  {
-    title: 'Diagnostics & Reports',
-    items: [
-      { label: 'Diagnostic Reports', href: '/laboratory/reports', icon: FileText },
-      { label: 'Notifications', href: '/laboratory/notifications', icon: Bell },
-    ],
-  },
-  {
-    title: 'Quality & QMS',
-    items: [
-      { label: 'Quality Dashboard', href: '/laboratory/quality', icon: ShieldCheck },
       { label: 'Quality Control', href: '/laboratory/quality/control', icon: Gauge },
-      { label: 'Incidents', href: '/laboratory/quality/incidents', icon: AlertTriangle },
-      { label: 'CAPA Actions', href: '/laboratory/quality/capa', icon: ShieldCheck },
-      { label: 'Instruments', href: '/laboratory/quality/instruments', icon: Cpu },
-      { label: 'Calibration', href: '/laboratory/quality/calibration', icon: Gauge },
-      { label: 'Maintenance', href: '/laboratory/quality/maintenance', icon: Wrench },
+      { label: 'Equipment Management', href: '/laboratory/quality/instruments', icon: Cpu },
+      { label: 'Calibration & Maintenance', href: '/laboratory/quality/calibration', icon: Wrench },
+      { label: 'Incidents & CAPA', href: '/laboratory/quality/capa', icon: AlertTriangle },
       { label: 'Reagent Stock', href: '/laboratory/inventory/reagents', icon: Boxes },
-      { label: 'Quality Analytics', href: '/laboratory/quality/analytics', icon: BarChart3 },
+      { label: 'Analytics', href: '/laboratory/quality/analytics', icon: BarChart3 },
     ],
   },
   {
-    title: 'Workforce & Scheduling',
+    title: 'Staff & Network',
     items: [
-      { label: 'Staff Directory', href: '/laboratory/staff', icon: Users },
+      { label: 'Staff Management', href: '/laboratory/staff', icon: Users },
       { label: 'Departments', href: '/laboratory/departments', icon: Network },
-      { label: 'Shift Roster', href: '/laboratory/scheduling/shifts', icon: Clock },
       { label: 'Shift Calendar', href: '/laboratory/scheduling/calendar', icon: Calendar },
-      { label: 'Leave & Availability', href: '/laboratory/scheduling/leave', icon: CalendarCheck },
-      { label: 'Workload Board', href: '/laboratory/workload', icon: Briefcase },
+      { label: 'Collection Centers', href: '/laboratory/collection-centers', icon: Building2 },
       { label: 'Role Permissions', href: '/laboratory/staff/permissions', icon: KeyRound },
     ],
   },
   {
     title: 'Administration',
     items: [
-      { label: 'Laboratory Profile', href: '/laboratory/profile', icon: UserCheck },
-      { label: 'Settings', href: '/laboratory/settings', icon: Settings },
+      { label: 'Notifications', href: '/laboratory/notifications', icon: Bell },
+      { label: 'Lab Profile', href: '/laboratory/profile', icon: UserCheck },
+      { label: 'Profile & Settings', href: '/laboratory/settings', icon: Settings },
     ],
   },
 ];
@@ -120,170 +104,207 @@ export function LaboratorySidebar({
   className,
 }: LaboratorySidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
 
-  const sidebarContent = (
-    <aside
-      className={cn(
-        'h-full flex flex-col bg-slate-900 text-slate-200 border-r border-slate-800 transition-all duration-300 select-none shadow-xl',
-        collapsed ? 'w-20' : 'w-64',
-        className
-      )}
-    >
+  const isLinkActive = (href: string) => {
+    if (href === '/laboratory/dashboard') {
+      return pathname === '/laboratory/dashboard' || pathname === '/laboratory';
+    }
+    if (href === '/laboratory/samples') {
+      return pathname === '/laboratory/samples' || pathname.startsWith('/laboratory/samples/collect');
+    }
+    if (href === '/laboratory/staff') {
+      return pathname === '/laboratory/staff' || pathname.startsWith('/laboratory/staff/invite');
+    }
+    return pathname.startsWith(href);
+  };
+
+  const navContent = (
+    <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border select-none">
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 bg-slate-950/40">
+      <div className="h-16 md:h-[72px] flex items-center justify-between px-4 border-b border-border/80 shrink-0">
         <Link
           href="/laboratory/dashboard"
-          className={cn(
-            'flex items-center gap-3 overflow-hidden group focus:outline-none',
-            collapsed && 'justify-center w-full'
-          )}
+          className="flex items-center gap-2.5 group focus-ring rounded-md p-1 min-w-0"
+          aria-label="HealthBridge Laboratory Workspace"
         >
-          <div className="w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 group-hover:bg-teal-500/20 transition-colors shrink-0">
-            <FlaskConical className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand-blue via-brand-teal to-brand-cyan text-white flex items-center justify-center shrink-0 shadow-xs group-hover:shadow-glow transition-shadow">
+            <FlaskConical className="w-5 h-5" aria-hidden="true" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col truncate">
-              <span className="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
-                HealthBridge
-                <span className="text-[10px] font-bold tracking-wider text-teal-400 bg-teal-950/60 px-1.5 py-0.5 rounded border border-teal-800/40">
-                  LIMS
-                </span>
+            <div className="flex flex-col leading-none min-w-0">
+              <span className="font-bold text-base tracking-tight text-foreground truncate">
+                Health<span className="text-secondary">Bridge</span>
               </span>
-              <span className="text-[11px] text-slate-400 truncate">
-                Diagnostic Lab Portal
+              <span className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                Diagnostic LIMS
               </span>
             </div>
           )}
         </Link>
 
-        {onToggleCollapse && !collapsed && (
+        {mobileOpen && (
           <button
-            onClick={onToggleCollapse}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors hidden md:block"
-            title="Collapse sidebar"
+            type="button"
+            onClick={onCloseMobile}
+            className="lg:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-ring"
+            aria-label="Close navigation menu"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {onToggleCollapse && !mobileOpen && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:inline-flex items-center justify-center h-7 w-7 rounded-sm border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-ring shrink-0"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            )}
           </button>
         )}
       </div>
 
-      {/* Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-700">
-        {LAB_NAV_SECTIONS.map((section, idx) => (
-          <div key={idx} className="space-y-1">
+      {/* Navigation Sections */}
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-4"
+        aria-label="Laboratory Navigation"
+      >
+        {LAB_NAV_SECTIONS.map((section) => (
+          <div key={section.title} className="space-y-1">
             {!collapsed && (
-              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                 {section.title}
               </p>
             )}
             {section.items.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== '/laboratory/dashboard' &&
-                  pathname.startsWith(item.href));
+              const active = isLinkActive(item.href);
               const Icon = item.icon;
-
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onCloseMobile}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-all group relative',
-                    isActive
-                      ? 'bg-teal-600/20 text-teal-300 font-semibold border-l-2 border-teal-400'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60',
-                    collapsed && 'justify-center px-0'
-                  )}
+                  onClick={() => onCloseMobile?.()}
+                  aria-current={active ? 'page' : undefined}
                   title={collapsed ? item.label : undefined}
+                  className={cn(
+                    'group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 relative focus-ring',
+                    active
+                      ? 'bg-secondary/12 text-secondary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/75',
+                    collapsed && 'justify-center px-2'
+                  )}
                 >
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-pill bg-secondary"
+                    />
+                  )}
                   <Icon
                     className={cn(
-                      'w-4 h-4 shrink-0 transition-colors',
-                      isActive
-                        ? 'text-teal-400'
-                        : 'text-slate-400 group-hover:text-slate-200'
+                      'w-[18px] h-[18px] shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
+                      active ? 'text-secondary' : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   />
-                  {!collapsed && (
-                    <span className="truncate flex-1">{item.label}</span>
-                  )}
-                  {!collapsed && item.badge && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-auto text-[10px] px-1.5 py-0 bg-slate-800 text-slate-300 border-none"
-                    >
-                      {item.badge}
-                    </Badge>
-                  )}
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
           </div>
         ))}
-      </div>
+      </nav>
 
-      {/* User Footer Profile */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40">
-        <div
-          className={cn(
-            'flex items-center gap-3 p-2 rounded-lg bg-slate-800/40',
-            collapsed && 'justify-center p-1'
-          )}
-        >
-          <div className="w-8 h-8 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300 text-xs font-bold shrink-0">
-            {user?.name ? user.name[0]?.toUpperCase() : 'L'}
-          </div>
-          {!collapsed && (
+      {/* Footer Identity & Sign Out */}
+      <div className="p-3 border-t border-border/80 bg-muted/25 space-y-2 shrink-0">
+        {!collapsed ? (
+          <Link
+            href="/laboratory/profile"
+            onClick={() => onCloseMobile?.()}
+            className="flex items-center gap-2.5 p-2 rounded-md bg-surface border border-border/70 hover:border-secondary/30 transition-colors focus-ring"
+          >
+            <Avatar name={user?.name || 'Laboratory'} size="sm" status="online" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-200 truncate">
+              <p className="text-xs font-semibold text-foreground truncate">
                 {user?.name || 'Laboratory Staff'}
               </p>
-              <p className="text-[10px] text-teal-400 font-medium truncate">
-                NABL Accredited
-              </p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
             </div>
+          </Link>
+        ) : (
+          <div className="flex justify-center py-1">
+            <Avatar name={user?.name || 'Laboratory'} size="sm" status="online" />
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => logout()}
+          disabled={isLoading}
+          aria-label="Sign out of laboratory portal"
+          className={cn(
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-semibold text-error hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors focus-ring disabled:opacity-50',
+            collapsed && 'justify-center px-2'
           )}
-          {!collapsed && (
-            <button
-              onClick={() => logout()}
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded transition-colors"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        >
+          <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
+          {!collapsed && <span>Sign Out</span>}
+        </button>
       </div>
-    </aside>
+    </div>
   );
 
   return (
     <>
-      {/* Desktop Persistent Sidebar */}
-      <div className="hidden md:block h-screen sticky top-0 z-30">
-        {sidebarContent}
-      </div>
+      <aside
+        className={cn(
+          'hidden lg:flex flex-col shrink-0 transition-[width] duration-200 ease-out sticky top-0 h-screen z-30',
+          collapsed ? 'w-[76px]' : 'w-64 xl:w-72',
+          className
+        )}
+      >
+        {navContent}
+      </aside>
 
-      {/* Mobile Drawer Overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+      <AnimatePresence>
+        {mobileOpen && (
           <div
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
-            onClick={onCloseMobile}
-          />
-          <div className="relative w-64 max-w-[80vw] h-full z-10 flex flex-col">
-            <button
+            role="dialog"
+            aria-modal="true"
+            aria-label="Laboratory Navigation Drawer"
+            className="lg:hidden fixed inset-0 z-50 flex"
+          >
+            <m.div
+              variants={modalBackdrop}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 bg-slate-950/55 backdrop-blur-xs"
               onClick={onCloseMobile}
-              className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+              aria-hidden="true"
+            />
+            <m.div
+              initial={{ x: '-100%' }}
+              animate={{
+                x: 0,
+                transition: { duration: MOTION_DURATION.normal, ease: MOTION_EASE.standard },
+              }}
+              exit={{
+                x: '-100%',
+                transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.exit },
+              }}
+              className="relative w-72 max-w-[85vw] h-full shadow-dialog z-10"
             >
-              <X className="w-5 h-5" />
-            </button>
-            {sidebarContent}
+              {navContent}
+            </m.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }

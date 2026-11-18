@@ -482,7 +482,7 @@ describe('Laboratory Report Generation, Review, Approval, Publication & Secure A
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(mockReport.status).toBe('APPROVED');
-      expect(mockReport.verificationStatus).toBe('VERIFIED');
+      expect((mockReport as any).verificationStatus).toBe('VERIFIED');
     });
 
     it('enforces mandatory comments when rejecting or requesting correction', async () => {

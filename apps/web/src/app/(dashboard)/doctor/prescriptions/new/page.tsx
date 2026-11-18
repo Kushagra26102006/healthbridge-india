@@ -11,6 +11,7 @@ import {
   useDoctorPrescriptionActions,
   useDoctorEncounterDetail,
 } from '@/features/doctor/hooks/use-doctor';
+import { useClinicalActionFeedback } from '@/components/motion';
 
 function NewPrescriptionContent() {
   const searchParams = useSearchParams();
@@ -42,22 +43,43 @@ function NewPrescriptionContent() {
     issuePrescription,
     isIssuing,
   } = useDoctorPrescriptionActions();
+  const feedback = useClinicalActionFeedback();
 
   const handleSaveDraft = async (data: any) => {
-    return createPrescription({
-      ...data,
-      isDraft: true,
-    });
+    try {
+      const saved = await createPrescription({
+        ...data,
+        isDraft: true,
+      });
+      feedback.notifyPrescriptionSaved(saved?.prescriptionNumber);
+      return saved;
+    } catch (err) {
+      feedback.notifyOperationError(
+        'Failed to save prescription draft',
+        err instanceof Error ? err.message : undefined
+      );
+      throw err;
+    }
   };
 
   const handleIssue = async (prescriptionId: string, notes?: string) => {
-    return issuePrescription({
-      prescriptionId,
-      data: {
-        confirmAttribution: true,
-        notes,
-      },
-    });
+    try {
+      const issued = await issuePrescription({
+        prescriptionId,
+        data: {
+          confirmAttribution: true,
+          notes,
+        },
+      });
+      feedback.notifyPrescriptionSaved(issued?.prescriptionNumber);
+      return issued;
+    } catch (err) {
+      feedback.notifyOperationError(
+        'Failed to issue prescription',
+        err instanceof Error ? err.message : undefined
+      );
+      throw err;
+    }
   };
 
   return (

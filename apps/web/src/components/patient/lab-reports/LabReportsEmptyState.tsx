@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FlaskConical, RotateCcw, ClipboardList } from 'lucide-react';
+import { RotateCcw, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyIllustration } from '@/components/ui/visual-asset';
 
 export interface LabReportsEmptyStateProps {
   title?: string;
@@ -19,10 +20,8 @@ export const LabReportsEmptyState: React.FC<LabReportsEmptyStateProps> = ({
   showOrdersLink = true,
 }) => {
   return (
-    <div className="p-10 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 max-w-md mx-auto my-6 shadow-sm">
-      <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
-        <FlaskConical className="h-7 w-7" />
-      </div>
+    <div className="p-10 text-center bg-card border border-border rounded-2xl space-y-4 max-w-md mx-auto my-6 shadow-sm">
+      <EmptyIllustration asset="no-lab-reports" compact />
 
       <div className="space-y-1">
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>

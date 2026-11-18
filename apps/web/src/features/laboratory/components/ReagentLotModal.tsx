@@ -38,8 +38,8 @@ export function ReagentLotModal({
     if (defaultReagentId) {
       setReagentId(defaultReagentId);
       const matched = reagents.find((r) => r.id === defaultReagentId);
-      if (matched && !manufacturer) {
-        setManufacturer(matched.manufacturer);
+      if (matched) {
+        setManufacturer((prev) => prev || matched.manufacturer);
       }
     }
   }, [defaultReagentId, reagents]);

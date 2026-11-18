@@ -6,13 +6,18 @@ export type MedicalRecordType =
   | 'OP_CONSULTATION'
   | 'DISCHARGE_SUMMARY'
   | 'DIAGNOSTIC_REPORT'
+  | 'IMAGING_REPORT'
   | 'PRESCRIPTION'
+  | 'MEDICAL_CERTIFICATE'
   | 'IMMUNIZATION_RECORD'
-  | 'WELLNESS_RECORD';
+  | 'WELLNESS_RECORD'
+  | 'OTHER_MEDICAL_DOCUMENT';
 
 export type MedicalRecordSource = 'MANUAL_ENTRY' | 'ABDM_INGESTION' | 'EHR_SYNC';
 
 export type RecordVerificationStatus = 'VERIFIED' | 'PENDING' | 'SELF_SUBMITTED';
+
+export type DocumentMalwareScanStatus = 'CLEAN' | 'INFECTED' | 'SCAN_NOT_CONFIGURED';
 
 export interface IMedicalRecord {
   id: string;
@@ -27,11 +32,17 @@ export interface IMedicalRecord {
   doctorId?: string;
   facilityName?: string;
   facilityId?: string;
+  appointmentId?: string;
   fileUrl?: string;
   fileName?: string;
   mimeType?: string;
   fileSize?: number;
   fileData?: string;
+  storageId?: string;
+  sha256Checksum?: string;
+  scanStatus?: DocumentMalwareScanStatus;
+  isArchived?: boolean;
+  archivedAt?: Date | string;
   verificationStatus?: RecordVerificationStatus;
   createdBy: string;
   createdAt: Date | string;
@@ -42,6 +53,17 @@ export interface MedicalRecordDetailDto extends IMedicalRecord {
   fhirResource?: Record<string, unknown>;
 }
 
+export interface MedicalRecordAccessTokenDto {
+  token: string;
+  previewUrl: string;
+  downloadUrl: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  mimeType: string;
+  fileName: string;
+  accessScope: 'OWNER' | 'CONSENTED_DOCTOR';
+}
+
 export interface MedicalRecordSummaryDto {
   totalRecords: number;
   clinicalDocuments: number;
@@ -49,6 +71,12 @@ export interface MedicalRecordSummaryDto {
   labReports: number;
   immunizations: number;
   wellnessRecords: number;
+  imagingReports?: number;
+  medicalCertificates?: number;
+  otherDocuments?: number;
+  totalStorageBytes?: number;
+  maxStorageBytes?: number;
+  recentUploadsCount?: number;
 }
 
 export interface MedicalRecordFilterQueryDto {
@@ -59,8 +87,10 @@ export interface MedicalRecordFilterQueryDto {
   recordType?: MedicalRecordType;
   source?: MedicalRecordSource;
   verificationStatus?: RecordVerificationStatus;
+  provider?: string;
   startDate?: string;
   endDate?: string;
+  includeArchived?: boolean;
   sortBy?: 'recordDate' | 'createdAt' | 'title';
   sortOrder?: 'asc' | 'desc';
 }
@@ -74,10 +104,12 @@ export interface CreateMedicalRecordDto {
   doctorId?: string;
   facilityName?: string;
   facilityId?: string;
+  appointmentId?: string;
   fileName?: string;
   fileSize?: number;
   mimeType?: string;
   fileData?: string;
+  allowDuplicate?: boolean;
 }
 
 export type EncounterType = 'AMBULATORY' | 'EMERGENCY' | 'INPATIENT' | 'HOME' | 'VIRTUAL';

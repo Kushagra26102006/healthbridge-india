@@ -159,14 +159,13 @@ describe('Authentication & Security Audit Integration Tests', () => {
           accountStatus: 'ACTIVE',
           emailVerified: true,
           phoneVerified: true,
-          mfaEnabled: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
         },
         tokens: {
           accessToken: 'mock-access-token-jwt',
           refreshToken: 'mock-refresh-token-uuid',
           expiresIn: 900,
+          tokenType: 'Bearer',
         },
       });
 

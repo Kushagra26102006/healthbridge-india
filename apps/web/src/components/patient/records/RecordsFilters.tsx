@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Filter, RotateCcw, ChevronDown, Calendar } from 'lucide-react';
+import { Filter, RotateCcw, ChevronDown, Calendar, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DOCUMENT_CATEGORIES } from '@/features/records/lib/document-helpers';
 import type {
   MedicalRecordType,
   MedicalRecordSource,
@@ -15,6 +16,7 @@ export interface RecordsFilterState {
   category?: MedicalRecordType | '';
   source?: MedicalRecordSource | '';
   verificationStatus?: RecordVerificationStatus | '';
+  provider?: string;
   startDate?: string;
   endDate?: string;
   sortBy: 'recordDate' | 'createdAt' | 'title';
@@ -30,19 +32,14 @@ export interface RecordsFiltersProps {
 
 const CATEGORY_OPTIONS: Array<{ value: MedicalRecordType | ''; label: string }> = [
   { value: '', label: 'All Categories' },
-  { value: 'OP_CONSULTATION', label: 'Doctor Consultations' },
-  { value: 'DISCHARGE_SUMMARY', label: 'Discharge Summaries' },
-  { value: 'DIAGNOSTIC_REPORT', label: 'Diagnostic & Lab Reports' },
-  { value: 'PRESCRIPTION', label: 'Prescriptions' },
-  { value: 'IMMUNIZATION_RECORD', label: 'Vaccination Records' },
-  { value: 'WELLNESS_RECORD', label: 'Wellness & History' },
+  ...DOCUMENT_CATEGORIES.map((c) => ({ value: c.value, label: c.label })),
 ];
 
 const SOURCE_OPTIONS: Array<{ value: MedicalRecordSource | ''; label: string }> = [
   { value: '', label: 'All Sources' },
-  { value: 'ABDM_INGESTION', label: 'ABDM Ingestion' },
-  { value: 'EHR_SYNC', label: 'EHR Sync' },
-  { value: 'MANUAL_ENTRY', label: 'Manual Entry' },
+  { value: 'MANUAL_ENTRY', label: 'Patient Uploads' },
+  { value: 'EHR_SYNC', label: 'Clinical EHR' },
+  { value: 'ABDM_INGESTION', label: 'ABDM Import' },
 ];
 
 const VERIFICATION_OPTIONS: Array<{ value: RecordVerificationStatus | ''; label: string }> = [
@@ -57,8 +54,9 @@ const SORT_OPTIONS: Array<{
   sortOrder: 'asc' | 'desc';
   label: string;
 }> = [
-  { sortBy: 'recordDate', sortOrder: 'desc', label: 'Newest First' },
-  { sortBy: 'recordDate', sortOrder: 'asc', label: 'Oldest First' },
+  { sortBy: 'recordDate', sortOrder: 'desc', label: 'Document Date (Newest)' },
+  { sortBy: 'recordDate', sortOrder: 'asc', label: 'Document Date (Oldest)' },
+  { sortBy: 'createdAt', sortOrder: 'desc', label: 'Recently Uploaded' },
   { sortBy: 'title', sortOrder: 'asc', label: 'Title (A–Z)' },
 ];
 
@@ -70,11 +68,11 @@ export function RecordsFilters({
 }: RecordsFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Calculate number of active non-default filters
   const activeCount = [
     Boolean(filters.category),
     Boolean(filters.source),
     Boolean(filters.verificationStatus),
+    Boolean(filters.provider?.trim()),
     Boolean(filters.startDate || filters.endDate),
     filters.sortBy !== 'recordDate' || filters.sortOrder !== 'desc',
   ].filter(Boolean).length;
@@ -93,17 +91,22 @@ export function RecordsFilters({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Category Pills Bar */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar text-xs">
+      {/* Category Pills Bar (All 9 Unified Categories) */}
+      <div
+        role="group"
+        aria-label="Filter medical documents by category"
+        className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar text-xs"
+      >
         {CATEGORY_OPTIONS.map((cat) => {
           const isSelected = filters.category === cat.value;
           return (
             <button
               key={cat.value || 'ALL'}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => handleCategorySelect(cat.value)}
               className={cn(
-                'px-3 py-1.5 rounded-xl font-medium transition-colors whitespace-nowrap shrink-0 border text-xs',
+                'px-3 py-1.5 rounded-xl font-medium transition-colors whitespace-nowrap shrink-0 border text-xs focus-ring',
                 isSelected
                   ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                   : 'bg-card text-muted-foreground border-border/70 hover:border-border hover:text-foreground'
@@ -118,18 +121,18 @@ export function RecordsFilters({
       {/* Filter Action Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Toggle Advanced Filters Button */}
           <Button
             type="button"
             variant="outline"
             size="sm"
+            aria-expanded={showAdvanced}
             onClick={() => setShowAdvanced(!showAdvanced)}
             className={cn(
-              'h-8 px-2.5 text-xs gap-1.5',
+              'h-9 sm:h-8 px-3 text-xs gap-1.5',
               showAdvanced && 'bg-muted/60 border-primary/50 text-foreground'
             )}
           >
-            <Filter className="h-3.5 w-3.5" />
+            <Filter className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Filters</span>
             {activeCount > 0 && (
               <Badge variant="teal" className="h-4 px-1.5 text-[10px] ml-0.5">
@@ -138,15 +141,17 @@ export function RecordsFilters({
             )}
             <ChevronDown
               className={cn('h-3 w-3 transition-transform', showAdvanced && 'rotate-180')}
+              aria-hidden="true"
             />
           </Button>
 
           {/* Sort Dropdown */}
-          <div className="flex items-center gap-1 bg-card border border-border/80 rounded-xl px-2 py-1 text-xs">
+          <div className="flex items-center gap-1 bg-card border border-border/80 rounded-xl px-2.5 py-1 text-xs h-9 sm:h-8">
             <span className="text-muted-foreground text-[11px] font-medium mr-1 hidden sm:inline">
               Sort:
             </span>
             <select
+              aria-label="Sort documents"
               value={`${filters.sortBy}-${filters.sortOrder}`}
               onChange={(e) => {
                 const [sb, so] = e.target.value.split('-') as [
@@ -169,31 +174,35 @@ export function RecordsFilters({
             </select>
           </div>
 
-          {/* Reset Filters CTA if any filter is active */}
           {activeCount > 0 && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={onReset}
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+              className="h-9 sm:h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1"
             >
-              <RotateCcw className="h-3 w-3" />
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
               <span>Reset</span>
             </Button>
           )}
         </div>
 
-        {/* Source and Verification Pill indicators if active */}
-        <div className="hidden md:flex items-center gap-1.5">
+        {/* Active Filter Badges */}
+        <div className="hidden md:flex items-center gap-1.5 flex-wrap">
+          {filters.provider && (
+            <Badge variant="outline" className="text-[11px] py-0.5 bg-muted/40">
+              Provider: {filters.provider}
+            </Badge>
+          )}
           {filters.source && (
             <Badge variant="outline" className="text-[11px] py-0.5 bg-muted/40">
-              Source: {filters.source}
+              Source: {filters.source.replace(/_/g, ' ')}
             </Badge>
           )}
           {filters.verificationStatus && (
             <Badge variant="outline" className="text-[11px] py-0.5 bg-muted/40">
-              Status: {filters.verificationStatus}
+              Status: {filters.verificationStatus.replace(/_/g, ' ')}
             </Badge>
           )}
         </div>
@@ -201,7 +210,22 @@ export function RecordsFilters({
 
       {/* Advanced Filters Expandable Drawer */}
       {showAdvanced && (
-        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-3 animate-in fade-in-50 duration-200">
+        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in-50 duration-200">
+          {/* Provider / Facility Filter */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+              <Building2 className="h-3 w-3" aria-hidden="true" />
+              <span>Doctor or Facility</span>
+            </label>
+            <input
+              type="text"
+              value={filters.provider || ''}
+              onChange={(e) => onFilterChange({ ...filters, provider: e.target.value })}
+              placeholder="e.g. AIIMS, Dr. Verma"
+              className="w-full h-10 sm:h-9 bg-background border border-border/80 rounded-xl px-2.5 text-base sm:text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+
           {/* Source Dropdown */}
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-muted-foreground block">
@@ -215,7 +239,7 @@ export function RecordsFilters({
                   source: (e.target.value as MedicalRecordSource) || '',
                 })
               }
-              className="w-full bg-background border border-border/80 rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
+              className="w-full h-10 sm:h-9 bg-background border border-border/80 rounded-xl px-2.5 text-base sm:text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
             >
               {SOURCE_OPTIONS.map((opt) => (
                 <option key={opt.value || 'ALL'} value={opt.value}>
@@ -228,7 +252,7 @@ export function RecordsFilters({
           {/* Verification Status Dropdown */}
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-muted-foreground block">
-              Verification Status
+              Document Status
             </label>
             <select
               value={filters.verificationStatus || ''}
@@ -238,7 +262,7 @@ export function RecordsFilters({
                   verificationStatus: (e.target.value as RecordVerificationStatus) || '',
                 })
               }
-              className="w-full bg-background border border-border/80 rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
+              className="w-full h-10 sm:h-9 bg-background border border-border/80 rounded-xl px-2.5 text-base sm:text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
             >
               {VERIFICATION_OPTIONS.map((opt) => (
                 <option key={opt.value || 'ALL'} value={opt.value}>
@@ -251,28 +275,28 @@ export function RecordsFilters({
           {/* Start Date */}
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+              <Calendar className="h-3 w-3" aria-hidden="true" />
               <span>From Date</span>
             </label>
             <input
               type="date"
               value={filters.startDate || ''}
               onChange={(e) => onFilterChange({ ...filters, startDate: e.target.value })}
-              className="w-full bg-background border border-border/80 rounded-xl px-2.5 py-1 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
+              className="w-full h-10 sm:h-9 bg-background border border-border/80 rounded-xl px-2.5 text-base sm:text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
             />
           </div>
 
           {/* End Date */}
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+              <Calendar className="h-3 w-3" aria-hidden="true" />
               <span>To Date</span>
             </label>
             <input
               type="date"
               value={filters.endDate || ''}
               onChange={(e) => onFilterChange({ ...filters, endDate: e.target.value })}
-              className="w-full bg-background border border-border/80 rounded-xl px-2.5 py-1 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
+              className="w-full h-10 sm:h-9 bg-background border border-border/80 rounded-xl px-2.5 text-base sm:text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40"
             />
           </div>
         </div>

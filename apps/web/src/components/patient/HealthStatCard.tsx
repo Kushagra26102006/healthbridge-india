@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { LucideIcon, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { AnimatedCounter } from '@/components/motion/AnimatedCounter';
 import { cn } from '@/lib/utils';
 
 export interface HealthStatCardProps {
@@ -27,69 +28,59 @@ export function HealthStatCard({
 }: HealthStatCardProps) {
   const colorMap = {
     teal: {
-      iconBg: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
-      border: 'hover:border-teal-500/40',
-      badge: 'text-teal-700 dark:text-teal-300',
+      iconBg: 'bg-secondary/12 text-secondary',
+      border: 'hover:border-secondary/40',
     },
     blue: {
-      iconBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-      border: 'hover:border-blue-500/40',
-      badge: 'text-blue-700 dark:text-blue-300',
+      iconBg: 'bg-primary/12 text-primary',
+      border: 'hover:border-primary/40',
     },
     amber: {
-      iconBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-500/12 text-amber-700 dark:text-amber-400',
       border: 'hover:border-amber-500/40',
-      badge: 'text-amber-700 dark:text-amber-300',
     },
     emerald: {
-      iconBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400',
       border: 'hover:border-emerald-500/40',
-      badge: 'text-emerald-700 dark:text-emerald-300',
     },
     cyan: {
-      iconBg: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400',
+      iconBg: 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-400',
       border: 'hover:border-cyan-500/40',
-      badge: 'text-cyan-700 dark:text-cyan-300',
     },
   };
 
   const scheme = colorMap[colorScheme];
 
   return (
-    <Link
-      href={href}
-      className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-    >
-      <Card
-        className={cn(
-          'transition-all duration-200 border-border/80 shadow-card hover:shadow-subtle hover:-translate-y-0.5 bg-card',
-          scheme.border
-        )}
-      >
-        <CardContent className="p-5 sm:p-6 space-y-3">
+    <Link href={href} className="group block focus-ring rounded-lg">
+      <Card className={cn('hover-lift h-full', scheme.border)}>
+        <CardContent className="p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <div className={cn('p-2.5 rounded-2xl transition-colors', scheme.iconBg)}>
-              <Icon className="h-5 w-5" />
+            <div className={cn('p-2.5 rounded-md transition-colors', scheme.iconBg)}>
+              <Icon className="h-5 w-5" aria-hidden="true" />
             </div>
 
-            <ArrowRight className="h-4 w-4 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+            <ArrowRight
+              className="h-4 w-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs font-semibold text-muted-foreground block truncate">
+            <span className="text-xs font-medium text-muted-foreground block truncate">
               {title}
             </span>
 
             {isLoading ? (
-              <div className="h-8 w-16 rounded-lg bg-muted animate-pulse my-1" />
+              <div className="h-8 w-16 rounded-sm bg-muted animate-pulse my-1" />
             ) : (
-              <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                {value}
+              <div className="text-metric">
+                <AnimatedCounter value={value} />
               </div>
             )}
 
             {subtitle && (
-              <p className="text-[11px] text-muted-foreground truncate font-medium">{subtitle}</p>
+              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
             )}
           </div>
         </CardContent>

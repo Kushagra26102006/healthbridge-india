@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -21,11 +21,14 @@ import {
   AlertCircle,
   ExternalLink,
   Pill,
+  FileText,
+  Printer,
 } from 'lucide-react';
 
 export default function PharmacyPrescriptionDetailPage() {
   const params = useParams();
   const id = params?.id as string;
+  const [showDocPreview, setShowDocPreview] = useState(false);
 
   const {
     data: prescription,
@@ -98,7 +101,29 @@ export default function PharmacyPrescriptionDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDocPreview((prev) => !prev)}
+            className="gap-1.5 text-xs"
+          >
+            <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{showDocPreview ? 'Hide Rx Document' : 'Preview Rx Document'}</span>
+          </Button>
+          {showDocPreview && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              className="gap-1.5 text-xs print:hidden"
+            >
+              <Printer className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Print Rx</span>
+            </Button>
+          )}
           {verification?.isEligibleForDispensing && (
             <Link href={`/pharmacy/dispensing?prescriptionId=${prescription.id}`}>
               <Button className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
@@ -109,6 +134,41 @@ export default function PharmacyPrescriptionDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Authorized Prescription-Only Document Preview Sheet (zero access to general patient EHR) */}
+      {showDocPreview && (
+        <Card className="border-primary/30 bg-card p-5 sm:p-6 space-y-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-border">
+            <div>
+              <p className="text-[11px] font-mono uppercase text-primary font-semibold">
+                Authorized Pharmacy Fulfillment Copy • Rx #{prescription.prescriptionNumber}
+              </p>
+              <h2 className="text-base font-bold text-foreground mt-0.5">
+                {prescription.facilityName || 'Authorized Healthcare Facility'}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Prescribing Clinician: {prescription.doctorName}
+                {prescription.doctorSpecialization ? ` (${prescription.doctorSpecialization})` : ''}
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground sm:text-right">
+              <div>
+                Issued: <strong className="text-foreground">{new Date(prescription.issueDate).toLocaleDateString('en-IN')}</strong>
+              </div>
+              <div>
+                Valid Until: <strong className="text-foreground">{new Date(prescription.validUntil).toLocaleDateString('en-IN')}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
+            <span>
+              Scoped strictly to this routed prescription for dispensing verification. General patient medical records remain restricted.
+            </span>
+          </div>
+        </Card>
+      )}
 
       {/* Verification Status Overview Card */}
       {verification && (

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import {
   useUnreadNotificationCount,
@@ -8,6 +9,7 @@ import {
 } from '@/features/notifications/hooks/use-notifications';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { NotificationDropdown } from './NotificationDropdown';
+import { NotificationBadge } from './NotificationBadge';
 import type { UserRole } from '@healthbridge/shared-types';
 
 interface NotificationBellProps {
@@ -100,31 +102,32 @@ export function NotificationBell({
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring"
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-5 h-5" aria-hidden="true" />
 
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-            <span className="relative inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-rose-600 rounded-full border-2 border-white dark:border-slate-900">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          </span>
+          <NotificationBadge
+            count={unreadCount}
+            size="sm"
+            className="absolute -top-0.5 -right-0.5"
+          />
         )}
       </button>
 
-      {isOpen && (
-        <NotificationDropdown
-          onClose={() => setIsOpen(false)}
-          centerUrl={centerUrl}
-          preferencesUrl={preferencesUrl}
-          connectionState={connectionState}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <NotificationDropdown
+            onClose={() => setIsOpen(false)}
+            centerUrl={centerUrl}
+            preferencesUrl={preferencesUrl}
+            connectionState={connectionState}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

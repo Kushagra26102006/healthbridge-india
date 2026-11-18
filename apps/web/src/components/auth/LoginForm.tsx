@@ -9,21 +9,83 @@ import { Input } from '@/components/ui/input';
 import { PasswordField } from './PasswordField';
 import { FormError } from './FormError';
 import { Badge } from '@/components/ui/badge';
-import { User, Loader2, Sparkles } from 'lucide-react';
+import {
+  User,
+  Loader2,
+  Sparkles,
+  HeartPulse,
+  Stethoscope,
+  Pill,
+  FlaskConical,
+  ShieldCheck,
+} from 'lucide-react';
 import { loginValidationSchema } from '@healthbridge/validation';
+import type { PortalShowcaseKey } from './AuthLayout';
+
+export type QuickFillRole = 'PATIENT' | 'DOCTOR' | 'PHARMACY' | 'LABORATORY' | 'ADMIN';
 
 export interface LoginFormProps {
   onSuccess?: () => void;
   onSwitchToRegister?: () => void;
+  onRoleSelect?: (portal: PortalShowcaseKey) => void;
   redirectTo?: string;
 }
 
-export function LoginForm({ onSuccess, onSwitchToRegister, redirectTo }: LoginFormProps) {
+const DEMO_ACCOUNTS: ReadonlyArray<{
+  role: QuickFillRole;
+  label: string;
+  email: string;
+  icon: React.ComponentType<{ className?: string }>;
+  showcasePortal?: PortalShowcaseKey;
+}> = [
+  {
+    role: 'PATIENT',
+    label: 'Patient',
+    email: 'ramesh.patel@healthbridge.local',
+    icon: HeartPulse,
+    showcasePortal: 'PATIENT',
+  },
+  {
+    role: 'DOCTOR',
+    label: 'Doctor',
+    email: 'dr.priya.sharma@healthbridge.local',
+    icon: Stethoscope,
+    showcasePortal: 'DOCTOR',
+  },
+  {
+    role: 'PHARMACY',
+    label: 'Pharmacy',
+    email: 'pharmacy.demo@healthbridge.local',
+    icon: Pill,
+    showcasePortal: 'PHARMACY',
+  },
+  {
+    role: 'LABORATORY',
+    label: 'Lab',
+    email: 'lab.demo@healthbridge.local',
+    icon: FlaskConical,
+    showcasePortal: 'LABORATORY',
+  },
+  {
+    role: 'ADMIN',
+    label: 'Admin',
+    email: 'admin.demo@healthbridge.local',
+    icon: ShieldCheck,
+  },
+];
+
+export function LoginForm({
+  onSuccess,
+  onSwitchToRegister,
+  onRoleSelect,
+  redirectTo,
+}: LoginFormProps) {
   const router = useRouter();
   const { login, isLoading, error: authError } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [selectedDemoRole, setSelectedDemoRole] = useState<QuickFillRole | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,23 +132,20 @@ export function LoginForm({ onSuccess, onSwitchToRegister, redirectTo }: LoginFo
     }
   };
 
-  const handleQuickFill = (role: 'PATIENT' | 'DOCTOR' | 'ADMIN') => {
-    if (role === 'PATIENT') {
-      setIdentifier('ramesh.patel@healthbridge.local');
-      setPassword('DemoSecure#2026');
-    } else if (role === 'DOCTOR') {
-      setIdentifier('dr.priya.sharma@healthbridge.local');
-      setPassword('DemoSecure#2026');
-    } else if (role === 'ADMIN') {
-      setIdentifier('admin.demo@healthbridge.local');
-      setPassword('DemoSecure#2026');
+  const handleQuickFill = (account: (typeof DEMO_ACCOUNTS)[number]) => {
+    setIdentifier(account.email);
+    setPassword('DemoSecure#2026');
+    setSelectedDemoRole(account.role);
+    setLocalError(null);
+    if (account.showcasePortal) {
+      onRoleSelect?.(account.showcasePortal);
     }
   };
 
   return (
     <div className="space-y-5 text-left">
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-xl font-bold tracking-tight text-foreground">
             Sign In to HealthBridge
           </h2>
@@ -112,9 +171,12 @@ export function LoginForm({ onSuccess, onSwitchToRegister, redirectTo }: LoginFo
             <Input
               id="login-identifier"
               type="text"
-              placeholder="e.g. ramesh@abdm or 9876543210"
+              placeholder="e.g. ramesh.patel@healthbridge.local or 9876543212"
               value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              onChange={(e) => {
+                setIdentifier(e.target.value);
+                setSelectedDemoRole(null);
+              }}
               disabled={isLoading}
               className="pl-9"
               required
@@ -125,7 +187,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, redirectTo }: LoginFo
         {/* Password Field */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor="login-password" className="text-xs font-semibold text-foreground">
+            <label htmlFor="login-password" className="block text-xs font-semibold text-foreground">
               Password
             </label>
             <Link
@@ -178,36 +240,35 @@ export function LoginForm({ onSuccess, onSwitchToRegister, redirectTo }: LoginFo
         </Button>
       </form>
 
-      {/* Quick Fill Demo Helper for Testing */}
-      <div className="p-3 rounded-2xl bg-muted/60 border border-border/80 space-y-2">
+      {/* Quick Fill Demo Helper for All 5 Seeded Portals */}
+      <div className="p-3.5 rounded-2xl bg-muted/60 border border-border/80 space-y-2.5">
         <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
-          <span className="flex items-center gap-1">
-            <Sparkles className="h-3 w-3 text-teal-600 dark:text-teal-400" />
-            Quick-Fill Synthetic Test Accounts:
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+            Quick-Fill Synthetic Demo Accounts
           </span>
+          <span className="text-[10px] font-normal text-muted-foreground">All 5 Portals</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => handleQuickFill('PATIENT')}
-            className="px-2 py-1 text-[11px] font-medium rounded-lg bg-card border border-border hover:bg-accent text-foreground transition-colors"
-          >
-            Patient
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill('DOCTOR')}
-            className="px-2 py-1 text-[11px] font-medium rounded-lg bg-card border border-border hover:bg-accent text-foreground transition-colors"
-          >
-            Doctor
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill('ADMIN')}
-            className="px-2 py-1 text-[11px] font-medium rounded-lg bg-card border border-border hover:bg-accent text-foreground transition-colors"
-          >
-            Admin
-          </button>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+          {DEMO_ACCOUNTS.map((account) => {
+            const Icon = account.icon;
+            const isActive = selectedDemoRole === account.role;
+            return (
+              <button
+                key={account.role}
+                type="button"
+                onClick={() => handleQuickFill(account)}
+                className={`flex flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold rounded-xl border transition-all duration-150 ${
+                  isActive
+                    ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                    : 'bg-card border-border hover:border-teal-500/50 hover:bg-accent text-foreground'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{account.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { AnimatedCounter } from '@/components/motion/AnimatedCounter';
+import { cn } from '@/lib/utils';
 
 export interface LaboratoryStatCardProps {
   title: string;
@@ -28,78 +30,67 @@ export function LaboratoryStatCard({
   onClick,
   className,
 }: LaboratoryStatCardProps) {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'teal':
-        return {
-          iconBg: 'bg-teal-500/15 border-teal-500/30 text-teal-600 dark:text-teal-400',
-          hoverBorder: 'hover:border-teal-500/40',
-        };
-      case 'sky':
-        return {
-          iconBg: 'bg-sky-500/15 border-sky-500/30 text-sky-600 dark:text-sky-400',
-          hoverBorder: 'hover:border-sky-500/40',
-        };
-      case 'indigo':
-        return {
-          iconBg: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-600 dark:text-indigo-400',
-          hoverBorder: 'hover:border-indigo-500/40',
-        };
-      case 'emerald':
-        return {
-          iconBg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400',
-          hoverBorder: 'hover:border-emerald-500/40',
-        };
-      case 'amber':
-        return {
-          iconBg: 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400',
-          hoverBorder: 'hover:border-amber-500/40',
-        };
-      case 'rose':
-        return {
-          iconBg: 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400',
-          hoverBorder: 'hover:border-rose-500/40',
-        };
-    }
-  };
-
-  const styles = getVariantStyles();
+  const styles = {
+    teal: {
+      iconBg: 'bg-secondary/12 border-secondary/20 text-secondary',
+      hoverBorder: 'hover:border-secondary/40',
+    },
+    sky: {
+      iconBg: 'bg-primary/12 border-primary/20 text-primary',
+      hoverBorder: 'hover:border-primary/40',
+    },
+    indigo: {
+      iconBg: 'bg-indigo-500/12 border-indigo-500/20 text-indigo-700 dark:text-indigo-400',
+      hoverBorder: 'hover:border-indigo-500/40',
+    },
+    emerald: {
+      iconBg: 'bg-emerald-500/12 border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
+      hoverBorder: 'hover:border-emerald-500/40',
+    },
+    amber: {
+      iconBg: 'bg-amber-500/12 border-amber-500/20 text-amber-700 dark:text-amber-400',
+      hoverBorder: 'hover:border-amber-500/40',
+    },
+    rose: {
+      iconBg: 'bg-red-500/12 border-red-500/20 text-error',
+      hoverBorder: 'hover:border-error/40',
+    },
+  }[variant];
 
   return (
-    <div
+    <Card
       onClick={onClick}
       className={cn(
-        'p-5 rounded-2xl bg-card border border-border/80 shadow-xs transition-all duration-200 flex flex-col justify-between',
-        onClick && 'cursor-pointer hover:shadow-md',
+        'p-5 hover-lift h-full flex flex-col justify-between',
+        onClick && 'cursor-pointer',
         styles.hoverBorder,
         className
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {title}
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">{title}</span>
         <div
           className={cn(
-            'w-9 h-9 rounded-xl border flex items-center justify-center shrink-0',
+            'w-9 h-9 rounded-md border flex items-center justify-center shrink-0',
             styles.iconBg
           )}
+          aria-hidden="true"
         >
           <Icon className="w-5 h-5" />
         </div>
       </div>
 
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground font-mono">
-          {value}
+        <span className="text-metric">
+          {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
         </span>
         {trend && (
           <span
             className={cn(
-              'text-[11px] font-semibold px-2 py-0.5 rounded-full',
+              'text-xs font-semibold px-2 py-0.5 rounded-pill tabular-nums',
               trend.isPositive
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                : 'bg-red-500/10 text-error'
             )}
           >
             {trend.value}
@@ -107,10 +98,8 @@ export function LaboratoryStatCard({
         )}
       </div>
 
-      {subtitle && (
-        <p className="text-xs text-muted-foreground mt-2 truncate">{subtitle}</p>
-      )}
-    </div>
+      {subtitle && <p className="text-xs text-muted-foreground mt-2 truncate">{subtitle}</p>}
+    </Card>
   );
 }
 

@@ -1,8 +1,13 @@
 export * from './NotificationEmptyState';
+export * from './NotificationSkeleton';
+export * from './NotificationBadge';
 export * from './NotificationCard';
+export { NotificationCard as NotificationItem } from './NotificationCard';
+export * from './NotificationList';
 export * from './NotificationCategoryTabs';
 export * from './NotificationDropdown';
 export * from './NotificationBell';
 export * from './NotificationCenter';
 export * from './NotificationPreferencesForm';
+export { NotificationPreferencesForm as NotificationPreferences } from './NotificationPreferencesForm';
 export * from './NotificationDeliveryStatus';

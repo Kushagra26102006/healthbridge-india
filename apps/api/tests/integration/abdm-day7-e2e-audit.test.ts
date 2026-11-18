@@ -161,12 +161,12 @@ describe('ABDM Day 7 Task 05 — Complete End-to-End Audit & Hardening Suite (Mo
         then: (resolve: any) => resolve(link),
       } as any;
     });
-    vi.spyOn(AbdmDiscoveryRequestModel, 'findOne').mockImplementation(async (q: any) => {
+    vi.spyOn(AbdmDiscoveryRequestModel, 'findOne').mockImplementation((async (q: any) => {
       if (q?.externalTransactionRef) {
         return discoveries.find((d) => d.externalTransactionRef === q.externalTransactionRef) || null;
       }
       return null;
-    });
+    }) as any);
     vi.spyOn(AbdmDiscoveryRequestModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
       discoveries.push(doc);
@@ -176,9 +176,9 @@ describe('ABDM Day 7 Task 05 — Complete End-to-End Audit & Hardening Suite (Mo
       select: vi.fn().mockResolvedValue([]),
     } as any);
     vi.spyOn(AbdmLinkedHealthRecordModel, 'findOne').mockResolvedValue(null);
-    vi.spyOn(AbdmLinkedHealthRecordModel, 'findById').mockImplementation(async (id: any) => {
+    vi.spyOn(AbdmLinkedHealthRecordModel, 'findById').mockImplementation((async (id: any) => {
       return links.find((l) => String(l._id) === String(id)) || null;
-    });
+    }) as any);
     vi.spyOn(AbdmLinkedHealthRecordModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
       links.push(doc);
@@ -200,16 +200,16 @@ describe('ABDM Day 7 Task 05 — Complete End-to-End Audit & Hardening Suite (Mo
       transfers.push(doc);
       return doc;
     });
-    vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation(async (q: any) => {
+    vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation((async (q: any) => {
       return (
         transfers.find(
           (t) => t.externalTransactionId === q.externalTransactionId && (!q.role || t.role === q.role)
         ) || null
       );
-    });
-    vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation(async (id: any) => {
+    }) as any);
+    vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation((async (id: any) => {
       return transfers.find((t) => String(t._id) === String(id)) || null;
-    });
+    }) as any);
     vi.spyOn(AbdmTransferPackageModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
       packages.push(doc);

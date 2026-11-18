@@ -18,42 +18,57 @@ import {
 import { PharmacySettingsNav } from '@/components/pharmacy/settings/PharmacySettingsNav';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/components/ui/toast';
+import { RolePrivacyBanner } from '@/components/security/RolePrivacyBanner';
 
 export default function PharmacySessionsSettingsPage() {
+  const { toast } = useToast();
   const { data: sessions, isLoading, refetch } = usePharmacySessions();
   const revokeSingleMutation = useRevokePharmacySession();
   const revokeOthersMutation = useRevokeOtherPharmacySessions();
 
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [singleTarget, setSingleTarget] = useState<{ id: string; deviceName?: string } | null>(null);
+  const [revokeOthersOpen, setRevokeOthersOpen] = useState(false);
 
-  const handleRevokeSingle = async (sessionId: string, deviceName?: string) => {
-    if (!confirm(`Terminate active session on "${deviceName || 'this device'}"?`)) return;
+  const handleRevokeSingle = (sessionId: string, deviceName?: string) => {
+    setSingleTarget({ id: sessionId, deviceName });
+  };
+
+  const confirmRevokeSingle = async () => {
+    if (!singleTarget) return;
     setFeedback(null);
-
     try {
-      await revokeSingleMutation.mutateAsync(sessionId);
+      await revokeSingleMutation.mutateAsync(singleTarget.id);
       setFeedback({ type: 'success', message: 'Session terminated successfully' });
+      toast({ variant: 'success', title: 'Session revoked', description: 'The selected terminal session has been signed out.' });
+      setSingleTarget(null);
       setTimeout(() => setFeedback(null), 4000);
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Failed to revoke session' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to revoke session';
+      setFeedback({ type: 'error', message: msg });
+      toast({ variant: 'error', title: 'Revocation failed', description: msg });
     }
   };
 
-  const handleRevokeOthers = async () => {
-    if (!confirm('Log out from all other devices and browser sessions? You will stay logged in here.')) {
-      return;
-    }
-    setFeedback(null);
+  const handleRevokeOthers = () => {
+    setRevokeOthersOpen(true);
+  };
 
+  const confirmRevokeOthers = async () => {
+    setFeedback(null);
     try {
       const res = await revokeOthersMutation.mutateAsync();
-      setFeedback({
-        type: 'success',
-        message: `Successfully logged out from ${res.revokedCount} other session(s).`,
-      });
+      const message = `Successfully logged out from ${res.revokedCount} other session(s).`;
+      setFeedback({ type: 'success', message });
+      toast({ variant: 'success', title: 'Other sessions revoked', description: message });
+      setRevokeOthersOpen(false);
       setTimeout(() => setFeedback(null), 4000);
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Failed to terminate other sessions' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to terminate other sessions';
+      setFeedback({ type: 'error', message: msg });
+      toast({ variant: 'error', title: 'Operation failed', description: msg });
     }
   };
 
@@ -227,6 +242,30 @@ export default function PharmacySessionsSettingsPage() {
           </div>
         )}
       </div>
+
+      <RolePrivacyBanner role="PHARMACY" />
+
+      <ConfirmDialog
+        open={Boolean(singleTarget)}
+        onClose={() => setSingleTarget(null)}
+        onConfirm={confirmRevokeSingle}
+        loading={revokeSingleMutation.isPending}
+        title="Terminate Device Session?"
+        description={`Sign out the active pharmacy session on "${singleTarget?.deviceName || 'this device'}".`}
+        confirmLabel="Revoke Session"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={revokeOthersOpen}
+        onClose={() => setRevokeOthersOpen(false)}
+        onConfirm={confirmRevokeOthers}
+        loading={revokeOthersMutation.isPending}
+        title="Sign Out All Other Devices?"
+        description="Every other active pharmacy browser session will be terminated immediately. Your current window will remain signed in."
+        confirmLabel="Sign Out Other Devices"
+        variant="danger"
+      />
     </div>
   );
 }

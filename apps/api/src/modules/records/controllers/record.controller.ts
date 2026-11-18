@@ -167,6 +167,143 @@ export class RecordController {
   });
 
   /**
+   * GET /api/v1/records/:recordId/access-token
+   * Issues a short-lived HMAC-signed URL token for secure in-app preview or download
+   */
+  issueAccessToken = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user || !req.user.userId) {
+      throw AppError.unauthorized('Authentication required to issue document access link');
+    }
+
+    const recordId = String(req.params.recordId);
+    let targetPatientId = req.user.userId;
+
+    if (req.user.role === 'DOCTOR') {
+      const record = await recordService.getRecordDocument(recordId);
+      if (!record || record.isArchived) {
+        throw AppError.notFound('Medical record not found');
+      }
+
+      await consentEnforcementService.enforce({
+        requesterId: req.user.userId,
+        requesterRole: req.user.role,
+        patientId: record.patientId.toString(),
+        dataCategory: 'MEDICAL_RECORDS',
+        requestId: (req as Request & { id?: string }).id,
+      });
+      targetPatientId = record.patientId.toString();
+    } else if (req.user.role !== 'PATIENT') {
+      throw AppError.forbidden('Only the patient owner or a consented doctor can access medical documents');
+    }
+
+    const accessToken = await recordService.issueSignedAccessToken({
+      recordId,
+      patientId: targetPatientId,
+      actorId: req.user.userId,
+      actorRole: req.user.role,
+      requestId: req.requestId,
+    });
+
+    sendSuccess(res, accessToken, 'Short-lived document access link issued');
+  });
+
+  /**
+   * GET /api/v1/records/:recordId/preview
+   * Streams authorized medical document inline using either a valid short-lived signed token
+   * or an authenticated ownership/consent-verified session.
+   */
+  previewRecord = asyncHandler(async (req: Request, res: Response) => {
+    const recordId = String(req.params.recordId);
+    const signedToken = typeof req.query.token === 'string' ? req.query.token : '';
+
+    let targetPatientId = '';
+    let actorId = '';
+    let actorRole: 'PATIENT' | 'DOCTOR' = 'PATIENT';
+
+    if (signedToken) {
+      const verified = recordService.verifySignedAccessToken(recordId, signedToken);
+      targetPatientId = verified.patientId;
+      actorId = verified.actorId;
+      actorRole = verified.actorRole;
+    } else if (req.user && req.user.userId) {
+      actorId = req.user.userId;
+      if (req.user.role === 'DOCTOR') {
+        const record = await recordService.getRecordDocument(recordId);
+        if (!record || record.isArchived) {
+          throw AppError.notFound('Medical record not found');
+        }
+        await consentEnforcementService.enforce({
+          requesterId: req.user.userId,
+          requesterRole: req.user.role,
+          patientId: record.patientId.toString(),
+          dataCategory: 'MEDICAL_RECORDS',
+          requestId: (req as Request & { id?: string }).id,
+        });
+        targetPatientId = record.patientId.toString();
+        actorRole = 'DOCTOR';
+      } else if (req.user.role === 'PATIENT') {
+        targetPatientId = req.user.userId;
+        actorRole = 'PATIENT';
+      } else {
+        throw AppError.forbidden('You do not have permission to preview this medical document');
+      }
+    } else {
+      throw AppError.unauthorized('Authentication or a valid signed preview token is required');
+    }
+
+    const doc = await recordService.getRecordForDownload(targetPatientId, recordId);
+    const safeFileName = fileSecurityService.sanitizeFileName(doc.fileName, doc.mimeType);
+
+    await securityAuditMonitor.record({
+      actorId,
+      actorRole,
+      action: 'DOCUMENT_PREVIEWED',
+      resourceType: 'MEDICAL_RECORD',
+      resourceId: recordId,
+      requestId: req.requestId,
+      outcome: 'SUCCESS',
+      metadata: {
+        mimeType: doc.mimeType,
+        byteSize: doc.fileSize,
+        viaSignedToken: Boolean(signedToken),
+      },
+    });
+
+    res.setHeader('Content-Type', doc.mimeType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', 'sandbox');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(safeFileName)}"`);
+    res.setHeader('Content-Length', doc.fileSize);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+
+    res.status(HttpStatus.OK).send(doc.fileContent);
+  });
+
+  /**
+   * DELETE /api/v1/records/:recordId
+   * Soft-archives a patient-owned medical document while retaining security audit trail
+   */
+  archiveRecord = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user || !req.user.userId) {
+      throw AppError.unauthorized('Authentication required to archive medical record');
+    }
+    if (req.user.role !== 'PATIENT') {
+      throw AppError.forbidden('Only the patient owner can archive medical documents');
+    }
+
+    const recordId = String(req.params.recordId);
+    const archived = await recordService.archivePatientRecord(
+      req.user.userId,
+      req.user.userId,
+      recordId,
+      req.requestId
+    );
+
+    sendSuccess(res, archived, 'Medical document archived successfully');
+  });
+
+  /**
    * POST /api/v1/records
    * Upload / create a new health record with patient ownership
    */

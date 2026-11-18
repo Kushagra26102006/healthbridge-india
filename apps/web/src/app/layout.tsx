@@ -4,12 +4,13 @@ import { AppProviders } from '@/providers';
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
-    { media: '(prefers-color-scheme: dark)', color: '#020617' },
+    { media: '(prefers-color-scheme: light)', color: '#F8FAFC' },
+    { media: '(prefers-color-scheme: dark)', color: '#080F1E' },
   ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: 'cover',
 };
 
 export const metadata: Metadata = {
@@ -69,8 +70,10 @@ export default function RootLayout({
                   var isDark = stored === 'dark' || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
                   if (isDark) {
                     document.documentElement.classList.add('dark');
+                    document.documentElement.style.colorScheme = 'dark';
                   } else {
                     document.documentElement.classList.remove('dark');
+                    document.documentElement.style.colorScheme = 'light';
                   }
                 } catch(e) {}
               })();
@@ -78,7 +81,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-background font-sans antialiased text-foreground selection:bg-teal-600 selection:text-white">
+      <body className="min-h-screen bg-background font-sans antialiased text-foreground selection:bg-primary/15 selection:text-primary dark:selection:bg-primary/30 dark:selection:text-foreground">
+        <a href="#main-content" className="skip-to-content">
+          Skip to main content
+        </a>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

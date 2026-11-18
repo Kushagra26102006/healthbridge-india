@@ -11,10 +11,13 @@ import {
   Clock,
   ChevronRight,
   ShieldCheck,
+  Sun,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { InteractionPreferencesControl } from '@/components/motion';
 import { SettingsNav } from '@/components/doctor/settings';
 import {
   useDoctorProfile,
@@ -30,101 +33,101 @@ export default function DoctorSettingsHubPage() {
   const settingsCards = [
     {
       title: 'Professional Profile & Credentials',
-      description: 'Manage clinical biography, spoken languages, qualifications, and upload SMC certificates',
+      description:
+        'Manage clinical biography, spoken languages, qualifications, and upload medical registration certificates',
       href: '/doctor/settings/professional',
       icon: UserCheck,
-      badge: profile?.verificationStatus || 'VERIFIED',
-      badgeColor: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
-      color: 'text-blue-600 bg-blue-500/10',
+      badge: profile?.verificationStatus || 'PROFILE',
+      badgeVariant: (profile?.verificationStatus === 'VERIFIED' ? 'success' : 'info') as
+        | 'success'
+        | 'info',
+      color: 'text-primary bg-primary/12',
     },
     {
       title: 'Practice & Facility Settings',
-      description: 'Configure associated hospital, consultation modes, fees, slot durations, and buffer times',
+      description:
+        'Configure associated hospital, consultation modes, fees, slot durations, and buffer times',
       href: '/doctor/settings/practice',
       icon: Building2,
       badge: practiceSettings?.facilityName || 'Affiliated Facility',
-      badgeColor: 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30',
-      color: 'text-teal-600 bg-teal-500/10',
+      badgeVariant: 'teal' as const,
+      color: 'text-secondary bg-secondary/12',
     },
     {
       title: 'Security & Password Credentials',
-      description: 'Update account password with live complexity meter and review ABDM security policies',
+      description:
+        'Update account password with live complexity checks and review clinical security safeguards',
       href: '/doctor/settings/security',
       icon: Lock,
       badge: 'Protected',
-      badgeColor: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30',
-      color: 'text-indigo-600 bg-indigo-500/10',
+      badgeVariant: 'info' as const,
+      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/12',
     },
     {
       title: 'Active Sessions & Workstations',
-      description: 'Inspect active browser logins and terminate unrecognized clinic workstations',
+      description:
+        'Inspect active clinic browser sessions and terminate unrecognized workstations immediately',
       href: '/doctor/settings/sessions',
       icon: Laptop,
       badge: `${sessions.length} Active`,
-      badgeColor: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30',
-      color: 'text-amber-600 bg-amber-500/10',
+      badgeVariant: 'warning' as const,
+      color: 'text-amber-600 dark:text-amber-400 bg-amber-500/12',
     },
     {
       title: 'Notification Preferences',
-      description: 'Configure routing channels (In-App, Email, SMS) for appointments, check-ins, and reminders',
+      description:
+        'Configure delivery channels (In-App, Email, SMS) for appointments, patient check-ins, and reminders',
       href: '/doctor/settings/notifications',
       icon: Bell,
-      badge: 'Configured',
-      badgeColor: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30',
-      color: 'text-purple-600 bg-purple-500/10',
+      badge: 'Channels',
+      badgeVariant: 'neutral' as const,
+      color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/12',
     },
     {
       title: 'Weekly Consultation Schedule',
-      description: 'Configure 7-day recurring clinic shifts, break intervals, and blocked leave dates',
+      description:
+        'Configure recurring weekly availability windows, break intervals, and blocked leave dates',
       href: '/doctor/schedule',
       icon: Clock,
-      badge: 'Manage Slots',
-      badgeColor: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30',
-      color: 'text-blue-600 bg-blue-500/10',
+      badge: 'Schedule',
+      badgeVariant: 'info' as const,
+      color: 'text-primary bg-primary/12',
     },
   ];
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in max-w-5xl">
-      {/* Header */}
+    <div className="space-y-6 sm:space-y-8 max-w-5xl pb-12">
       <div>
-        <h1 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
-          Doctor Practice & Account Settings
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Manage clinical credentials, practice facilities, consultation preferences, security safeguards, and notifications
+        <h1 className="text-page-heading">Doctor Practice &amp; Account Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage clinical credentials, hospital affiliation, availability, display theme, sound
+          preferences, and account security
         </p>
       </div>
 
       <SettingsNav />
 
-      {/* Settings Grid */}
+      {/* Practice & Account Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
         {settingsCards.map((item) => {
           const Icon = item.icon;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-            >
-              <Card className="h-full border border-border/80 bg-card hover:border-blue-500/40 hover:shadow-md transition-all">
+            <Link key={item.href} href={item.href} className="group block focus-ring rounded-lg">
+              <Card className="h-full hover-lift">
                 <CardContent className="p-5 flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-2xl shrink-0 mt-0.5 ${item.color}`}>
-                      <Icon className="h-5 w-5" />
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    <div className={`p-2.5 rounded-md shrink-0 mt-0.5 ${item.color}`}>
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h2 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
                           {item.title}
-                        </h3>
-                        {item.badge && (
-                          <Badge className={`text-[10px] font-semibold border ${item.badgeColor}`}>
-                            {item.badge}
-                          </Badge>
-                        )}
+                        </h2>
+                        <Badge variant={item.badgeVariant} size="sm">
+                          {item.badge}
+                        </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         {item.description}
@@ -132,31 +135,59 @@ export default function DoctorSettingsHubPage() {
                     </div>
                   </div>
 
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
+                  <ChevronRight
+                    className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
+                    aria-hidden="true"
+                  />
                 </CardContent>
               </Card>
             </Link>
           );
         })}
+
+        {/* Display Theme & Appearance */}
+        <Card className="hover-lift">
+          <CardHeader className="pb-3 border-b border-border/70">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-md bg-amber-500/12 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <Sun className="h-4 w-4" aria-hidden="true" />
+              </div>
+              <CardTitle className="text-sm font-semibold">Workspace Display Theme</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Choose Light, Dark, or System display mode optimized for extended clinical review.
+            </p>
+            <div className="flex items-center justify-between p-3 rounded-md bg-muted/40 border border-border/70">
+              <span className="font-medium text-foreground">Interface Theme</span>
+              <ThemeToggle />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Optional Sound & Haptic Preferences */}
+        <InteractionPreferencesControl />
       </div>
 
-      {/* ABDM Compliance Banner */}
-      <Card className="border border-border/80 bg-gradient-to-r from-card via-card to-teal-500/5 shadow-sm">
+      {/* Clinical Data Governance Note */}
+      <Card>
         <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">
-              <ShieldCheck className="h-5 w-5" />
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-md bg-secondary/12 text-secondary shrink-0 mt-0.5">
+              <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="space-y-0.5 text-xs">
-              <h4 className="font-bold text-foreground">
-                ABDM Healthcare Professionals Registry (HPR) Verified
-              </h4>
-              <p className="text-muted-foreground">
-                Your medical practice settings adhere to National Health Authority standards. All clinical documents and encounters are encrypted and digitally signed.
+              <h3 className="font-semibold text-sm text-foreground">
+                Consent-Scoped Clinical Access &amp; Auditability
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Patient record access inside the Doctor Workspace is restricted to authorized
+                encounters and active patient consent artefacts, with full access audit logging.
               </p>
             </div>
           </div>
-          <Button asChild size="sm" variant="outline" className="text-xs h-8 shrink-0">
+          <Button asChild size="sm" variant="outline" className="shrink-0">
             <Link href="/doctor/profile">View Public Profile</Link>
           </Button>
         </CardContent>

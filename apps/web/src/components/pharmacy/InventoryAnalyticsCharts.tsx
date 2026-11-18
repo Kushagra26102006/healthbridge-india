@@ -4,16 +4,15 @@ import React from 'react';
 import Link from 'next/link';
 import {
   DollarSign,
-  PieChart,
   ShieldAlert,
   Archive,
-  Boxes,
   TrendingUp,
   ArrowDownToLine,
   SlidersHorizontal,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AnalyticsBarChart, AnalyticsDonutChart } from '@/components/analytics';
 import type { PharmacyInventoryAnalyticsDto } from '@healthbridge/shared-types';
 
 export interface InventoryAnalyticsChartsProps {
@@ -46,7 +45,17 @@ export function InventoryAnalyticsCharts({
     stockStatusDistribution = [],
   } = analytics;
 
-  const totalDosageUnits = dosageFormDistribution.reduce((acc, curr) => acc + curr.units, 0);
+  const dosageData = dosageFormDistribution.map((df) => ({
+    key: df.dosageForm,
+    label: df.dosageForm,
+    value: df.units,
+  }));
+
+  const statusData = stockStatusDistribution.map((st) => ({
+    key: st.status,
+    label: st.status.replace(/_/g, ' '),
+    value: st.count,
+  }));
 
   return (
     <div className="space-y-6">
@@ -131,75 +140,25 @@ export function InventoryAnalyticsCharts({
         </CardContent>
       </Card>
 
-      {/* Grid: Dosage Form & Status Distributions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Dosage Form Distribution */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
-          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Boxes className="w-4 h-4 text-teal-600" />
-              Stock Distribution by Dosage Form
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4 space-y-3">
-            {dosageFormDistribution.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">No dosage data available</p>
-            ) : (
-              dosageFormDistribution.map((df) => {
-                const pct = totalDosageUnits > 0 ? ((df.units / totalDosageUnits) * 100).toFixed(0) : '0';
-                return (
-                  <div key={df.dosageForm} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {df.dosageForm} ({df.count} batches)
-                      </span>
-                      <span className="text-slate-500 font-mono">
-                        {df.units} units ({pct}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-teal-500 h-2 rounded-full"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+      {/* Grid: Interactive Dosage Form Donut & Stock Status Bar Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AnalyticsDonutChart
+          title="Stock Distribution by Dosage Form"
+          description="Available inventory units grouped by dosage form"
+          centerLabel="Units"
+          unit="units"
+          data={dosageData}
+          emptyTitle="No dosage data available"
+        />
 
-        {/* Status Distribution */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
-          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-teal-600" />
-              Inventory Status Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4 space-y-3">
-            {stockStatusDistribution.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">No status data available</p>
-            ) : (
-              stockStatusDistribution.map((st) => (
-                <div
-                  key={st.status}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-xs"
-                >
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    {st.status.replace(/_/g, ' ')}
-                  </span>
-                  <div className="flex items-center gap-3 font-mono">
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {st.count} batches
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+        <AnalyticsBarChart
+          title="Inventory Status Breakdown"
+          description="Batch distribution across healthy, low-stock, expiring, and quarantined statuses"
+          orientation="horizontal"
+          unit="batches"
+          data={statusData}
+          emptyTitle="No status data available"
+        />
       </div>
     </div>
   );

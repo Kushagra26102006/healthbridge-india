@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "../api/node_modules/.bin/vitest run --config vitest.config.mts"
   },
   "dependencies": {
     "@healthbridge/config": "workspace:*",

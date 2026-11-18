@@ -1211,10 +1211,20 @@ export class LabReportService {
       query.doctorId = new Types.ObjectId(user.id);
       query.status = { $in: doctorAllowedStatuses };
     } else if (user.role === 'LABORATORY') {
+      const labIds: Types.ObjectId[] = [];
       if (user.laboratoryId && Types.ObjectId.isValid(user.laboratoryId)) {
-        query.laboratoryId = new Types.ObjectId(user.laboratoryId);
-      } else if (Types.ObjectId.isValid(user.id)) {
-        query.laboratoryId = new Types.ObjectId(user.id);
+        labIds.push(new Types.ObjectId(user.laboratoryId));
+      }
+      if (Types.ObjectId.isValid(user.id)) {
+        const userObjId = new Types.ObjectId(user.id);
+        if (!labIds.some((id) => id.equals(userObjId))) {
+          labIds.push(userObjId);
+        }
+      }
+      if (labIds.length === 1) {
+        query.laboratoryId = labIds[0];
+      } else if (labIds.length > 1) {
+        query.laboratoryId = { $in: labIds };
       }
     }
 

@@ -22,6 +22,7 @@ import {
   type PrivacyRequestDto,
 } from '@/features/privacy/api/privacy-api';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
+import { RolePrivacyBanner } from '@/components/security/RolePrivacyBanner';
 
 type PrivacyTab = 'overview' | 'access' | 'export' | 'correction' | 'closure';
 
@@ -178,6 +179,7 @@ export default function PatientPrivacyDashboardPage() {
   return (
     <ProtectedRoute allowedRoles={['PATIENT']} redirectUnauth>
       <div className="space-y-6 max-w-6xl mx-auto">
+        <RolePrivacyBanner role="PATIENT" />
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

@@ -12,6 +12,21 @@ export interface ConnectionHealth {
 }
 
 let isConnecting = false;
+let reconnectTimer: NodeJS.Timeout | null = null;
+
+function scheduleReconnect(customUri?: string): void {
+  if (env.NODE_ENV === 'test' || reconnectTimer) {
+    return;
+  }
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (mongoose.connection.readyState === 0) {
+      logger.info('Retrying MongoDB connection in background...');
+      void connectDatabase(customUri);
+    }
+  }, 10000);
+  reconnectTimer.unref();
+}
 
 // In production, disable automatic index builds to prevent performance degradation or index locks
 if (env.NODE_ENV === 'production') {
@@ -80,16 +95,21 @@ export const connectDatabase = async (customUri?: string): Promise<typeof mongoo
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
-      maxPoolSize: 20,
-      minPoolSize: 5,
+      maxPoolSize: env.DB_MAX_POOL_SIZE ?? 20,
+      minPoolSize: env.DB_MIN_POOL_SIZE ?? 5,
     });
 
     isConnecting = false;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     return connection;
   } catch (error) {
     isConnecting = false;
     logger.error('Failed to connect to MongoDB during initialization:', error);
-    // Non-fatal during local bootstrap so health check can report status
+    // Automatically retry connecting in background when DB comes online or Atlas IP is whitelisted
+    scheduleReconnect(customUri);
     return null;
   }
 };
@@ -117,6 +137,10 @@ export const syncDatabaseIndexes = async (): Promise<void> => {
  * Gracefully disconnects from MongoDB
  */
 export const disconnectDatabase = async (): Promise<void> => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   try {
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();

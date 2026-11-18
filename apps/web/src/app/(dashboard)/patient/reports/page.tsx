@@ -14,9 +14,12 @@ import {
 } from 'lucide-react';
 import { laboratoryReportsApi } from '@/features/laboratory/api/laboratory-reports-api';
 import { ReportStatusBadge } from '@/features/laboratory/components/ReportStatusBadge';
+import { useToast } from '@/components/ui/toast';
+import { mapApiErrorToUserError } from '@/lib/errors/user-error-mapper';
 import type { LabReportListItemDto } from '@healthbridge/shared-types';
 
 export default function PatientReportsPage() {
+  const { toast } = useToast();
   const [reports, setReports] = useState<LabReportListItemDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +53,13 @@ export default function PatientReportsPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch {
-      alert('Failed to download diagnostic report document');
+    } catch (err: unknown) {
+      const normalized = mapApiErrorToUserError(err);
+      toast({
+        variant: 'error',
+        title: normalized.title,
+        description: normalized.message,
+      });
     }
   };
 

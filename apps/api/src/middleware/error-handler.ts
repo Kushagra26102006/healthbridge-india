@@ -86,6 +86,20 @@ export const errorHandler: ErrorRequestHandler = (
     code = ErrorCode.INVALID_IDENTIFIER;
     message = `Invalid format for resource identifier '${err.path}'`;
   }
+  // 5b. Handle MongoDB / Mongoose connectivity or buffering timeout errors cleanly (503)
+  else if (
+    err instanceof Error &&
+    (err.name === 'MongooseServerSelectionError' ||
+      err.name === 'MongoServerSelectionError' ||
+      err.name === 'MongoNetworkError' ||
+      err.name === 'MongoNotConnectedError' ||
+      /buffering timed out|topology was destroyed|not connected/i.test(err.message))
+  ) {
+    statusCode = HttpStatus.SERVICE_UNAVAILABLE;
+    code = 'DATABASE_UNAVAILABLE';
+    message =
+      'Healthcare database is currently unreachable. Please check MongoDB connectivity (e.g., Atlas IP allowlist or local mongod) and retry.';
+  }
   // 6. Handle Malformed JSON Syntax in Request Body
   else if (
     err instanceof SyntaxError &&

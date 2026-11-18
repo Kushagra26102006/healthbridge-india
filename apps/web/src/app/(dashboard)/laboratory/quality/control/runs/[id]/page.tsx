@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -35,7 +35,8 @@ export default function QCRunDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [investigationSuccess, setInvestigationSuccess] = useState(false);
 
-  const fetchRun = async () => {
+  const fetchRun = useCallback(async () => {
+    if (!runId) return;
     try {
       setLoading(true);
       setError(null);
@@ -47,13 +48,11 @@ export default function QCRunDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [runId]);
 
   useEffect(() => {
-    if (runId) {
-      fetchRun();
-    }
-  }, [runId]);
+    fetchRun();
+  }, [fetchRun]);
 
   const handleInvestigationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

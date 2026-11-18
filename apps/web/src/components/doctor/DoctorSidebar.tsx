@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, m } from 'framer-motion';
 import {
   LayoutDashboard,
   Calendar,
@@ -18,9 +19,16 @@ import {
   X,
   ListOrdered,
   Database,
+  FileText,
+  FlaskConical,
+  Bell,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { modalBackdrop } from '@/lib/motion/variants';
+import { MOTION_DURATION, MOTION_EASE } from '@/lib/motion/tokens';
 import { cn } from '@/lib/utils';
 
 export interface DoctorNavItem {
@@ -28,19 +36,26 @@ export interface DoctorNavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  section?: 'primary' | 'secondary';
 }
 
 export const DOCTOR_NAV_ITEMS: DoctorNavItem[] = [
-  { label: 'Clinical Overview', href: '/doctor/dashboard', icon: LayoutDashboard },
-  { label: 'Appointments', href: '/doctor/appointments', icon: Calendar },
-  { label: 'Patient Queue', href: '/doctor/queue', icon: ListOrdered },
-  { label: 'My Patients', href: '/doctor/patients', icon: Users },
-  { label: 'Schedule & Availability', href: '/doctor/schedule', icon: Clock },
-  { label: 'Clinical Encounters', href: '/doctor/encounters', icon: Stethoscope },
-  { label: 'Prescriptions', href: '/doctor/prescriptions', icon: Pill },
-  { label: 'Medication Catalog', href: '/doctor/medications', icon: Database },
-  { label: 'Professional Profile', href: '/doctor/profile', icon: UserCheck },
-  { label: 'Practice Settings', href: '/doctor/settings', icon: Settings },
+  // Core 10 Clinical Workspace Navigation Items
+  { label: 'Overview', href: '/doctor/dashboard', icon: LayoutDashboard, section: 'primary' },
+  { label: 'My Patients', href: '/doctor/patients', icon: Users, section: 'primary' },
+  { label: 'Appointments', href: '/doctor/appointments', icon: Calendar, section: 'primary' },
+  { label: 'Patient Queue', href: '/doctor/queue', icon: ListOrdered, section: 'primary' },
+  { label: 'Consultations', href: '/doctor/encounters', icon: Stethoscope, section: 'primary' },
+  { label: 'E-Prescriptions', href: '/doctor/prescriptions', icon: Pill, section: 'primary' },
+  { label: 'Medical Records', href: '/doctor/abdm/health-records', icon: FileText, section: 'primary' },
+  { label: 'Lab Reports', href: '/doctor/reports', icon: FlaskConical, section: 'primary' },
+  { label: 'My Schedule', href: '/doctor/schedule', icon: Clock, section: 'primary' },
+  { label: 'Profile & Settings', href: '/doctor/settings', icon: Settings, section: 'primary' },
+  // Preserved Quick Shortcuts
+  { label: 'Practice Analytics', href: '/doctor/analytics', icon: BarChart3, section: 'secondary' },
+  { label: 'Medication Catalog', href: '/doctor/medications', icon: Database, section: 'secondary' },
+  { label: 'Notifications', href: '/doctor/notifications', icon: Bell, section: 'secondary' },
+  { label: 'Public Profile', href: '/doctor/profile', icon: UserCheck, section: 'secondary' },
 ];
 
 export interface DoctorSidebarProps {
@@ -68,184 +83,214 @@ export function DoctorSidebar({
     return pathname.startsWith(href);
   };
 
+  const primaryItems = DOCTOR_NAV_ITEMS.filter((i) => i.section !== 'secondary');
+  const secondaryItems = DOCTOR_NAV_ITEMS.filter((i) => i.section === 'secondary');
+
+  const renderNavLink = (item: DoctorNavItem) => {
+    const active = isLinkActive(item.href);
+    const Icon = item.icon;
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => {
+          if (mobileOpen && onCloseMobile) onCloseMobile();
+        }}
+        aria-current={active ? 'page' : undefined}
+        title={collapsed ? item.label : undefined}
+        className={cn(
+          'group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 relative focus-ring',
+          active
+            ? 'bg-primary/10 text-primary font-semibold'
+            : 'text-muted-foreground hover:bg-muted/75 hover:text-foreground',
+          collapsed && 'justify-center px-2'
+        )}
+      >
+        {active && (
+          <span
+            aria-hidden="true"
+            className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-pill bg-primary"
+          />
+        )}
+        <Icon
+          className={cn(
+            'h-[18px] w-[18px] shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
+            active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+          )}
+        />
+        {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+        {!collapsed && item.badge && (
+          <Badge variant="info" size="sm" className="ml-auto">
+            {item.badge}
+          </Badge>
+        )}
+      </Link>
+    );
+  };
+
   const navContent = (
     <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border select-none">
       {/* Brand Header */}
-      <div className="h-16 md:h-20 flex items-center justify-between px-4 sm:px-5 border-b border-border/80">
+      <div className="h-16 md:h-[72px] flex items-center justify-between px-4 border-b border-border/80 shrink-0">
         <Link
           href="/doctor/dashboard"
-          className="flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl p-1"
-          aria-label="HealthBridge Doctor Portal"
+          className="flex items-center gap-2.5 group focus-ring rounded-md p-1 min-w-0"
+          aria-label="HealthBridge Doctor Clinical Workspace"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-700 via-blue-600 to-teal-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-blue-500/10 group-hover:shadow-glow transition-all">
-            <Stethoscope className="h-5 w-5" />
+          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand-blue via-indigo-600 to-brand-teal text-white flex items-center justify-center shrink-0 shadow-xs group-hover:shadow-glowBlue transition-shadow">
+            <Stethoscope className="h-5 w-5" aria-hidden="true" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col leading-tight overflow-hidden transition-all duration-200">
-              <span className="font-extrabold text-base tracking-tight text-foreground truncate">
-                Health<span className="text-blue-600 dark:text-blue-400">Bridge</span>
+            <div className="flex flex-col leading-none min-w-0">
+              <span className="font-bold text-base tracking-tight text-foreground truncate">
+                Health<span className="text-primary">Bridge</span>
               </span>
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1">
-                Doctor Portal
-                <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-500/30 text-blue-600 dark:text-blue-400">
-                  CLINICAL
-                </Badge>
+              <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                Clinical Workspace
               </span>
             </div>
           )}
         </Link>
 
-        {/* Mobile Close Button */}
         {mobileOpen && (
           <button
             type="button"
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="lg:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-ring"
             aria-label="Close navigation sidebar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {onToggleCollapse && !mobileOpen && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:inline-flex items-center justify-center h-7 w-7 rounded-sm border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-ring shrink-0"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            )}
           </button>
         )}
       </div>
 
-      {/* Navigation Links List */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin">
-        {DOCTOR_NAV_ITEMS.map((item) => {
-          const active = isLinkActive(item.href);
-          const Icon = item.icon;
+      {/* Navigation List */}
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-5"
+        aria-label="Doctor Clinical Navigation"
+      >
+        <div className="space-y-1">
+          {!collapsed && (
+            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Clinical Operations
+            </p>
+          )}
+          {primaryItems.map(renderNavLink)}
+        </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => {
-                if (mobileOpen && onCloseMobile) {
-                  onCloseMobile();
-                }
-              }}
-              title={collapsed ? item.label : undefined}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 group relative',
-                active
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <Icon
-                className={cn(
-                  'h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110',
-                  active ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'
-                )}
-              />
-              {!collapsed && (
-                <span className="truncate flex-1 font-medium">{item.label}</span>
-              )}
-
-              {!collapsed && item.badge && (
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
-                  {item.badge}
-                </span>
-              )}
-
-              {/* Active Indicator Strip when collapsed */}
-              {collapsed && active && (
-                <span className="absolute left-0 top-2 bottom-2 w-1 bg-blue-600 rounded-r-full" />
-              )}
-            </Link>
-          );
-        })}
+        <div className="space-y-1 pt-3 border-t border-border/70">
+          {!collapsed && (
+            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Reference &amp; Account
+            </p>
+          )}
+          {secondaryItems.map(renderNavLink)}
+        </div>
       </nav>
 
-      {/* Desktop Collapse Toggle */}
-      {onToggleCollapse && (
-        <div className="hidden lg:flex px-3 py-2 border-t border-border/80 justify-end">
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      {/* Doctor Identity & Sign Out Footer */}
+      <div className="p-3 border-t border-border/80 bg-muted/25 space-y-2 shrink-0">
+        {!collapsed ? (
+          <Link
+            href="/doctor/profile"
+            onClick={() => onCloseMobile?.()}
+            className="flex items-center gap-2.5 p-2 rounded-md bg-surface border border-border/70 hover:border-primary/30 transition-colors focus-ring"
           >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      )}
+            <Avatar name={user?.name || 'Physician'} size="sm" status="online" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">
+                Dr. {user?.name || 'Physician'}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex justify-center py-1">
+            <Avatar name={user?.name || 'Physician'} size="sm" status="online" />
+          </div>
+        )}
 
-      {/* Footer Doctor Identity & Logout Section */}
-      <div className="p-3 border-t border-border/80 bg-muted/30">
-        <div
+        <button
+          type="button"
+          onClick={() => logout()}
+          disabled={isLoading}
+          aria-label="Sign out of doctor portal"
           className={cn(
-            'flex items-center gap-3 p-2 rounded-xl transition-all',
-            collapsed ? 'justify-center' : 'justify-between'
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-semibold text-error hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors focus-ring disabled:opacity-50',
+            collapsed && 'justify-center px-2'
           )}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-800/60">
-              Dr
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className="text-xs font-semibold text-foreground truncate">
-                  Dr. {user?.name || 'Physician'}
-                </span>
-                <span className="text-[10px] text-muted-foreground truncate">
-                  {user?.email || 'doctor@healthbridge.in'}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => logout()}
-              disabled={isLoading}
-              title="Sign Out"
-              aria-label="Sign out of doctor portal"
-              className="p-1.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+          <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {!collapsed && <span>Sign Out</span>}
+        </button>
       </div>
     </div>
   );
 
   return (
     <>
-      {/* Desktop Sticky Sidebar */}
       <aside
         className={cn(
-          'hidden lg:block shrink-0 h-screen sticky top-0 transition-all duration-300 z-30',
-          collapsed ? 'w-20' : 'w-64',
+          'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-[width] duration-200 ease-out z-30',
+          collapsed ? 'w-[76px]' : 'w-64 xl:w-72',
           className
         )}
       >
         {navContent}
       </aside>
 
-      {/* Mobile Drawer Overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden animate-fade-in"
-          onClick={onCloseMobile}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Mobile Sidebar Slide-in */}
-      <div
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 bg-card transform transition-transform duration-300 ease-in-out lg:hidden shadow-2xl',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      <AnimatePresence>
+        {mobileOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Doctor Navigation Drawer"
+            className="lg:hidden fixed inset-0 z-50 flex"
+          >
+            <m.div
+              variants={modalBackdrop}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 bg-slate-950/55 backdrop-blur-xs"
+              onClick={onCloseMobile}
+              aria-hidden="true"
+            />
+            <m.div
+              initial={{ x: '-100%' }}
+              animate={{
+                x: 0,
+                transition: { duration: MOTION_DURATION.normal, ease: MOTION_EASE.standard },
+              }}
+              exit={{
+                x: '-100%',
+                transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.exit },
+              }}
+              className="relative w-72 max-w-[85vw] h-full shadow-dialog z-10"
+            >
+              {navContent}
+            </m.div>
+          </div>
         )}
-      >
-        {navContent}
-      </div>
+      </AnimatePresence>
     </>
   );
 }
+
+export default DoctorSidebar;

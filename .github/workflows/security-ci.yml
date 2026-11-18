@@ -48,9 +48,17 @@ jobs:
           pnpm audit --prod --json > security-audit-report.json || true
           pnpm audit --prod --audit-level=high
 
+      - name: Verify no .env secret files are tracked in git
+        run: |
+          if [ -n "$(git ls-files '**/.env' '**/.env.local' '.env' '.env.local')" ]; then
+            echo "::error::Environment secret file (.env) is tracked in git! Remove from index and rotate credentials immediately."
+            exit 1
+          fi
+          echo "Tracked .env verification passed (0 tracked .env files)."
+
       - name: Secret exposure scan (redacted — never prints matched values)
         run: |
-          if grep -rnE --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist \
+          if grep -rnE --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist --exclude=".env" --exclude=".env.*" \
             "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|mongodb\+srv://[^<][^\"'[:space:]]+:[^<][^\"'[:space:]]+@)" \
             apps/ packages/ >/dev/null 2>&1; then
             echo "::error::Potential secret pattern detected in source files. Run local secret audit and rotate exposed credentials."
@@ -58,8 +66,8 @@ jobs:
           fi
           echo "Secret pattern scan passed (0 matches)."
 
-      - name: Run automated backend & security test suite
-        run: pnpm test
+      - name: Run automated backend & security unit test suite
+        run: pnpm test:unit
 
       - name: Production build verification
         run: pnpm build

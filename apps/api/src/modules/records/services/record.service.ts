@@ -1,14 +1,17 @@
+import crypto from 'crypto';
 import { Types } from 'mongoose';
 import {
   MedicalRecordModel,
   IMedicalRecordDocument,
 } from '../../healthcare/models/medical-record.model';
 import { AppError } from '../../../shared/errors/app-error';
-import { HEALTH_RECORD_TYPES } from '@healthbridge/config';
+import { HttpStatus } from '../../../shared/constants/http-status';
+import { HEALTH_RECORD_TYPES, RECORD_CONFIG } from '@healthbridge/config';
 import type {
   MedicalRecordType,
   MedicalRecordSummaryDto,
   MedicalRecordDetailDto,
+  MedicalRecordAccessTokenDto,
   IMedicalRecord,
 } from '@healthbridge/shared-types';
 import type { CreateRecordInput, RecordFilterQueryInput } from '@healthbridge/validation';
@@ -26,9 +29,12 @@ export const mapToFHIRDocumentReference = (
     OP_CONSULTATION: { code: '34108-1', display: 'Outpatient Evaluation and Management' },
     DISCHARGE_SUMMARY: { code: '18842-5', display: 'Hospital Discharge Summary' },
     DIAGNOSTIC_REPORT: { code: '11502-2', display: 'Laboratory and Diagnostic Report' },
+    IMAGING_REPORT: { code: '18748-4', display: 'Diagnostic Imaging Study' },
     PRESCRIPTION: { code: '57833-6', display: 'Prescription for Medication' },
+    MEDICAL_CERTIFICATE: { code: '75476-2', display: 'Medical Certificate' },
     IMMUNIZATION_RECORD: { code: '11369-6', display: 'History of Immunization' },
     WELLNESS_RECORD: { code: '42255-0', display: 'Summary of Clinical Episode' },
+    OTHER_MEDICAL_DOCUMENT: { code: '34133-9', display: 'Summary of Episode Note' },
   };
 
   const coding = loincMap[record.recordType] || {
@@ -243,10 +249,14 @@ export class RecordService {
     const isConnected = mongoose.connection.readyState === 1;
 
     if (isConnected) {
-      // 1. Build strict patient-scoped query
+      // 1. Build strict patient-scoped query (exclude soft-archived records unless requested)
       const filter: Record<string, unknown> = {
         patientId: new Types.ObjectId(patientId),
       };
+
+      if (!query.includeArchived) {
+        filter.isArchived = { $ne: true };
+      }
 
       // Category filter
       const category = query.category || query.recordType;
@@ -276,16 +286,35 @@ export class RecordService {
         filter.recordDate = dateFilter;
       }
 
-      // Search keyword filter across title, doctor, and facility
+      // Provider filter (matches doctorName or facilityName)
+      const andClauses: Record<string, unknown>[] = [];
+      if (query.provider && query.provider.trim()) {
+        const sanitizedProvider = query.provider.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const providerRegex = new RegExp(sanitizedProvider, 'i');
+        andClauses.push({
+          $or: [{ doctorName: providerRegex }, { facilityName: providerRegex }],
+        });
+      }
+
+      // Search keyword filter across title, doctor, facility, and reference
       if (query.search && query.search.trim()) {
         const sanitizedTerm = query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(sanitizedTerm, 'i');
-        filter.$or = [
-          { title: searchRegex },
-          { doctorName: searchRegex },
-          { facilityName: searchRegex },
-          { resourceReference: searchRegex },
-        ];
+        andClauses.push({
+          $or: [
+            { title: searchRegex },
+            { doctorName: searchRegex },
+            { facilityName: searchRegex },
+            { resourceReference: searchRegex },
+            { fileName: searchRegex },
+          ],
+        });
+      }
+
+      if (andClauses.length === 1) {
+        Object.assign(filter, andClauses[0]);
+      } else if (andClauses.length > 1) {
+        filter.$and = andClauses;
       }
 
       // Determine sorting
@@ -298,11 +327,12 @@ export class RecordService {
         MedicalRecordModel.countDocuments(filter),
       ]);
 
-      // If database is connected and has records, return them
-      if (total > 0 || query.search || query.category || query.source) {
+      // If database is connected and has records or filters were specified, return real DB result
+      if (total > 0 || query.search || query.category || query.source || query.provider) {
         const items = docs.map((doc) => ({
           ...doc,
           id: doc._id.toString(),
+          fileData: undefined, // Never ship raw base64 blobs inside list responses
         })) as unknown as IMedicalRecord[];
 
         const totalPages = Math.ceil(total / limit) || 1;
@@ -347,6 +377,16 @@ export class RecordService {
     if (query.endDate) {
       const end = new Date(query.endDate).getTime();
       demoList = demoList.filter((r) => r.recordDate && new Date(r.recordDate).getTime() <= end);
+    }
+
+    // Apply provider filter
+    if (query.provider && query.provider.trim()) {
+      const prov = query.provider.trim().toLowerCase();
+      demoList = demoList.filter(
+        (r) =>
+          r.doctorName?.toLowerCase().includes(prov) ||
+          r.facilityName?.toLowerCase().includes(prov)
+      );
     }
 
     // Apply search filter
@@ -397,38 +437,72 @@ export class RecordService {
   }
 
   /**
-   * Retrieves summary metric counts across clinical categories for the patient
+   * Retrieves summary metric counts and real storage usage across clinical categories for the patient
    */
   async getPatientRecordsSummary(patientId: string): Promise<MedicalRecordSummaryDto> {
     const isConnected = mongoose.connection.readyState === 1;
 
     if (isConnected) {
       const pId = new Types.ObjectId(patientId);
-      const [total, consultations, discharge, diagnostics, prescriptions, immunizations, wellness] =
-        await Promise.all([
-          MedicalRecordModel.countDocuments({ patientId: pId }),
-          MedicalRecordModel.countDocuments({ patientId: pId, recordType: 'OP_CONSULTATION' }),
-          MedicalRecordModel.countDocuments({ patientId: pId, recordType: 'DISCHARGE_SUMMARY' }),
-          MedicalRecordModel.countDocuments({ patientId: pId, recordType: 'DIAGNOSTIC_REPORT' }),
-          MedicalRecordModel.countDocuments({ patientId: pId, recordType: 'PRESCRIPTION' }),
-          MedicalRecordModel.countDocuments({ patientId: pId, recordType: 'IMMUNIZATION_RECORD' }),
-          MedicalRecordModel.countDocuments({ patientId: pId, recordType: 'WELLNESS_RECORD' }),
-        ]);
+      const activeScope = { patientId: pId, isArchived: { $ne: true } };
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const [
+        total,
+        consultations,
+        discharge,
+        diagnostics,
+        imaging,
+        prescriptions,
+        certificates,
+        immunizations,
+        wellness,
+        otherDocs,
+        recentUploads,
+        storageAgg,
+      ] = await Promise.all([
+        MedicalRecordModel.countDocuments(activeScope),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'OP_CONSULTATION' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'DISCHARGE_SUMMARY' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'DIAGNOSTIC_REPORT' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'IMAGING_REPORT' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'PRESCRIPTION' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'MEDICAL_CERTIFICATE' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'IMMUNIZATION_RECORD' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'WELLNESS_RECORD' }),
+        MedicalRecordModel.countDocuments({ ...activeScope, recordType: 'OTHER_MEDICAL_DOCUMENT' }),
+        MedicalRecordModel.countDocuments({
+          ...activeScope,
+          source: 'MANUAL_ENTRY',
+          createdAt: { $gte: thirtyDaysAgo },
+        }),
+        MedicalRecordModel.aggregate<{ totalBytes: number }>([
+          { $match: activeScope },
+          { $group: { _id: null, totalBytes: { $sum: { $ifNull: ['$fileSize', 0] } } } },
+        ]),
+      ]);
 
       if (total > 0) {
         return {
           totalRecords: total,
-          clinicalDocuments: consultations + discharge + wellness,
+          clinicalDocuments: consultations + discharge + wellness + certificates + otherDocs,
           prescriptions,
           labReports: diagnostics,
+          imagingReports: imaging,
+          medicalCertificates: certificates,
           immunizations,
           wellnessRecords: wellness,
+          otherDocuments: otherDocs,
+          totalStorageBytes: storageAgg[0]?.totalBytes ?? 0,
+          maxStorageBytes: RECORD_CONFIG.maxPatientStorageBytes,
+          recentUploadsCount: recentUploads,
         };
       }
     }
 
-    // Demo values
+    // Demo values (offline resilience)
     const demo = getDemoRecords(patientId);
+    const demoBytes = demo.reduce((sum, r) => sum + (r.fileSize || 0), 0);
     return {
       totalRecords: demo.length,
       clinicalDocuments: demo.filter((r) =>
@@ -436,8 +510,14 @@ export class RecordService {
       ).length,
       prescriptions: demo.filter((r) => r.recordType === 'PRESCRIPTION').length,
       labReports: demo.filter((r) => r.recordType === 'DIAGNOSTIC_REPORT').length,
+      imagingReports: demo.filter((r) => r.recordType === 'IMAGING_REPORT').length,
+      medicalCertificates: demo.filter((r) => r.recordType === 'MEDICAL_CERTIFICATE').length,
       immunizations: demo.filter((r) => r.recordType === 'IMMUNIZATION_RECORD').length,
       wellnessRecords: demo.filter((r) => r.recordType === 'WELLNESS_RECORD').length,
+      otherDocuments: demo.filter((r) => r.recordType === 'OTHER_MEDICAL_DOCUMENT').length,
+      totalStorageBytes: demoBytes,
+      maxStorageBytes: RECORD_CONFIG.maxPatientStorageBytes,
+      recentUploadsCount: demo.filter((r) => r.source === 'MANUAL_ENTRY').length,
     };
   }
 
@@ -464,7 +544,7 @@ export class RecordService {
       }
     }
 
-    if (!record) {
+    if (!record || record.isArchived) {
       throw AppError.notFound('Medical record not found');
     }
 
@@ -490,10 +570,16 @@ export class RecordService {
       doctorId: record.doctorId?.toString(),
       facilityName: record.facilityName,
       facilityId: record.facilityId?.toString(),
+      appointmentId: record.appointmentId?.toString(),
       fileUrl: record.fileUrl,
       fileName: record.fileName,
       mimeType: record.mimeType,
       fileSize: record.fileSize,
+      storageId: record.storageId,
+      sha256Checksum: record.sha256Checksum,
+      scanStatus: record.scanStatus || 'SCAN_NOT_CONFIGURED',
+      isArchived: Boolean(record.isArchived),
+      archivedAt: record.archivedAt,
       verificationStatus: record.verificationStatus,
       createdBy: record.createdBy ? record.createdBy.toString() : patientId,
       createdAt: record.createdAt,
@@ -503,7 +589,7 @@ export class RecordService {
   }
 
   /**
-   * Upload / create a new patient health record with validation
+   * Upload / create a new patient health record with validation, SHA-256 duplicate detection, and audit trail
    */
   async createPatientRecord(
     patientId: string,
@@ -539,8 +625,37 @@ export class RecordService {
       }
     }
 
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const resourceRef = `HIE-CM-REC-${randomSuffix}`;
+    const isConnected = mongoose.connection.readyState === 1;
+
+    // Duplicate detection by patientId + SHA-256 checksum (unless caller explicitly confirms allowDuplicate)
+    if (isConnected && validatedFile?.sha256Checksum && !data.allowDuplicate) {
+      const existing = await MedicalRecordModel.findOne({
+        patientId: new Types.ObjectId(patientId),
+        sha256Checksum: validatedFile.sha256Checksum,
+        isArchived: { $ne: true },
+      })
+        .select('_id title createdAt')
+        .lean();
+
+      if (existing) {
+        throw new AppError(
+          `A document with identical file contents ("${existing.title}") already exists in your vault.`,
+          HttpStatus.CONFLICT,
+          'DUPLICATE_DOCUMENT',
+          true,
+          [
+            {
+              field: 'fileData',
+              message: `Matches existing record "${existing.title}" (${existing._id.toString()})`,
+              code: 'DUPLICATE_DOCUMENT',
+            },
+          ]
+        );
+      }
+    }
+
+    const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const resourceRef = `HB-DOC-${randomSuffix}`;
 
     const newRecord = new MedicalRecordModel({
       patientId: new Types.ObjectId(patientId),
@@ -552,15 +667,19 @@ export class RecordService {
       recordDate: new Date(data.recordDate),
       doctorName: data.doctorName,
       facilityName: data.facilityName,
+      appointmentId: data.appointmentId ? new Types.ObjectId(data.appointmentId) : undefined,
       fileName: validatedFile ? validatedFile.safeFileName : data.fileName,
       fileSize: validatedFile ? validatedFile.byteSize || data.fileSize : data.fileSize,
       mimeType: validatedFile ? validatedFile.mimeType : data.mimeType || 'application/pdf',
       fileData: data.fileData,
+      storageId: validatedFile?.storageId,
+      sha256Checksum: validatedFile?.sha256Checksum || undefined,
+      scanStatus: validatedFile?.malwareScan.status ?? 'SCAN_NOT_CONFIGURED',
+      isArchived: false,
       verificationStatus: 'SELF_SUBMITTED',
       createdBy: new Types.ObjectId(creatorId),
     });
 
-    const isConnected = mongoose.connection.readyState === 1;
     if (isConnected) {
       await newRecord.save();
     }
@@ -592,14 +711,206 @@ export class RecordService {
       recordDate: newRecord.recordDate,
       doctorName: newRecord.doctorName,
       facilityName: newRecord.facilityName,
+      appointmentId: newRecord.appointmentId?.toString(),
       fileName: newRecord.fileName,
       fileSize: newRecord.fileSize,
       mimeType: newRecord.mimeType,
-      fileData: newRecord.fileData,
+      storageId: newRecord.storageId,
+      sha256Checksum: newRecord.sha256Checksum,
+      scanStatus: newRecord.scanStatus,
+      isArchived: false,
       verificationStatus: newRecord.verificationStatus,
       createdBy: creatorId,
       createdAt: newRecord.createdAt || new Date(),
       updatedAt: newRecord.updatedAt || new Date(),
+    };
+  }
+
+  private getSignedAccessSecret(): string {
+    return (
+      process.env.COOKIE_SECRET ||
+      process.env.JWT_ACCESS_SECRET ||
+      'hb-dev-record-signed-access-secret'
+    );
+  }
+
+  /**
+   * Issues a short-lived HMAC-SHA256 signed access token bound strictly to
+   * (recordId, patientId, actorId, actorRole, expiresAt).
+   */
+  async issueSignedAccessToken(params: {
+    recordId: string;
+    patientId: string;
+    actorId: string;
+    actorRole: 'PATIENT' | 'DOCTOR';
+    ttlSeconds?: number;
+    requestId?: string;
+  }): Promise<MedicalRecordAccessTokenDto> {
+    const detail = await this.getPatientRecordById(params.patientId, params.recordId);
+    const ttlSeconds = Math.min(300, Math.max(30, params.ttlSeconds ?? RECORD_CONFIG.signedAccessTtlSeconds));
+    const expiresAtMs = Date.now() + ttlSeconds * 1000;
+    const payload = `${params.recordId}.${params.patientId}.${params.actorId}.${params.actorRole}.${expiresAtMs}`;
+    const sig = crypto
+      .createHmac('sha256', this.getSignedAccessSecret())
+      .update(payload)
+      .digest('hex');
+    const token = Buffer.from(`${payload}.${sig}`).toString('base64url');
+    const safeFileName = fileSecurityService.sanitizeFileName(
+      detail.fileName || `${detail.title}.pdf`,
+      detail.mimeType || 'application/pdf'
+    );
+
+    await securityAuditMonitor.record({
+      actorId: params.actorId,
+      actorRole: params.actorRole,
+      action: 'DOCUMENT_ACCESS_TOKEN_ISSUED',
+      resourceType: 'MEDICAL_RECORD',
+      resourceId: params.recordId,
+      requestId: params.requestId,
+      outcome: 'SUCCESS',
+      metadata: {
+        ttlSeconds,
+        accessScope: params.actorRole === 'PATIENT' ? 'OWNER' : 'CONSENTED_DOCTOR',
+      },
+    });
+
+    return {
+      token,
+      previewUrl: `/api/v1/records/${params.recordId}/preview?token=${encodeURIComponent(token)}`,
+      downloadUrl: `/api/v1/records/${params.recordId}/download?token=${encodeURIComponent(token)}`,
+      expiresAt: new Date(expiresAtMs).toISOString(),
+      ttlSeconds,
+      mimeType: detail.mimeType || 'application/pdf',
+      fileName: safeFileName,
+      accessScope: params.actorRole === 'PATIENT' ? 'OWNER' : 'CONSENTED_DOCTOR',
+    };
+  }
+
+  /**
+   * Cryptographically verifies a short-lived signed document access token.
+   */
+  verifySignedAccessToken(
+    recordId: string,
+    signedToken: string
+  ): {
+    recordId: string;
+    patientId: string;
+    actorId: string;
+    actorRole: 'PATIENT' | 'DOCTOR';
+    expiresAtMs: number;
+  } {
+    if (!signedToken || typeof signedToken !== 'string') {
+      throw AppError.unauthorized('Signed document access token is required.');
+    }
+
+    let decoded = '';
+    try {
+      decoded = Buffer.from(signedToken, 'base64url').toString('utf-8');
+    } catch {
+      throw AppError.unauthorized('Invalid signed document access token.');
+    }
+
+    const parts = decoded.split('.');
+    if (parts.length !== 6) {
+      throw AppError.unauthorized('Malformed signed document access token.');
+    }
+
+    const [tokenRecordId, patientId, actorId, actorRole, expStr, providedSig] = parts;
+    const payload = `${tokenRecordId}.${patientId}.${actorId}.${actorRole}.${expStr}`;
+    const expectedSig = crypto
+      .createHmac('sha256', this.getSignedAccessSecret())
+      .update(payload)
+      .digest('hex');
+
+    if (
+      !providedSig ||
+      providedSig.length !== expectedSig.length ||
+      !crypto.timingSafeEqual(Buffer.from(providedSig), Buffer.from(expectedSig))
+    ) {
+      throw AppError.unauthorized('Signed document access token signature is invalid.');
+    }
+
+    const expiresAtMs = Number(expStr);
+    if (!Number.isFinite(expiresAtMs) || Date.now() > expiresAtMs) {
+      throw new AppError(
+        'Document access link has expired. Please refresh the preview to request a new link.',
+        HttpStatus.GONE,
+        'ACCESS_LINK_EXPIRED'
+      );
+    }
+
+    if (tokenRecordId !== recordId) {
+      throw AppError.forbidden('Signed access token does not match the requested medical document.');
+    }
+
+    if (actorRole !== 'PATIENT' && actorRole !== 'DOCTOR') {
+      throw AppError.forbidden('Unauthorized document access scope.');
+    }
+
+    return {
+      recordId: tokenRecordId,
+      patientId: patientId || '',
+      actorId: actorId || '',
+      actorRole,
+      expiresAtMs,
+    };
+  }
+
+  /**
+   * Soft-archives a patient-owned medical document while preserving audit history.
+   */
+  async archivePatientRecord(
+    patientId: string,
+    actorId: string,
+    recordId: string,
+    requestId?: string
+  ): Promise<{ id: string; isArchived: true; archivedAt: string }> {
+    if (!Types.ObjectId.isValid(recordId)) {
+      throw AppError.badRequest('Invalid record ID format');
+    }
+
+    const record = await MedicalRecordModel.findById(recordId);
+    if (!record || record.isArchived) {
+      throw AppError.notFound('Medical record not found');
+    }
+
+    if (record.patientId.toString() !== patientId) {
+      await securityAuditMonitor.record({
+        actorId,
+        actorRole: 'PATIENT',
+        action: 'OWNERSHIP_VIOLATION',
+        resourceType: 'MEDICAL_RECORD',
+        resourceId: recordId,
+        requestId,
+        outcome: 'BLOCKED',
+        metadata: { attemptedAction: 'ARCHIVE' },
+      });
+      throw AppError.forbidden('Access denied. Only the record owner can archive this document.');
+    }
+
+    const archivedAt = new Date();
+    record.isArchived = true;
+    record.archivedAt = archivedAt;
+    record.archivedBy = new Types.ObjectId(actorId);
+    if (mongoose.connection.readyState === 1) {
+      await record.save();
+    }
+
+    await securityAuditMonitor.record({
+      actorId,
+      actorRole: 'PATIENT',
+      action: 'DOCUMENT_ARCHIVED',
+      resourceType: 'MEDICAL_RECORD',
+      resourceId: recordId,
+      requestId,
+      outcome: 'SUCCESS',
+      metadata: { recordType: record.recordType },
+    });
+
+    return {
+      id: record.id || record._id.toString(),
+      isArchived: true,
+      archivedAt: archivedAt.toISOString(),
     };
   }
 
@@ -633,7 +944,7 @@ export class RecordService {
       }
     }
 
-    if (!record) {
+    if (!record || record.isArchived) {
       throw AppError.notFound('Medical record not found');
     }
 

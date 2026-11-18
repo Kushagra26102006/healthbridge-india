@@ -1,0 +1,106 @@
+name: HealthBridge QA & Full-Stack Verification CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    name: TypeCheck, Lint, Unit, Integration, API E2E, Build & Security
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Static TypeScript & ESLint checks
+        run: |
+          pnpm typecheck
+          pnpm lint
+
+      - name: Frontend unit & component tests (@healthbridge/web)
+        run: pnpm test:web
+
+      - name: Backend unit tests (@healthbridge/api)
+        run: pnpm test:unit
+
+      - name: Backend API integration tests (@healthbridge/api)
+        run: pnpm test:integration
+
+      - name: Backend full-workflow E2E journey tests (@healthbridge/api)
+        run: pnpm test:api-e2e
+
+      - name: Production build verification (API + Web)
+        run: pnpm build
+
+      - name: Secret hygiene verification (tracked .env & source patterns)
+        run: |
+          if [ -n "$(git ls-files '**/.env' '**/.env.local' '.env' '.env.local')" ]; then
+            echo "::error::Environment secret file (.env) is tracked in git!"
+            exit 1
+          fi
+          if grep -rnE --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist --exclude=".env" --exclude=".env.*" \
+            "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|mongodb\+srv://[^<][^\"'[:space:]]+:[^<][^\"'[:space:]]+@)" \
+            apps/ packages/ >/dev/null 2>&1; then
+            echo "::error::Potential secret pattern detected in source files."
+            exit 1
+          fi
+          echo "Secret hygiene verification passed."
+
+  playwright-browser-e2e:
+    name: Playwright Browser E2E & Responsive Matrix (Manual / Staging Gate)
+    if: github.event_name == 'workflow_dispatch'
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm & Node.js 20
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies & Playwright Chromium
+        run: |
+          pnpm install --frozen-lockfile
+          npx playwright install --with-deps chromium
+
+      - name: Build & execute Playwright E2E suite against isolated test DB
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+          MONGODB_URI: mongodb://127.0.0.1:27017/healthbridge_ci_e2e
+        run: |
+          pnpm build
+          npx playwright test --config e2e/playwright.config.ts

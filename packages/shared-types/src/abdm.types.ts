@@ -88,12 +88,15 @@ export type AbdmFhirResourceType =
   | 'Practitioner'
   | 'Organization'
   | 'Encounter'
+  | 'Appointment'
   | 'Observation'
   | 'DiagnosticReport'
   | 'ServiceRequest'
   | 'Specimen'
   | 'MedicationRequest'
   | 'MedicationStatement'
+  | 'Condition'
+  | 'AllergyIntolerance'
   | 'DocumentReference'
   | 'Consent'
   | 'Provenance'
@@ -212,4 +215,24 @@ export interface AbdmWebhookAckDto {
   duplicate: boolean;
   status: AbdmWebhookProcessingStatus;
   receivedAt: string;
+}
+
+export interface AbdmWebhookRecentEventDto {
+  requestId: string;
+  correlationId: string;
+  eventType: string;
+  processingStatus: AbdmWebhookProcessingStatus;
+  errorMessage?: string;
+  receivedAt: string;
+  processedAt?: string;
+}
+
+export interface AbdmWebhookAdminAnalyticsDto {
+  totalReceived: number;
+  processed: number;
+  duplicatesIgnored: number;
+  failed: number;
+  lastReceivedAt?: string | null;
+  recentEvents: AbdmWebhookRecentEventDto[];
+  evaluatedAt: string;
 }

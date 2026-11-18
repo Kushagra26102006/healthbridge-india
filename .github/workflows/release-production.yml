@@ -1,0 +1,111 @@
+name: HealthBridge Production Release Gate (Approval Required)
+
+# Strictly manual trigger — NEVER auto-deploys on push/PR without explicit human release authorization.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag or commit reference to verify (must be on main)'
+        required: true
+        default: 'main'
+      target_environment:
+        description: 'Target deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  verify-release-candidate:
+    name: Mandatory Pre-Release Quality & Security Gate
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+    steps:
+      - name: Enforce release only from main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Production/staging releases are strictly restricted to the main branch."
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm & Node.js 20
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript & ESLint verification
+        run: |
+          pnpm typecheck
+          pnpm lint
+
+      - name: Execute full frontend, backend unit, integration & API E2E suites
+        run: pnpm test:all
+
+      - name: Dependency audit (block on HIGH/CRITICAL production vulnerabilities)
+        run: pnpm audit --prod --audit-level=high
+
+      - name: Secret hygiene check (zero tracked .env or hardcoded secrets)
+        run: |
+          if [ -n "$(git ls-files '**/.env' '**/.env.local' '.env' '.env.local')" ]; then
+            echo "::error::Tracked .env secret file detected."
+            exit 1
+          fi
+          if grep -rnE --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist --exclude=".env" --exclude=".env.*" \
+            "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|mongodb\+srv://[^<][^\"'[:space:]]+:[^<][^\"'[:space:]]+@)" \
+            apps/ packages/ >/dev/null 2>&1; then
+            echo "::error::Potential secret detected in source tree."
+            exit 1
+          fi
+
+      - name: Production build verification
+        run: pnpm build
+
+      - name: Record immutable build manifest artifact
+        run: |
+          mkdir -p release-metadata
+          printf '{"commit":"%s","environment":"%s","builtAt":"%s"}\n' \
+            "${{ github.sha }}" "${{ inputs.target_environment }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > release-metadata/build-manifest.json
+
+      - name: Upload release build manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest-${{ inputs.target_environment }}
+          path: release-metadata/build-manifest.json
+
+  authorized-deployment-approval:
+    name: Manual Release Approval & Post-Deploy Smoke Verification
+    needs: verify-release-candidate
+    runs-on: ubuntu-latest
+    # Configure required reviewers in GitHub Repository Settings -> Environments -> staging / production
+    environment: ${{ inputs.target_environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify deployment target configuration
+        run: |
+          if [ -z "${{ vars.DEPLOY_API_BASE_URL }}" ] || [ -z "${{ vars.DEPLOY_WEB_BASE_URL }}" ]; then
+            echo "::notice::Deployment target URLs (DEPLOY_API_BASE_URL / DEPLOY_WEB_BASE_URL) are not configured yet. Follow docs/deployment/production-deployment-runbook.md to provision cloud infrastructure first."
+            exit 0
+          fi
+          API_BASE_URL="${{ vars.DEPLOY_API_BASE_URL }}" \
+          WEB_BASE_URL="${{ vars.DEPLOY_WEB_BASE_URL }}" \
+          node scripts/production-smoke-test.mjs

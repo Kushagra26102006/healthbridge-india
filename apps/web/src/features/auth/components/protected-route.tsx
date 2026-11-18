@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, Lock, Loader2, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { EmptyIllustration } from '@/components/ui/visual-asset';
+import { Lock, Loader2, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import type { UserRole } from '@healthbridge/shared-types';
 
 interface ProtectedRouteProps {
@@ -86,9 +87,7 @@ export function ProtectedRoute({
     return (
       <Card className="max-w-md mx-auto my-12 border-destructive/30 bg-destructive/5 text-card-foreground shadow-card">
         <CardHeader className="text-center pb-2">
-          <div className="w-12 h-12 rounded-2xl bg-destructive/15 flex items-center justify-center mx-auto mb-2 text-destructive border border-destructive/20">
-            <ShieldAlert className="h-6 w-6" />
-          </div>
+          <EmptyIllustration asset="unauthorized-access" compact className="mb-1" />
           <CardTitle className="text-lg font-bold text-foreground">Access Restricted</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
             Your current role (

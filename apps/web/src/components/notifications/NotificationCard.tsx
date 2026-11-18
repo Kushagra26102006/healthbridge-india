@@ -118,10 +118,10 @@ export function NotificationCard({
 
   return (
     <article
-      className={`p-4 rounded-xl border transition-all ${
+      className={`p-4 rounded-lg border transition-all duration-150 ${
         isUnread
-          ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600'
-          : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 opacity-90'
+          ? 'bg-card border-border shadow-xs hover:border-primary/30 hover:shadow-sm'
+          : 'bg-muted/35 border-border/70 opacity-90 hover:opacity-100'
       }`}
     >
       <div className="flex items-start gap-3.5">

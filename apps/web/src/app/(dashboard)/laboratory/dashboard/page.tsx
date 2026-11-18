@@ -1,15 +1,25 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { m } from 'framer-motion';
 import {
   useLaboratoryDashboardSummary,
   useLaboratoryProfile,
 } from '@/features/laboratory/hooks/use-laboratory';
-import {
-  LaboratoryStatCard,
-  LabOrderStatusBadge,
-} from '@/components/laboratory';
+import { laboratoryReportsApi } from '@/features/laboratory/api/laboratory-reports-api';
+import { LaboratoryStatCard, LabOrderStatusBadge } from '@/components/laboratory';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { EditorialVisual } from '@/components/ui/visual-asset';
+import { Alert } from '@/components/ui/alert';
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+import { SkeletonStatGrid } from '@/components/ui/skeleton';
+import { StaggerList, StaggerItem } from '@/components/motion';
+import { MOTION_EASE } from '@/lib/motion/tokens';
+import type { LaboratoryOrderDto } from '@healthbridge/shared-types';
 import {
   ClipboardList,
   CheckCircle2,
@@ -21,290 +31,505 @@ import {
   ShieldCheck,
   Building2,
   RefreshCw,
-  AlertTriangle,
-  TestTube2,
+  FlaskConical,
+  Activity,
+  FileText,
+  BarChart3,
 } from 'lucide-react';
 
 export default function LaboratoryDashboardPage() {
   const { data: summary, isLoading, error, refetch } = useLaboratoryDashboardSummary();
   const { data: profile } = useLaboratoryProfile();
 
+  const { data: reportsData } = useQuery({
+    queryKey: ['laboratory', 'dashboard-reports-metrics'],
+    queryFn: () => laboratoryReportsApi.listReports({ limit: 50 }).catch(() => ({ items: [], total: 0, page: 1, limit: 50, totalPages: 1 })),
+    staleTime: 60 * 1000,
+  });
+
+  const reportMetrics = useMemo(() => {
+    const items = reportsData?.items ?? [];
+    const ready = items.filter((r) =>
+      ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(String(r.status).toUpperCase())
+    ).length;
+    const pendingReview = items.filter((r) =>
+      ['PENDING_REVIEW', 'UNDER_REVIEW', 'DRAFT', 'GENERATED', 'PRELIMINARY'].includes(
+        String(r.status).toUpperCase()
+      )
+    ).length;
+    return { ready, pendingReview, total: reportsData?.total ?? items.length };
+  }, [reportsData]);
+
+  const orderColumns: DataTableColumn<LaboratoryOrderDto>[] = useMemo(
+    () => [
+      {
+        key: 'orderNumber',
+        header: 'Order #',
+        cell: (order) => (
+          <span className="font-mono text-xs font-semibold text-foreground">
+            {order.orderNumber}
+          </span>
+        ),
+      },
+      {
+        key: 'patient',
+        header: 'Patient',
+        cell: (order) => (
+          <div className="min-w-0">
+            <span className="font-medium text-foreground block truncate">
+              {order.patient?.name || 'Patient'}
+            </span>
+            <span className="text-[11px] text-muted-foreground font-mono truncate block">
+              {order.patient?.abhaAddress ||
+                (typeof order.patientId === 'string' ? order.patientId : order.patient?.id || '—')}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'tests',
+        header: 'Tests',
+        cell: (order) => (
+          <div className="min-w-0">
+            <span className="text-foreground truncate max-w-[180px] block text-xs">
+              {order.tests.map((t) => t.testName).join(', ')}
+            </span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {order.tests.length} test(s)
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'priority',
+        header: 'Priority',
+        cell: (order) => (
+          <Badge
+            variant={
+              order.priority === 'STAT'
+                ? 'error'
+                : order.priority === 'URGENT'
+                  ? 'warning'
+                  : 'neutral'
+            }
+            size="sm"
+          >
+            {order.priority || 'ROUTINE'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (order) => <LabOrderStatusBadge status={order.status} />,
+      },
+      {
+        key: 'action',
+        header: 'Action',
+        align: 'right',
+        cell: (order) => (
+          <Button variant="outline" size="sm" asChild className="h-7 text-xs px-2.5">
+            <Link href={`/laboratory/orders/${order.id}`}>Review</Link>
+          </Button>
+        ),
+      },
+    ],
+    []
+  );
+
   if (error) {
     return (
-      <div className="p-8 text-center bg-card rounded-2xl border border-destructive/20 my-6 shadow-xs">
-        <div className="w-12 h-12 bg-rose-500/10 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3">
-          <AlertTriangle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-semibold text-foreground mb-1">
-          Unable to Load Laboratory Dashboard
-        </h3>
-        <p className="text-xs text-muted-foreground mb-4 max-w-md mx-auto">
-          An error occurred while connecting to the laboratory service. Please verify your connection and try again.
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-medium hover:bg-slate-800 transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Retry
-        </button>
+      <div className="max-w-xl mx-auto py-12">
+        <Alert
+          variant="error"
+          title="Unable to Load Laboratory Dashboard"
+          description="An error occurred while connecting to the laboratory service. Please verify connectivity and retry."
+          action={
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Retry</span>
+            </Button>
+          }
+        />
       </div>
     );
   }
 
+  const totalOrders =
+    (summary?.newOrders ?? 0) +
+    (summary?.pendingOrderReviews ?? 0) +
+    (summary?.acceptedOrders ?? 0) +
+    (summary?.completedOrders ?? 0);
+  const samplesCollected = (summary?.samplesReceived ?? 0) + (summary?.samplesAccessioned ?? 0);
+  const reportsReadyCount = Math.max(reportMetrics.ready, summary?.completedOrders ?? 0);
+  const reportsPendingReviewCount = Math.max(
+    reportMetrics.pendingReview,
+    summary?.resultsSubmittedCount ?? 0
+  );
+
+  const pipelineStages = [
+    { label: 'Pending Order Reviews', value: summary?.pendingOrderReviews ?? 0 },
+    { label: 'Awaiting Sample Collection', value: summary?.samplesAwaitingCollection ?? 0 },
+    { label: 'Samples Accessioned', value: summary?.samplesAccessioned ?? 0 },
+    { label: 'Active Processing Worklist', value: summary?.activeWorklistItems ?? 0 },
+    { label: 'Submitted for Authorization', value: reportsPendingReviewCount },
+    { label: 'Completed / Ready', value: reportsReadyCount },
+  ];
+  const maxPipeline = Math.max(1, ...pipelineStages.map((s) => s.value));
+  const maxCategoryCount = Math.max(
+    1,
+    ...(summary?.testCatalogueSummary?.map((c) => c.count) ?? [1])
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-teal-500/10 to-transparent pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5 mb-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-500/20 text-teal-300 border border-teal-400/30">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                {profile?.verificationStatus === 'VERIFIED'
-                  ? 'NABL & ABDM Accredited'
-                  : 'Accreditation Under Verification'}
-              </span>
+    <div className="space-y-6 sm:space-y-8">
+      {/* 1. Welcome Banner (Accurate Verification Status — Zero Fabricated Accreditations) */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#080F1E] via-[#111C30] to-[#0D3B4C] p-6 sm:p-8 text-white shadow-lg border border-slate-700/50">
+        <div
+          aria-hidden="true"
+          className="absolute -right-12 -top-12 h-56 w-56 rounded-full bg-secondary/15 blur-3xl pointer-events-none"
+        />
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Badge
+                variant={profile?.verificationStatus === 'VERIFIED' ? 'success' : 'warning'}
+                size="sm"
+                className="bg-white/10 text-teal-200 border-white/15"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>
+                  {profile?.verificationStatus === 'VERIFIED'
+                    ? 'Verified Diagnostic Laboratory'
+                    : `Status: ${profile?.verificationStatus || 'VERIFICATION PENDING'}`}
+                </span>
+              </Badge>
               {profile?.laboratoryLicenseNumber && (
                 <span className="text-xs text-slate-300 font-mono">
                   LIC: {profile.laboratoryLicenseNumber}
                 </span>
               )}
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {profile?.laboratoryName || 'Diagnostic Laboratory Portal'}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              Manage pre-analytical orders, assign diagnostic tests, track barcode-labeled specimen accessioning, and monitor laboratory test flows in compliance with NABL and ABDM guidelines.
+
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              {profile?.laboratoryName || 'Diagnostic Laboratory Workspace'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Manage diagnostic test orders, track barcode-accessioned samples, process analytical
+              worklists, and authorize diagnostic reports cleanly.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href="/laboratory/samples/scan"
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-xl shadow-xs transition-colors"
-            >
-              <Scan className="w-4 h-4" />
-              Scan Barcode
-            </Link>
-            <Link
-              href="/laboratory/orders"
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs font-medium rounded-xl border border-slate-700 transition-colors"
-            >
-              <ClipboardList className="w-4 h-4" />
-              Review Orders
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Stat Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <LaboratoryStatCard
-          title="Active Test Catalogue"
-          value={isLoading ? '...' : summary?.totalActiveTests ?? 0}
-          subtitle="Tests available for physician ordering"
-          icon={TestTube2}
-          variant="teal"
-        />
-        <LaboratoryStatCard
-          title="Orders Under Review"
-          value={isLoading ? '...' : summary?.pendingOrderReviews ?? 0}
-          subtitle="Pending lab review & acceptance"
-          icon={Clock}
-          variant="amber"
-        />
-        <LaboratoryStatCard
-          title="Accepted Orders"
-          value={isLoading ? '...' : summary?.acceptedOrders ?? 0}
-          subtitle="Awaiting sample collection or transit"
-          icon={CheckCircle2}
-          variant="sky"
-        />
-        <LaboratoryStatCard
-          title="Samples Accessioned"
-          value={isLoading ? '...' : summary?.samplesAccessioned ?? 0}
-          subtitle="Specimens verified in lab custody"
-          icon={PackageCheck}
-          variant="emerald"
-        />
-      </div>
-
-      {/* Main Grid: Recent Orders & Catalogue Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Recent Orders */}
-        <div className="lg:col-span-2 rounded-2xl bg-card border border-border/80 shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-foreground">
-                Recent Laboratory Orders
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Physician orders requesting diagnostic evaluation
-              </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button variant="secondary" size="sm" asChild className="h-9 sm:h-10 px-4 font-semibold">
+                <Link href="/laboratory/samples/scan">
+                  <Scan className="w-4 h-4" aria-hidden="true" />
+                  <span>Scan Barcode</span>
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="h-9 sm:h-10 px-4 bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white"
+              >
+                <Link href="/laboratory/orders">
+                  <ClipboardList className="w-4 h-4 text-teal-300" aria-hidden="true" />
+                  <span>Review Orders</span>
+                </Link>
+              </Button>
             </div>
-            <Link
-              href="/laboratory/orders"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="divide-y divide-border/60 overflow-x-auto">
-            {isLoading ? (
-              <div className="p-8 text-center text-xs text-muted-foreground">
-                Loading recent orders...
-              </div>
-            ) : !summary?.recentOrders || summary.recentOrders.length === 0 ? (
-              <div className="p-8 text-center text-xs text-muted-foreground">
-                No laboratory orders received yet.
-              </div>
-            ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/40 text-muted-foreground font-semibold">
-                  <tr>
-                    <th className="py-2.5 px-4">Order #</th>
-                    <th className="py-2.5 px-4">Patient</th>
-                    <th className="py-2.5 px-4">Tests</th>
-                    <th className="py-2.5 px-4">Priority</th>
-                    <th className="py-2.5 px-4">Status</th>
-                    <th className="py-2.5 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {summary.recentOrders.slice(0, 5).map((order) => (
-                    <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-mono font-medium text-foreground">
-                        {order.orderNumber}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-foreground block">
-                          {order.patient?.name || 'Patient'}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {order.patient?.abhaAddress || order.patientId}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-foreground truncate max-w-[150px] block">
-                          {order.tests.map((t) => t.testName).join(', ')}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {order.tests.length} test(s)
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                            order.priority === 'STAT'
-                              ? 'bg-rose-500/15 text-rose-600'
-                              : order.priority === 'URGENT'
-                              ? 'bg-amber-500/15 text-amber-600'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          {order.priority || 'ROUTINE'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <LabOrderStatusBadge status={order.status} />
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Link
-                          href={`/laboratory/orders/${order.id}`}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 transition-colors inline-block"
-                        >
-                          Review
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <div className="hidden xl:block w-44 shrink-0">
+              <EditorialVisual
+                asset="ecosystemLaboratoryDiagnostics"
+                aspectClassName="aspect-[16/10]"
+                sizes="176px"
+                className="rounded-lg border-white/15 bg-white/5 shadow-md"
+              />
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Column: Catalogue Categories & Quick Links */}
+      {/* Critical Lab Alerts Banner (only when actual critical alerts exist) */}
+      {(summary?.criticalAlertsCount ?? 0) > 0 && (
+        <Alert
+          variant="warning"
+          title={`${summary?.criticalAlertsCount} Critical Diagnostic Result Alert(s) Require Attention`}
+          description="Review flagged critical observations and complete pathologist verification before publishing."
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/laboratory/reports">Inspect Pending Reports</Link>
+            </Button>
+          }
+        />
+      )}
+
+      {/* 2. Primary 6 Real-Data Laboratory KPI Cards */}
+      {isLoading ? (
+        <SkeletonStatGrid count={6} className="lg:grid-cols-3" />
+      ) : (
+        <StaggerList
+          inView={false}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          <StaggerItem>
+            <Link href="/laboratory/orders" className="block focus-ring rounded-lg h-full">
+              <LaboratoryStatCard
+                title="Total Test Orders"
+                value={totalOrders}
+                subtitle={`${summary?.pendingOrderReviews ?? 0} pending review`}
+                icon={ClipboardList}
+                variant="sky"
+              />
+            </Link>
+          </StaggerItem>
+
+          <StaggerItem>
+            <Link href="/laboratory/samples/collect" className="block focus-ring rounded-lg h-full">
+              <LaboratoryStatCard
+                title="Pending Samples"
+                value={summary?.samplesAwaitingCollection ?? 0}
+                subtitle="Awaiting collection or intake"
+                icon={Clock}
+                variant="amber"
+              />
+            </Link>
+          </StaggerItem>
+
+          <StaggerItem>
+            <Link href="/laboratory/samples" className="block focus-ring rounded-lg h-full">
+              <LaboratoryStatCard
+                title="Samples Collected"
+                value={samplesCollected}
+                subtitle={`${summary?.samplesAccessioned ?? 0} accessioned in custody`}
+                icon={PackageCheck}
+                variant="teal"
+              />
+            </Link>
+          </StaggerItem>
+
+          <StaggerItem>
+            <Link href="/laboratory/workload" className="block focus-ring rounded-lg h-full">
+              <LaboratoryStatCard
+                title="Tests Processing"
+                value={summary?.activeWorklistItems ?? 0}
+                subtitle={`${summary?.resultsDraftCount ?? 0} draft results in progress`}
+                icon={Activity}
+                variant="indigo"
+              />
+            </Link>
+          </StaggerItem>
+
+          <StaggerItem>
+            <Link href="/laboratory/reports" className="block focus-ring rounded-lg h-full">
+              <LaboratoryStatCard
+                title="Reports Ready"
+                value={reportsReadyCount}
+                subtitle="Authorized & published reports"
+                icon={CheckCircle2}
+                variant="emerald"
+              />
+            </Link>
+          </StaggerItem>
+
+          <StaggerItem>
+            <Link href="/laboratory/reports" className="block focus-ring rounded-lg h-full">
+              <LaboratoryStatCard
+                title="Reports Pending Review"
+                value={reportsPendingReviewCount}
+                subtitle="Awaiting formal verification"
+                icon={FileText}
+                variant="rose"
+              />
+            </Link>
+          </StaggerItem>
+        </StaggerList>
+      )}
+
+      {/* 3. Main Two-Column Diagnostic Operations Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Responsive Recent Orders Table + Live Pipeline Analytics */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-card-heading">Recent Laboratory Orders</h3>
+                <p className="text-xs text-muted-foreground">
+                  Physician diagnostic orders queued for intake and analytical processing
+                </p>
+              </div>
+              <Link
+                href="/laboratory/orders"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </Link>
+            </div>
+
+            <DataTable
+              data={(summary?.recentOrders ?? []).slice(0, 6)}
+              columns={orderColumns}
+              getRowId={(order) => order.id}
+              loading={isLoading}
+              skeletonRows={4}
+              caption="Recent laboratory diagnostic orders"
+              emptyState={
+                <p className="text-xs text-muted-foreground">
+                  No laboratory orders received yet.
+                </p>
+              }
+            />
+          </div>
+
+          {/* Live Diagnostic Pipeline & Category Analytics */}
+          <Card className="p-5 sm:p-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-card-heading flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-secondary" aria-hidden="true" />
+                  <span>Diagnostic Pipeline &amp; Category Analytics</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Real-time operational volumes derived from active orders and catalogued tests
+                </p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/laboratory/quality/analytics">Full QMS Analytics</Link>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Workflow Pipeline Distribution */}
+              <div className="space-y-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Workflow Stage Distribution
+                </p>
+                <div className="space-y-2.5">
+                  {pipelineStages.map((stage) => (
+                    <div key={stage.label} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-foreground truncate">{stage.label}</span>
+                        <span className="tabular-nums text-muted-foreground">{stage.value}</span>
+                      </div>
+                      <div className="h-2 rounded-pill bg-muted overflow-hidden">
+                        <m.div
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: stage.value > 0 ? Math.max(0.06, stage.value / maxPipeline) : 0 }}
+                          transition={{ duration: 0.35, ease: MOTION_EASE.standard }}
+                          style={{ transformOrigin: 'left' }}
+                          className="h-full w-full rounded-pill bg-primary"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Test Category Distribution */}
+              <div className="space-y-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Active Test Catalogue by Category ({summary?.totalActiveTests ?? 0})
+                </p>
+                {summary?.testCatalogueSummary && summary.testCatalogueSummary.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {summary.testCatalogueSummary.slice(0, 6).map((cat) => (
+                      <div key={cat.category} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-foreground truncate">
+                            {cat.category.replace(/_/g, ' ')}
+                          </span>
+                          <span className="tabular-nums text-muted-foreground">
+                            {cat.count} test(s)
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-pill bg-muted overflow-hidden">
+                          <m.div
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: Math.max(0.06, cat.count / maxCategoryCount) }}
+                            transition={{ duration: 0.35, ease: MOTION_EASE.standard }}
+                            style={{ transformOrigin: 'left' }}
+                            className="h-full w-full rounded-pill bg-secondary"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No active diagnostic tests catalogued yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column: Quick Diagnostic Actions & Quality Links */}
         <div className="space-y-6">
-          {/* Quick Actions Panel */}
-          <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Diagnostic Quick Actions
-            </h3>
+          <Card className="p-5 space-y-3">
+            <h3 className="text-card-heading">Diagnostic Quick Actions</h3>
             <div className="grid grid-cols-2 gap-2.5">
               <Link
                 href="/laboratory/samples/scan"
-                className="p-3 rounded-xl bg-muted/40 hover:bg-muted/70 border border-border text-left transition-colors flex flex-col gap-1.5"
+                className="p-3 rounded-md bg-muted/40 hover:bg-muted/75 border border-border text-left transition-colors flex flex-col gap-1.5 focus-ring"
               >
-                <Scan className="w-4 h-4 text-teal-600" />
+                <Scan className="w-4 h-4 text-secondary" aria-hidden="true" />
                 <span className="text-xs font-semibold text-foreground">Scan Sample</span>
-                <span className="text-[10px] text-muted-foreground">Instant accessioning</span>
+                <span className="text-[11px] text-muted-foreground">Barcode accessioning</span>
               </Link>
               <Link
                 href="/laboratory/tests/new"
-                className="p-3 rounded-xl bg-muted/40 hover:bg-muted/70 border border-border text-left transition-colors flex flex-col gap-1.5"
+                className="p-3 rounded-md bg-muted/40 hover:bg-muted/75 border border-border text-left transition-colors flex flex-col gap-1.5 focus-ring"
               >
-                <PlusCircle className="w-4 h-4 text-sky-600" />
+                <PlusCircle className="w-4 h-4 text-primary" aria-hidden="true" />
                 <span className="text-xs font-semibold text-foreground">Add Test</span>
-                <span className="text-[10px] text-muted-foreground">Define parameters</span>
+                <span className="text-[11px] text-muted-foreground">Define parameters</span>
               </Link>
               <Link
-                href="/laboratory/orders"
-                className="p-3 rounded-xl bg-muted/40 hover:bg-muted/70 border border-border text-left transition-colors flex flex-col gap-1.5"
+                href="/laboratory/quality/control"
+                className="p-3 rounded-md bg-muted/40 hover:bg-muted/75 border border-border text-left transition-colors flex flex-col gap-1.5 focus-ring"
               >
-                <ClipboardList className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-semibold text-foreground">Order Queue</span>
-                <span className="text-[10px] text-muted-foreground">Review & accept</span>
+                <FlaskConical className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <span className="text-xs font-semibold text-foreground">Quality Control</span>
+                <span className="text-[11px] text-muted-foreground">QC runs &amp; gates</span>
               </Link>
               <Link
                 href="/laboratory/collection-centers"
-                className="p-3 rounded-xl bg-muted/40 hover:bg-muted/70 border border-border text-left transition-colors flex flex-col gap-1.5"
+                className="p-3 rounded-md bg-muted/40 hover:bg-muted/75 border border-border text-left transition-colors flex flex-col gap-1.5 focus-ring"
               >
-                <Building2 className="w-4 h-4 text-indigo-600" />
+                <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
                 <span className="text-xs font-semibold text-foreground">Centers</span>
-                <span className="text-[10px] text-muted-foreground">Phlebotomy network</span>
+                <span className="text-[11px] text-muted-foreground">Collection network</span>
               </Link>
             </div>
-          </div>
+          </Card>
 
-          {/* Catalogue Breakdown */}
-          <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
+          <Card className="p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Catalogue Breakdown
-              </h3>
+              <h3 className="text-card-heading">Quality &amp; Verification Gates</h3>
               <Link
-                href="/laboratory/tests"
-                className="text-[11px] font-semibold text-teal-600 hover:underline"
+                href="/laboratory/quality"
+                className="text-xs font-semibold text-primary hover:underline"
               >
-                Manage
+                Open QMS
               </Link>
             </div>
-
-            <div className="space-y-2">
-              {summary?.testCatalogueSummary && summary.testCatalogueSummary.length > 0 ? (
-                summary.testCatalogueSummary.map((cat) => (
-                  <div
-                    key={cat.category}
-                    className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-muted/30 text-xs"
-                  >
-                    <span className="text-foreground font-medium">{cat.category}</span>
-                    <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
-                      {cat.count} test(s)
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-muted-foreground py-2 text-center">
-                  No active tests catalogued.
-                </p>
-              )}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Diagnostic reports remain unverified drafts until QC release gates pass and an
+              authorized reviewing professional formally approves and publishes the report.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/laboratory/quality/instruments">Equipment &amp; Calibration</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/laboratory/staff">Staff &amp; Roster</Link>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

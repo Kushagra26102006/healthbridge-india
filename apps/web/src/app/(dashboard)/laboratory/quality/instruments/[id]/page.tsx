@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -38,7 +38,8 @@ export default function InstrumentDetailPage() {
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [completingMaintenanceRecord, setCompletingMaintenanceRecord] = useState<InstrumentMaintenanceDto | null>(null);
 
-  const fetchInstrumentData = async () => {
+  const fetchInstrumentData = useCallback(async () => {
+    if (!instrumentId) return;
     try {
       setLoading(true);
       setError(null);
@@ -55,13 +56,11 @@ export default function InstrumentDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [instrumentId]);
 
   useEffect(() => {
-    if (instrumentId) {
-      fetchInstrumentData();
-    }
-  }, [instrumentId]);
+    fetchInstrumentData();
+  }, [fetchInstrumentData]);
 
   const handleRecordCalibration = async (_instId: string, dto: any) => {
     await laboratoryQualityApi.recordCalibration(instrumentId, dto);
@@ -287,7 +286,8 @@ export default function InstrumentDetailPage() {
               No calibration events recorded for this instrument.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
                 <tr>
                   <th className="py-3 px-4">Reference & Type</th>
@@ -347,6 +347,7 @@ export default function InstrumentDetailPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
@@ -358,7 +359,8 @@ export default function InstrumentDetailPage() {
               No maintenance work scheduled or performed yet.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
                 <tr>
                   <th className="py-3 px-4">Reference & Scope</th>
@@ -418,6 +420,7 @@ export default function InstrumentDetailPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

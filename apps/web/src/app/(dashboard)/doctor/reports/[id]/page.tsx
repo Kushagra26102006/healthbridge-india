@@ -15,9 +15,12 @@ import {
 import { laboratoryReportsApi } from '@/features/laboratory/api/laboratory-reports-api';
 import { ReportStatusBadge } from '@/features/laboratory/components/ReportStatusBadge';
 import { ReportSignatureMetadata } from '@/features/laboratory/components/ReportSignatureMetadata';
+import { useToast } from '@/components/ui/toast';
+import { mapApiErrorToUserError } from '@/lib/errors/user-error-mapper';
 import type { LabReportDetailDto } from '@healthbridge/shared-types';
 
 export default function DoctorReportDetailPage() {
+  const { toast } = useToast();
   const params = useParams();
   const reportId = String(params?.id || '');
 
@@ -55,8 +58,13 @@ export default function DoctorReportDetailPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch {
-      alert('Failed to download PDF document');
+    } catch (err: unknown) {
+      const normalized = mapApiErrorToUserError(err);
+      toast({
+        variant: 'error',
+        title: normalized.title,
+        description: normalized.message,
+      });
     }
   };
 

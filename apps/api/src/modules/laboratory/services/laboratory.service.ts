@@ -490,6 +490,8 @@ export class LaboratoryService {
     const formattedItems = orders.map((order: any) => ({
       ...order,
       id: order._id.toString(),
+      patientId: order.patientId?._id?.toString() || order.patientId?.toString() || '',
+      orderedBy: order.orderedBy?._id?.toString() || order.orderedBy?.toString() || '',
       patient: order.patientId
         ? {
             id: order.patientId._id?.toString(),
@@ -542,6 +544,8 @@ export class LaboratoryService {
     return {
       ...order,
       id: order._id.toString(),
+      patientId: (order as any).patientId?._id?.toString() || (order as any).patientId?.toString() || '',
+      orderedBy: (order as any).orderedBy?._id?.toString() || (order as any).orderedBy?.toString() || '',
       patient: (order as any).patientId
         ? {
             id: (order as any).patientId._id?.toString(),
@@ -1333,6 +1337,7 @@ export class LaboratoryService {
     const formattedItems = items.map((s: any) => ({
       ...s,
       id: s._id.toString(),
+      patientId: s.patientId?._id?.toString() || s.patientId?.toString() || '',
       patientName: s.patientId?.name || 'Patient',
     }));
 
@@ -1365,6 +1370,7 @@ export class LaboratoryService {
     return {
       ...sample,
       id: sample._id.toString(),
+      patientId: (sample as any).patientId?._id?.toString() || (sample as any).patientId?.toString() || '',
       patientName: (sample as any).patientId?.name || 'Patient',
     };
   }
@@ -1524,6 +1530,8 @@ export class LaboratoryService {
     const formattedRecentOrders = recentOrders.map((o: any) => ({
       ...o,
       id: o._id.toString(),
+      patientId: o.patientId?._id?.toString() || o.patientId?.toString() || '',
+      orderedBy: o.orderedBy?._id?.toString() || o.orderedBy?.toString() || '',
       patient: o.patientId
         ? {
             id: o.patientId._id?.toString(),

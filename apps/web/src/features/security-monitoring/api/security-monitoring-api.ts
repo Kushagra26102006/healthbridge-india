@@ -99,11 +99,62 @@ export interface VulnerabilityDto {
   createdAt: string;
 }
 
+export interface SecurityEventDto {
+  eventId: string;
+  eventType: string;
+  category: string;
+  severity: string;
+  actorId?: string;
+  actorRole?: string;
+  sourceIp?: string;
+  sourceModule: string;
+  requestId?: string;
+  correlationId?: string;
+  resourceCategory?: string;
+  resourceReference?: string;
+  outcome: 'SUCCESS' | 'FAILURE' | 'BLOCKED';
+  metadata?: Record<string, unknown>;
+  timestamp: string;
+}
+
+export interface AuditLogItemDto {
+  id: string;
+  actorId?: string;
+  actorRole: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  timestamp: string;
+  requestId: string;
+  correlationId?: string;
+  outcome: 'SUCCESS' | 'FAILURE' | 'BLOCKED';
+  metadata: Record<string, unknown>;
+}
+
+export interface AuditLogSummaryDto {
+  totalEvents: number;
+  last24hTotal: number;
+  last24hBlocked: number;
+  last24hFailures: number;
+  byOutcome: Record<string, number>;
+  immutabilityEnforced: boolean;
+}
+
 export const securityMonitoringApi = {
   async getOverview(): Promise<SecurityOverviewDto> {
     const res = await apiClient.get<{ data: SecurityOverviewDto }>(
       API_ENDPOINTS.SECURITY_OPS.OVERVIEW
     );
+    return res.data.data;
+  },
+
+  async listEvents(params?: Record<string, string | number | undefined>) {
+    const res = await apiClient.get<{
+      data: {
+        items: SecurityEventDto[];
+        pagination: { page: number; limit?: number; total: number; totalPages: number };
+      };
+    }>(API_ENDPOINTS.SECURITY_OPS.EVENTS, { params });
     return res.data.data;
   },
 
@@ -202,5 +253,36 @@ export const securityMonitoringApi = {
       payload
     );
     return res.data.data;
+  },
+
+  async listAuditLogs(params?: Record<string, string | number | undefined>) {
+    const res = await apiClient.get<{
+      data: {
+        items: AuditLogItemDto[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      };
+    }>('/audit/logs', { params });
+    return res.data.data;
+  },
+
+  async getAuditSummary(): Promise<AuditLogSummaryDto> {
+    const res = await apiClient.get<{ data: AuditLogSummaryDto }>('/audit/summary');
+    return res.data.data;
+  },
+
+  async exportAuditLogsCsv(params?: Record<string, string | number | undefined>): Promise<void> {
+    const res = await apiClient.get('/audit/export', {
+      params,
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `healthbridge_audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 };

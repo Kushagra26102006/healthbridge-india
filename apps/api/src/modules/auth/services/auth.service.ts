@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import bcryptjs from 'bcryptjs';
 import { env } from '../../../config/env';
 import { AppError } from '../../../shared/errors/app-error';
@@ -35,10 +36,23 @@ export class AuthService {
     const normalizedEmail = dto.email.trim().toLowerCase();
     const normalizedPhone = dto.phone.trim();
 
-    // 1. Security Check: Restrict public ADMIN registration
+    // 1. Security Check: Restrict public ADMIN registration (fail-closed + constant-time comparison)
     if (dto.role === 'ADMIN') {
-      const isAuthorized =
-        dto.adminRegistrationKey && dto.adminRegistrationKey === env.ADMIN_REGISTRATION_KEY;
+      const configuredKey = (env.ADMIN_REGISTRATION_KEY || '').trim();
+      const providedKey = (dto.adminRegistrationKey || '').trim();
+      const isPlaceholderKey =
+        !configuredKey ||
+        configuredKey.length < 16 ||
+        configuredKey.toLowerCase().startsWith('your_') ||
+        configuredKey.toLowerCase().includes('placeholder');
+
+      let isAuthorized = false;
+      if (!isPlaceholderKey && providedKey.length === configuredKey.length) {
+        isAuthorized = crypto.timingSafeEqual(
+          Buffer.from(providedKey, 'utf8'),
+          Buffer.from(configuredKey, 'utf8')
+        );
+      }
 
       if (!isAuthorized) {
         throw AppError.forbidden('Public registration for the ADMIN role is restricted');
@@ -57,8 +71,8 @@ export class AuthService {
       throw AppError.conflict('An account with this mobile number already exists');
     }
 
-    // 3. Hash password using bcrypt (10 rounds)
-    const passwordHash = await bcryptjs.hash(dto.password, 10);
+    // 3. Hash password using bcrypt (cost 12 — backward-compatible with existing cost-10 hashes)
+    const passwordHash = await bcryptjs.hash(dto.password, 12);
 
     // 4. Assign Account Status based on role verification requirements
     // Patients are ACTIVE immediately; Healthcare providers require credential verification

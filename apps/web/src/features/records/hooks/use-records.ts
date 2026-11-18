@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { recordsApi } from '../api/records-api';
+import { recordsApi, type UploadRecordOptions } from '../api/records-api';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import type {
   MedicalRecordFilterQueryDto,
@@ -17,10 +17,10 @@ export const useRecords = (filters: MedicalRecordFilterQueryDto = {}) => {
   const isPatient = isAuthenticated && user?.role === 'PATIENT';
 
   const query = useQuery({
-    queryKey: [...RECORDS_QUERY_KEY, filters],
+    queryKey: [...RECORDS_QUERY_KEY, user?.id ?? 'anon', filters],
     queryFn: () => recordsApi.getRecords(filters),
-    enabled: isPatient,
-    staleTime: 30 * 1000, // 30 seconds
+    enabled: isPatient && Boolean(user?.id),
+    staleTime: 30 * 1000,
   });
 
   return {
@@ -39,9 +39,9 @@ export const useRecordSummary = () => {
   const isPatient = isAuthenticated && user?.role === 'PATIENT';
 
   const query = useQuery({
-    queryKey: RECORDS_SUMMARY_QUERY_KEY,
+    queryKey: [...RECORDS_SUMMARY_QUERY_KEY, user?.id ?? 'anon'],
     queryFn: () => recordsApi.getRecordSummary(),
-    enabled: isPatient,
+    enabled: isPatient && Boolean(user?.id),
     staleTime: 60 * 1000,
   });
 
@@ -56,12 +56,13 @@ export const useRecordSummary = () => {
 
 export const useRecordDetails = (recordId: string) => {
   const { isAuthenticated, user } = useAuth();
-  const isPatient = isAuthenticated && user?.role === 'PATIENT';
+  const isAuthorizedRole =
+    isAuthenticated && (user?.role === 'PATIENT' || user?.role === 'DOCTOR');
 
   const query = useQuery({
-    queryKey: ['records', recordId],
+    queryKey: ['records', user?.id ?? 'anon', recordId],
     queryFn: () => recordsApi.getRecordById(recordId),
-    enabled: isPatient && Boolean(recordId),
+    enabled: isAuthorizedRole && Boolean(recordId) && Boolean(user?.id),
     staleTime: 60 * 1000,
   });
 
@@ -78,7 +79,27 @@ export const useUploadRecord = (options?: { onSuccess?: () => void }) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateMedicalRecordDto) => recordsApi.uploadRecord(data),
+    mutationFn: ({
+      data,
+      uploadOptions,
+    }: {
+      data: CreateMedicalRecordDto;
+      uploadOptions?: UploadRecordOptions;
+    }) => recordsApi.uploadRecord(data, uploadOptions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RECORDS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: RECORDS_SUMMARY_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['patient', 'dashboard-summary'] });
+      options?.onSuccess?.();
+    },
+  });
+};
+
+export const useArchiveRecord = (options?: { onSuccess?: () => void }) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (recordId: string) => recordsApi.archiveRecord(recordId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RECORDS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: RECORDS_SUMMARY_QUERY_KEY });
@@ -112,4 +133,3 @@ export const useDownloadRecord = () => {
     downloadError,
   };
 };
-

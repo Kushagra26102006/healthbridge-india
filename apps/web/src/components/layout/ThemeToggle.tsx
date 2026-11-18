@@ -52,12 +52,12 @@ export function ThemeToggle({ className }: { className?: string }) {
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={`Toggle theme, current theme is ${theme} (${resolvedTheme})`}
-        className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-input bg-background/80 backdrop-blur-xs text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border bg-surface text-foreground shadow-xs hover:bg-muted transition-colors duration-150 focus-ring"
       >
         {resolvedTheme === 'dark' ? (
-          <Moon className="h-4 w-4 text-indigo-400 transition-transform duration-200" />
+          <Moon className="h-4 w-4 text-primary transition-transform duration-200" />
         ) : (
-          <Sun className="h-4 w-4 text-amber-500 transition-transform duration-200" />
+          <Sun className="h-4 w-4 text-warning transition-transform duration-200" />
         )}
         <span className="sr-only">Toggle theme</span>
       </button>
@@ -66,7 +66,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         <div
           role="listbox"
           aria-label="Select theme"
-          className="absolute right-0 mt-2 w-36 rounded-xl border border-border bg-popover/95 backdrop-blur-md p-1.5 text-popover-foreground shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-50 animate-in fade-in-0 zoom-in-95 duration-100"
+          className="glass-dropdown absolute right-0 mt-2 w-36 rounded-lg p-1.5 text-popover-foreground z-50 animate-in fade-in-0 zoom-in-95 duration-100"
         >
           {themes.map((item) => {
             const isSelected = theme === item.id;

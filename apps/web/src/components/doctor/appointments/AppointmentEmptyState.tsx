@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyIllustration } from '@/components/ui/visual-asset';
 
 export interface AppointmentEmptyStateProps {
   title?: string;
@@ -20,9 +20,7 @@ export function AppointmentEmptyState({
 }: AppointmentEmptyStateProps) {
   return (
     <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 p-12 text-center space-y-4">
-      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 mx-auto flex items-center justify-center">
-        <Calendar className="h-6 w-6" />
-      </div>
+      <EmptyIllustration asset="no-appointments" compact />
 
       <div className="space-y-1 max-w-sm mx-auto">
         <h3 className="text-sm sm:text-base font-bold text-foreground">{title}</h3>

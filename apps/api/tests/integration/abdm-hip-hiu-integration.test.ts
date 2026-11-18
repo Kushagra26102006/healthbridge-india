@@ -125,7 +125,7 @@ describe('ABDM HIP / HIU Exchange — Express API Integration Tests (Day 7 Task 
       verificationStatus: 'VERIFIED',
     } as any);
 
-    vi.spyOn(AbdmDiscoveryRequestModel, 'findOne').mockImplementation(async (q: any) => {
+    vi.spyOn(AbdmDiscoveryRequestModel, 'findOne').mockImplementation((async (q: any) => {
       if (q?.externalTransactionRef) {
         return discoveries.find((d) => d.externalTransactionRef === q.externalTransactionRef) || null;
       }
@@ -133,10 +133,10 @@ describe('ABDM HIP / HIU Exchange — Express API Integration Tests (Day 7 Task 
         return discoveries.find((d) => d.participantId === q.participantId && d.status === 'DISCOVERY_PENDING') || null;
       }
       return null;
-    });
-    vi.spyOn(AbdmDiscoveryRequestModel, 'findById').mockImplementation(async (id: any) => {
+    }) as any);
+    vi.spyOn(AbdmDiscoveryRequestModel, 'findById').mockImplementation((async (id: any) => {
       return discoveries.find((d) => String(d._id) === String(id)) || null;
-    });
+    }) as any);
     vi.spyOn(AbdmDiscoveryRequestModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
       discoveries.push(doc);
@@ -147,9 +147,9 @@ describe('ABDM HIP / HIU Exchange — Express API Integration Tests (Day 7 Task 
       sort: () => ({ limit: async () => links }),
     } as any);
     vi.spyOn(AbdmLinkedHealthRecordModel, 'findOne').mockResolvedValue(null);
-    vi.spyOn(AbdmLinkedHealthRecordModel, 'findById').mockImplementation(async (id: any) => {
+    vi.spyOn(AbdmLinkedHealthRecordModel, 'findById').mockImplementation((async (id: any) => {
       return links.find((l) => String(l._id) === String(id)) || null;
-    });
+    }) as any);
     vi.spyOn(AbdmLinkedHealthRecordModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
       links.push(doc);
@@ -291,12 +291,12 @@ describe('ABDM HIP / HIU Exchange — Express API Integration Tests (Day 7 Task 
       transfers.push(doc);
       return doc;
     });
-    vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation(async (q: any) => {
+    vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation((async (q: any) => {
       return transfers.find((t) => t.externalTransactionId === q.externalTransactionId) || null;
-    });
-    vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation(async (id: any) => {
+    }) as any);
+    vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation((async (id: any) => {
       return transfers.find((t) => String(t._id) === String(id)) || null;
-    });
+    }) as any);
     vi.spyOn(AbdmImportedRecordModel, 'findOne').mockResolvedValue(null);
     vi.spyOn(AbdmImportedRecordModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
@@ -433,9 +433,9 @@ describe('ABDM HIP / HIU Exchange — Express API Integration Tests (Day 7 Task 
     const acks: any[] = [];
 
     vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockResolvedValue(transfer);
-    vi.spyOn(AbdmTransferAcknowledgementModel, 'findOne').mockImplementation(async (q: any) => {
+    vi.spyOn(AbdmTransferAcknowledgementModel, 'findOne').mockImplementation((async (q: any) => {
       return acks.find((a) => a.acknowledgementRef === q.acknowledgementRef) || null;
-    });
+    }) as any);
     vi.spyOn(AbdmTransferAcknowledgementModel, 'create').mockImplementation(async (d: any) => {
       const doc = makeDoc(d);
       acks.push(doc);

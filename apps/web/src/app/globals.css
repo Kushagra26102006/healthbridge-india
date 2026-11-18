@@ -4,73 +4,178 @@
 
 @layer base {
   :root {
-    /* Healthcare Design Tokens - Light Theme */
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* ========================================================================
+     * HealthBridge India — Global Design System Tokens (Light Theme)
+     * Primary: #2563EB | Hover: #1D4ED8 | Secondary: #0D9488 | Accent: #06B6D4
+     * Background: #F8FAFC | Surface: #FFFFFF | Text Primary: #0F172A
+     * Text Secondary: #64748B | Border: #E2E8F0
+     * Success: #16A34A | Warning: #D97706 | Error: #DC2626
+     * ======================================================================== */
+    color-scheme: light;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --font-sans: 'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+      Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
+      'Liberation Mono', monospace;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Core Surfaces & Text */
+    --background: 210 40% 98%; /* #F8FAFC */
+    --foreground: 222.2 47.4% 11.2%; /* #0F172A */
 
-    /* Deep Healthcare Blue */
-    --primary: 221 83% 40%;
-    --primary-foreground: 210 40% 98%;
+    --surface: 0 0% 100%; /* #FFFFFF */
+    --surface-elevated: 0 0% 100%; /* #FFFFFF */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 222.2 47.4% 11.2%; /* #0F172A */
 
-    /* Healthcare Teal */
-    --secondary: 173 80% 36%;
-    --secondary-foreground: 210 40% 98%;
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 222.2 47.4% 11.2%; /* #0F172A */
 
-    /* Soft Cyan */
-    --accent: 189 94% 43%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Brand & Semantic Actions */
+    --primary: 221.2 83.2% 53.3%; /* #2563EB */
+    --primary-hover: 224.3 76.3% 48%; /* #1D4ED8 */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
 
-    --muted: 210 40% 94%;
-    --muted-foreground: 215.4 16.3% 44%;
+    --secondary: 174.7 83.9% 31.6%; /* #0D9488 */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --accent: 188.7 94.5% 42.7%; /* #06B6D4 */
+    --accent-foreground: 222.2 47.4% 11.2%; /* #0F172A */
 
-    --border: 214.3 31.8% 90%;
-    --input: 214.3 31.8% 90%;
-    --ring: 221 83% 40%;
+    /* Neutrals */
+    --muted: 210 40% 96.1%; /* #F1F5F9 */
+    --muted-foreground: 215.4 16.3% 46.9%; /* #64748B */
 
-    --radius: 0.75rem;
+    --border: 214.3 31.8% 91.4%; /* #E2E8F0 */
+    --input: 214.3 31.8% 91.4%; /* #E2E8F0 */
+    --ring: 221.2 83.2% 53.3%; /* #2563EB */
+
+    /* Clinical Status Tokens */
+    --success: 142.1 76.2% 36.3%; /* #16A34A */
+    --success-foreground: 0 0% 100%;
+    --warning: 32.1 94.6% 43.7%; /* #D97706 */
+    --warning-foreground: 0 0% 100%;
+    --error: 0 72.2% 50.6%; /* #DC2626 */
+    --error-foreground: 0 0% 100%;
+    --destructive: 0 72.2% 50.6%; /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+    --info: 221.2 83.2% 53.3%; /* #2563EB */
+    --info-foreground: 0 0% 100%;
+
+    /* Data Visualization / Chart Tokens */
+    --chart-1: 221.2 83.2% 53.3%; /* Primary Blue */
+    --chart-2: 174.7 83.9% 31.6%; /* Medical Teal */
+    --chart-3: 188.7 94.5% 42.7%; /* Diagnostic Cyan */
+    --chart-4: 142.1 76.2% 36.3%; /* Success Green */
+    --chart-5: 32.1 94.6% 43.7%; /* Warning Amber */
+
+    /* Border Radius Tokens */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-pill: 9999px;
+    --radius: 10px;
+
+    /* Elevation & Shadow Tokens */
+    --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+    --shadow-hover: 0 10px 26px -4px rgba(15, 23, 42, 0.09), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+    --shadow-nav: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 0 0 rgba(226, 232, 240, 0.7);
+    --shadow-dropdown: 0 14px 32px -6px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+    --shadow-float: 0 16px 36px -8px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+    --shadow-dialog: 0 24px 48px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.05);
+
+    /* Glassmorphism Tokens (Light) */
+    --glass-nav-bg: rgba(255, 255, 255, 0.84);
+    --glass-nav-fallback: #ffffff;
+    --glass-dropdown-bg: rgba(255, 255, 255, 0.94);
+    --glass-dropdown-fallback: #ffffff;
+    --glass-modal-bg: rgba(255, 255, 255, 0.96);
+    --glass-modal-fallback: #ffffff;
+    --glass-panel-bg: rgba(248, 250, 252, 0.86);
+    --glass-panel-fallback: #f8fafc;
+    --glass-border: rgba(226, 232, 240, 0.82);
   }
 
   .dark {
-    /* Healthcare Design Tokens - Deep Navy Theme */
-    --background: 224 71% 4%;
-    --foreground: 210 40% 98%;
+    /* ========================================================================
+     * HealthBridge India — Global Design System Tokens (Dark Theme)
+     * Background: #080F1E | Surface: #111C30 | Elevated Surface: #17243A
+     * Primary: #3B82F6 | Secondary: #2DD4BF | Text Primary: #F8FAFC
+     * Text Secondary: #94A3B8 | Border: #26364D
+     * ======================================================================== */
+    color-scheme: dark;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --background: 221 58% 7.5%; /* #080F1E */
+    --foreground: 210 40% 98%; /* #F8FAFC */
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --surface: 219 48% 12.7%; /* #111C30 */
+    --surface-elevated: 218 43% 15.9%; /* #17243A */
+    --card: 219 48% 12.7%; /* #111C30 */
+    --card-foreground: 210 40% 98%; /* #F8FAFC */
 
-    /* Accessible Vibrant Healthcare Blue */
-    --primary: 217 91% 60%;
-    --primary-foreground: 224 71% 4%;
+    --popover: 218 43% 15.9%; /* #17243A */
+    --popover-foreground: 210 40% 98%; /* #F8FAFC */
 
-    /* Luminous Teal */
-    --secondary: 173 80% 40%;
-    --secondary-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%; /* #3B82F6 */
+    --primary-hover: 221.2 83.2% 53.3%; /* #2563EB */
+    --primary-foreground: 221 58% 7.5%; /* #080F1E (>5.1:1 contrast on #3B82F6) */
 
-    /* Soft Bright Cyan */
-    --accent: 189 80% 50%;
-    --accent-foreground: 224 71% 4%;
+    --secondary: 172.5 66% 50.4%; /* #2DD4BF */
+    --secondary-foreground: 221 58% 7.5%; /* #080F1E */
 
-    --muted: 217.2 32.6% 14%;
-    --muted-foreground: 215 20.2% 68%;
+    --accent: 187.9 85.7% 53.3%; /* #22D3EE */
+    --accent-foreground: 221 58% 7.5%; /* #080F1E */
 
-    --destructive: 0 62.8% 30.6%;
+    --muted: 218 43% 15.9%; /* #17243A */
+    --muted-foreground: 215 20.2% 65.1%; /* #94A3B8 */
+
+    --border: 215 34% 22.5%; /* #26364D */
+    --input: 215 34% 22.5%; /* #26364D */
+    --ring: 217.2 91.2% 59.8%; /* #3B82F6 */
+
+    /* Clinical Status Tokens (Dark) */
+    --success: 142.1 70.6% 45.3%; /* #22C55E */
+    --success-foreground: 221 58% 7.5%;
+    --warning: 37.7 92.1% 50.2%; /* #F59E0B */
+    --warning-foreground: 221 58% 7.5%;
+    --error: 0 84.2% 60.2%; /* #EF4444 */
+    --error-foreground: 210 40% 98%;
+    --destructive: 0 72.2% 50.6%; /* #DC2626 (>4.8:1 with white text) */
     --destructive-foreground: 210 40% 98%;
+    --info: 217.2 91.2% 59.8%; /* #3B82F6 */
+    --info-foreground: 221 58% 7.5%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217 91% 60%;
+    /* Data Visualization / Chart Tokens (Dark) */
+    --chart-1: 217.2 91.2% 59.8%;
+    --chart-2: 172.5 66% 50.4%;
+    --chart-3: 187.9 85.7% 53.3%;
+    --chart-4: 142.1 70.6% 45.3%;
+    --chart-5: 37.7 92.1% 50.2%;
+
+    /* Elevation & Shadow Tokens (Dark — refined depth + hairline separation) */
+    --shadow-xs: 0 1px 2px 0 rgba(2, 6, 23, 0.32);
+    --shadow-sm: 0 1px 3px 0 rgba(2, 6, 23, 0.42), 0 1px 2px -1px rgba(2, 6, 23, 0.34);
+    --shadow-md: 0 6px 16px -4px rgba(2, 6, 23, 0.5), 0 2px 6px -2px rgba(2, 6, 23, 0.36);
+    --shadow-lg: 0 16px 32px -6px rgba(2, 6, 23, 0.6), 0 6px 12px -4px rgba(2, 6, 23, 0.42);
+    --shadow-hover: 0 14px 30px -6px rgba(2, 6, 23, 0.62), 0 0 0 1px rgba(59, 130, 246, 0.18);
+    --shadow-nav: 0 2px 8px -2px rgba(2, 6, 23, 0.45), 0 1px 0 0 rgba(38, 54, 77, 0.7);
+    --shadow-dropdown: 0 18px 36px -6px rgba(2, 6, 23, 0.68), 0 0 0 1px rgba(148, 163, 184, 0.1);
+    --shadow-float: 0 20px 44px -8px rgba(2, 6, 23, 0.72), 0 0 0 1px rgba(148, 163, 184, 0.12);
+    --shadow-dialog: 0 28px 56px -12px rgba(2, 6, 23, 0.78), 0 0 0 1px rgba(148, 163, 184, 0.12);
+
+    /* Glassmorphism Tokens (Dark) */
+    --glass-nav-bg: rgba(17, 28, 48, 0.82);
+    --glass-nav-fallback: #111c30;
+    --glass-dropdown-bg: rgba(23, 36, 58, 0.94);
+    --glass-dropdown-fallback: #17243a;
+    --glass-modal-bg: rgba(17, 28, 48, 0.96);
+    --glass-modal-fallback: #111c30;
+    --glass-panel-bg: rgba(23, 36, 58, 0.84);
+    --glass-panel-fallback: #17243a;
+    --glass-border: rgba(38, 54, 77, 0.85);
   }
 }
 
@@ -78,12 +183,177 @@
   * {
     @apply border-border;
   }
+
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 84px;
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
   }
+
   body {
-    @apply bg-background text-foreground antialiased selection:bg-teal-600 selection:text-white;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/15 selection:text-primary dark:selection:bg-primary/30 dark:selection:text-foreground;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'rlig' 1, 'calt' 1;
+    overflow-x: clip;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* ==========================================================================
+ * Typography System & Glassmorphism Components
+ * ========================================================================== */
+@layer components {
+  /* Accessible Skip Link */
+  .skip-to-content {
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:inline-flex focus:items-center focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg;
+  }
+
+  /* Typography Scale */
+  .text-display {
+    @apply text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.12] text-foreground;
+  }
+  .text-page-heading {
+    @apply text-2xl sm:text-[1.75rem] font-semibold tracking-tight leading-[1.2] text-foreground;
+  }
+  .text-section-heading {
+    @apply text-lg sm:text-xl font-semibold tracking-tight leading-[1.3] text-foreground;
+  }
+  .text-card-heading {
+    @apply text-base font-semibold tracking-tight leading-[1.35] text-foreground;
+  }
+  .text-body {
+    @apply text-sm leading-relaxed text-foreground;
+  }
+  .text-label {
+    @apply text-xs sm:text-[0.8125rem] font-medium leading-none tracking-[0.005em] text-foreground;
+  }
+  .text-helper {
+    @apply text-xs leading-normal text-muted-foreground;
+  }
+  .text-caption {
+    @apply text-xs font-medium leading-snug text-muted-foreground;
+  }
+  .text-metric {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight leading-none tabular-nums text-foreground;
+  }
+
+  /* Reusable Interaction Focus Ring Utility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Global Restraint-Driven Hover Utilities (transform, opacity, border, shadow only) */
+  .hover-lift {
+    @apply transition-[transform,box-shadow,border-color,background-color] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-hover hover:border-primary/30;
+  }
+
+  .hover-card-interactive {
+    @apply relative overflow-hidden transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-hover hover:border-primary/35;
+  }
+
+  .hover-card-interactive::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)));
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+    pointer-events: none;
+  }
+
+  .hover-card-interactive:hover::after {
+    opacity: 1;
+  }
+
+  .hover-nav-item {
+    @apply transition-colors duration-150 hover:bg-muted/80 hover:text-foreground;
+  }
+
+  .hover-row {
+    @apply transition-colors duration-150 hover:bg-muted/50;
+  }
+
+  .hover-icon-nudge {
+    @apply transition-transform duration-150 group-hover:translate-x-0.5;
+  }
+
+  /* Glassmorphism Surface Utilities (with solid fallbacks for unsupported browsers) */
+  .glass-nav {
+    background-color: var(--glass-nav-fallback);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-nav);
+  }
+
+  .glass-dropdown {
+    background-color: var(--glass-dropdown-fallback);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-dropdown);
+  }
+
+  .glass-modal {
+    background-color: var(--glass-modal-fallback);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-dialog);
+  }
+
+  .glass-panel {
+    background-color: var(--glass-panel-fallback);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-md);
+  }
+
+  .glass-floating {
+    background-color: var(--glass-dropdown-fallback);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-float);
+  }
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-nav {
+      background-color: var(--glass-nav-bg);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      backdrop-filter: blur(12px) saturate(160%);
+    }
+
+    .glass-dropdown {
+      background-color: var(--glass-dropdown-bg);
+      -webkit-backdrop-filter: blur(14px) saturate(160%);
+      backdrop-filter: blur(14px) saturate(160%);
+    }
+
+    .glass-modal {
+      background-color: var(--glass-modal-bg);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .glass-panel {
+      background-color: var(--glass-panel-bg);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+      backdrop-filter: blur(12px) saturate(150%);
+    }
+
+    .glass-floating {
+      background-color: var(--glass-dropdown-bg);
+      -webkit-backdrop-filter: blur(14px) saturate(160%);
+      backdrop-filter: blur(14px) saturate(160%);
+    }
+
+    /* Reduce blur radius on mobile devices for consistent 60fps scrolling */
+    @media (max-width: 767px) {
+      .glass-nav,
+      .glass-panel,
+      .glass-floating {
+        -webkit-backdrop-filter: blur(8px) saturate(140%);
+        backdrop-filter: blur(8px) saturate(140%);
+      }
+    }
   }
 }
 
@@ -91,7 +361,77 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Safe-area & touch-target responsive mobile utilities */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .table-scroll-container {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (pointer: coarse) {
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
   .bg-radial-gradient {
-    background-image: radial-gradient(circle at top center, rgba(14, 165, 233, 0.08), transparent 70%);
+    background-image: radial-gradient(
+      circle at top center,
+      rgba(37, 99, 235, 0.08),
+      rgba(13, 148, 136, 0.04) 40%,
+      transparent 72%
+    );
+  }
+}
+
+/* ==========================================================================
+ * Reduced Motion Accessibility Guard (WCAG 2.1 AA 2.3.3)
+ * ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+ * Printable / PDF Analytics Report Styles
+ * ========================================================================== */
+@media print {
+  aside,
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
   }
 }

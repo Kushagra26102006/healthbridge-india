@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { laboratoryQualityApi } from '../api/laboratory-quality-api';
 import type {
   QualityDashboardDto,
@@ -15,6 +15,11 @@ import type {
   ReagentLotDto,
   ReagentInventoryTransactionDto,
 } from '@healthbridge/shared-types';
+
+function useStableParams<T>(params?: T): T | undefined {
+  const serialized = JSON.stringify(params ?? null);
+  return useMemo(() => (serialized === 'null' ? undefined : (JSON.parse(serialized) as T)), [serialized]);
+}
 
 export function useQualityDashboard() {
   const [data, setData] = useState<QualityDashboardDto | null>(null);
@@ -45,19 +50,20 @@ export function useQCProfiles(params?: { testCode?: string; isActive?: boolean; 
   const [profiles, setProfiles] = useState<QCProfileDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchProfiles = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listProfiles(params);
+      const res = await laboratoryQualityApi.listProfiles(stableParams);
       setProfiles(res);
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || 'Failed to load QC profiles');
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchProfiles();
@@ -71,12 +77,13 @@ export function useQCRuns(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchRuns = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listRuns(params);
+      const res = await laboratoryQualityApi.listRuns(stableParams);
       setRuns(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -84,7 +91,7 @@ export function useQCRuns(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchRuns();
@@ -98,12 +105,13 @@ export function useQualityIncidents(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchIncidents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listIncidents(params);
+      const res = await laboratoryQualityApi.listIncidents(stableParams);
       setIncidents(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -111,7 +119,7 @@ export function useQualityIncidents(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchIncidents();
@@ -125,12 +133,13 @@ export function useCAPAs(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchCAPAs = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listCAPAs(params);
+      const res = await laboratoryQualityApi.listCAPAs(stableParams);
       setCapas(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -138,7 +147,7 @@ export function useCAPAs(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchCAPAs();
@@ -152,12 +161,13 @@ export function useInstruments(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchInstruments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listInstruments(params);
+      const res = await laboratoryQualityApi.listInstruments(stableParams);
       setInstruments(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -165,7 +175,7 @@ export function useInstruments(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchInstruments();
@@ -179,12 +189,13 @@ export function useCalibrations(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchCalibrations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listCalibrations(params);
+      const res = await laboratoryQualityApi.listCalibrations(stableParams);
       setCalibrations(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -192,7 +203,7 @@ export function useCalibrations(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchCalibrations();
@@ -206,12 +217,13 @@ export function useMaintenance(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchMaintenance = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listMaintenance(params);
+      const res = await laboratoryQualityApi.listMaintenance(stableParams);
       setMaintenance(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -219,7 +231,7 @@ export function useMaintenance(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchMaintenance();
@@ -233,12 +245,13 @@ export function useReagents(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchReagents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listReagents(params);
+      const res = await laboratoryQualityApi.listReagents(stableParams);
       setReagents(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -246,7 +259,7 @@ export function useReagents(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchReagents();
@@ -260,12 +273,13 @@ export function useReagentLots(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchLots = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listLots(params);
+      const res = await laboratoryQualityApi.listLots(stableParams);
       setLots(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -273,7 +287,7 @@ export function useReagentLots(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchLots();
@@ -287,12 +301,13 @@ export function useReagentTransactions(params?: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableParams = useStableParams(params);
 
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await laboratoryQualityApi.listTransactions(params);
+      const res = await laboratoryQualityApi.listTransactions(stableParams);
       setTransactions(res.items);
       setTotal(res.total);
     } catch (err: any) {
@@ -300,7 +315,7 @@ export function useReagentTransactions(params?: any) {
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     fetchTransactions();

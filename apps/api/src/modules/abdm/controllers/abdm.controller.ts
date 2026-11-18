@@ -29,6 +29,7 @@ export class AbdmController {
     const abhaAnalytics = await abhaIdentityService.getAdminAbhaAnalytics();
     const consentAnalytics = await abdmConsentLifecycleService.getAdminConsentAnalytics();
     const hipHiuAnalytics = await abdmHealthInformationService.getAdminHipHiuAnalytics();
+    const webhookAnalytics = await abdmWebhookService.getAdminWebhookAnalytics();
 
     sendSuccess(
       res,
@@ -39,6 +40,7 @@ export class AbdmController {
         abhaAnalytics,
         consentAnalytics,
         hipHiuAnalytics,
+        webhookAnalytics,
       },
       'ABDM integration status retrieved successfully'
     );

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" width="640" height="180" fill="none">
+  <rect width="640" height="180" rx="16" fill="#F8FAFC"/>
+  <rect x="0.75" y="0.75" width="638.5" height="178.5" rx="15.25" stroke="#CBD5E1" stroke-width="1.5"/>
+
+  <rect x="24" y="30" width="166" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="40" y="56" fill="#0F172A" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700">Clinical Sources</text>
+  <rect x="40" y="68" width="134" height="20" rx="6" fill="#EFF6FF"/>
+  <text x="48" y="81" fill="#1D4ED8" font-family="system-ui, sans-serif" font-size="9.5" font-weight="600">Encounters &amp; Consults</text>
+  <rect x="40" y="94" width="134" height="20" rx="6" fill="#F0FDFA"/>
+  <text x="48" y="107" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9.5" font-weight="600">Prescriptions &amp; Labs</text>
+  <rect x="40" y="120" width="134" height="20" rx="6" fill="#F0F9FF"/>
+  <text x="48" y="133" fill="#0369A1" font-family="system-ui, sans-serif" font-size="9.5" font-weight="600">Diagnostic PDFs</text>
+
+  <path d="M196 90 H232 M226 84 L233 90 L226 96" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="238" y="30" width="166" height="120" rx="12" fill="#0F172A"/>
+  <text x="321" y="58" text-anchor="middle" fill="#2DD4BF" font-family="monospace" font-size="11" font-weight="700">HL7 FHIR R4</text>
+  <text x="321" y="76" text-anchor="middle" fill="#F8FAFC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">NRCeS Profile Validator</text>
+  <rect x="256" y="92" width="130" height="42" rx="8" fill="#1E293B"/>
+  <text x="321" y="110" text-anchor="middle" fill="#93C5FD" font-family="monospace" font-size="9.5">DocumentReference</text>
+  <text x="321" y="125" text-anchor="middle" fill="#5EEAD4" font-family="monospace" font-size="9.5">DiagnosticReport • Rx</text>
+
+  <path d="M410 90 H446 M440 84 L447 90 L440 96" stroke="#0D9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="452" y="30" width="164" height="120" rx="12" fill="#FFFFFF" stroke="#99F6E4" stroke-width="1.5"/>
+  <text x="468" y="56" fill="#0F172A" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700">Verified Delivery</text>
+  <text x="468" y="78" fill="#475569" font-family="system-ui, sans-serif" font-size="10">• Schema-checked bundles</text>
+  <text x="468" y="96" fill="#475569" font-family="system-ui, sans-serif" font-size="10">• Consent-gated access</text>
+  <text x="468" y="114" fill="#475569" font-family="system-ui, sans-serif" font-size="10">• Immutable audit trail</text>
+  <text x="468" y="132" fill="#0D9488" font-family="system-ui, sans-serif" font-size="10" font-weight="600">• Zero PII in telemetry</text>
+</svg>

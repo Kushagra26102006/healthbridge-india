@@ -253,7 +253,7 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
       return createQueryMock(s || null);
     });
 
-    vi.spyOn(LaboratoryStaffModel, 'find').mockImplementation((q: any) => {
+    vi.spyOn(LaboratoryStaffModel, 'find').mockImplementation(((q: any) => {
       const filtered = staffStore.filter((s) => {
         if (q.laboratoryId && s.laboratoryId.toString() !== q.laboratoryId.toString()) return false;
         if (q.departmentId && (!s.departmentId || s.departmentId.toString() !== q.departmentId.toString())) return false;
@@ -262,7 +262,7 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
         return true;
       });
       return createQueryMock(filtered);
-    });
+    }) as any);
 
     vi.spyOn(LaboratoryStaffModel, 'countDocuments').mockImplementation((q: any) => {
       const count = staffStore.filter((s) => {
@@ -300,13 +300,13 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
       return createQueryMock(found || null);
     });
 
-    vi.spyOn(LaboratoryDepartmentModel, 'find').mockImplementation((q: any) => {
+    vi.spyOn(LaboratoryDepartmentModel, 'find').mockImplementation(((q: any) => {
       const filtered = departmentStore.filter((d) => {
         if (q.laboratoryId && d.laboratoryId.toString() !== q.laboratoryId.toString()) return false;
         return true;
       });
       return createQueryMock(filtered);
-    });
+    }) as any);
 
     // 5. Mock LaboratoryShiftTemplateModel & LaboratoryShiftAssignmentModel
     vi.spyOn(LaboratoryShiftTemplateModel, 'create').mockImplementation((input: any) => {
@@ -334,13 +334,13 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
       return createQueryMock(found || null);
     });
 
-    vi.spyOn(LaboratoryShiftTemplateModel, 'find').mockImplementation((q: any) => {
+    vi.spyOn(LaboratoryShiftTemplateModel, 'find').mockImplementation(((q: any) => {
       const filtered = shiftTemplateStore.filter((t) => {
         if (q.laboratoryId && t.laboratoryId.toString() !== q.laboratoryId.toString()) return false;
         return true;
       });
       return createQueryMock(filtered);
-    });
+    }) as any);
 
     vi.spyOn(LaboratoryShiftAssignmentModel, 'create').mockImplementation((input: any) => {
       const doc: any = {
@@ -373,14 +373,14 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
       return createQueryMock(found || null);
     });
 
-    vi.spyOn(LaboratoryShiftAssignmentModel, 'find').mockImplementation((q: any) => {
+    vi.spyOn(LaboratoryShiftAssignmentModel, 'find').mockImplementation(((q: any) => {
       const filtered = shiftAssignmentStore.filter((a) => {
         if (q.laboratoryId && a.laboratoryId.toString() !== q.laboratoryId.toString()) return false;
         if (q.staffId && a.staffId.toString() !== q.staffId.toString()) return false;
         return true;
       });
       return createQueryMock(filtered);
-    });
+    }) as any);
 
     vi.spyOn(LaboratoryShiftAssignmentModel, 'countDocuments').mockImplementation(() => {
       return Promise.resolve(shiftAssignmentStore.length) as any;
@@ -418,13 +418,13 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
       return createQueryMock(found || null);
     });
 
-    vi.spyOn(LaboratoryLeaveRequestModel, 'find').mockImplementation((q: any) => {
+    vi.spyOn(LaboratoryLeaveRequestModel, 'find').mockImplementation(((q: any) => {
       const filtered = leaveRequestStore.filter((l) => {
         if (q.laboratoryId && l.laboratoryId.toString() !== q.laboratoryId.toString()) return false;
         return true;
       });
       return createQueryMock(filtered);
-    });
+    }) as any);
 
     vi.spyOn(LaboratoryLeaveRequestModel, 'countDocuments').mockImplementation(() => {
       return Promise.resolve(leaveRequestStore.length) as any;
@@ -464,7 +464,7 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
       return createQueryMock(found || null);
     });
 
-    vi.spyOn(LaboratoryTaskAssignmentModel, 'find').mockImplementation((q: any) => {
+    vi.spyOn(LaboratoryTaskAssignmentModel, 'find').mockImplementation(((q: any) => {
       const filtered = taskStore.filter((t) => {
         if (q.laboratoryId && t.laboratoryId.toString() !== q.laboratoryId.toString()) return false;
         if (q.taskType && t.taskType !== q.taskType) return false;
@@ -472,7 +472,7 @@ describe('Laboratory Workforce Management, RBAC, Scheduling & Workload (Day 6 Ta
         return true;
       });
       return createQueryMock(filtered);
-    });
+    }) as any);
 
     vi.spyOn(LaboratoryTaskAssignmentModel, 'countDocuments').mockImplementation(() => {
       return Promise.resolve(taskStore.length) as any;

@@ -251,10 +251,10 @@ describe('ABDM Consent Manager — Unit & Workflow Suite (Day 7 Task 03 — Mock
       };
 
       const seenEvents = new Set<string>();
-      vi.spyOn(AbdmConsentEventModel, 'findOne').mockImplementation(async (q: any) => {
+      vi.spyOn(AbdmConsentEventModel, 'findOne').mockImplementation((async (q: any) => {
         const key = `${q.eventId}::${q.eventType}`;
         return seenEvents.has(key) ? ({ eventId: q.eventId, eventType: q.eventType } as any) : null;
-      });
+      }) as any);
       vi.spyOn(AbdmConsentEventModel, 'create').mockImplementation(async (doc: any) => {
         seenEvents.add(`${doc.eventId}::${doc.eventType}`);
         return doc;

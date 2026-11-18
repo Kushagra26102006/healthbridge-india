@@ -1,73 +1,49 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ShieldCheck, Activity, Bell, LayoutDashboard } from 'lucide-react';
+import React, { useState } from 'react';
+import { LayoutDashboard, ShieldAlert, ScrollText, Server } from 'lucide-react';
 import { ProtectedRoute } from '@/features/auth/components/protected-route';
-import { NotificationBell } from '@/components/notifications';
-import { GlobalSearchCommand } from '@/components/search/GlobalSearchCommand';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminTopbar } from '@/components/admin/AdminTopbar';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { PageTransition } from '@/components/motion/MotionPrimitives';
 
-const ADMIN_NAV_ITEMS = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/platform-overview', label: 'Platform Overview', icon: Activity },
-  { href: '/admin/platform/events', label: 'Event Monitor', icon: Activity },
-  { href: '/admin/privacy-requests', label: 'Privacy Requests', icon: ShieldCheck },
-  { href: '/admin/security/overview', label: 'SecOps', icon: ShieldCheck },
-  { href: '/admin/security/data-protection', label: 'Data Protection', icon: ShieldCheck },
-  { href: '/admin/integrations/abdm', label: 'ABDM Status', icon: ShieldCheck },
-  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+const ADMIN_MOBILE_NAV = [
+  { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard, exact: true },
+  { label: 'SecOps', href: '/admin/security/overview', icon: ShieldAlert },
+  { label: 'Audit', href: '/admin/audit-logs', icon: ScrollText },
+  { label: 'Health', href: '/admin/system-monitoring', icon: Server },
 ];
 
 export default function AdminPortalLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <ProtectedRoute allowedRoles={['ADMIN']} redirectUnauth>
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xs">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-14 max-w-7xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-6 overflow-x-auto">
-              <Link
-                href="/admin/dashboard"
-                className="flex items-center gap-2 font-bold text-sm text-foreground shrink-0"
-              >
-                <ShieldCheck className="w-5 h-5 text-teal-600" />
-                <span>HealthBridge Admin</span>
-              </Link>
+      <div className="min-h-screen bg-background text-foreground flex">
+        <AdminSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          mobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
+        />
 
-              <nav aria-label="Admin navigation" className="flex items-center gap-1">
-                {ADMIN_NAV_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname?.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                        active
-                          ? 'bg-slate-900 dark:bg-teal-600 text-white'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+        <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+          <AdminTopbar onOpenMobileSidebar={() => setMobileMenuOpen(true)} />
+          <main
+            id="main-content"
+            className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-6 pb-24 lg:pb-8"
+          >
+            <PageTransition>{children}</PageTransition>
+          </main>
+        </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <GlobalSearchCommand compact placeholder="Search platform entities..." />
-              <NotificationBell />
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
-          {children}
-        </main>
+        <MobileBottomNav
+          items={ADMIN_MOBILE_NAV}
+          onOpenMore={() => setMobileMenuOpen(true)}
+          ariaLabel="Administrator mobile navigation"
+        />
       </div>
     </ProtectedRoute>
   );

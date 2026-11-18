@@ -272,18 +272,38 @@ export class SecurityMonitoringService {
     limit: number;
     severity?: string;
     category?: string;
+    actorRole?: string;
+    outcome?: string;
     search?: string;
+    from?: string;
+    to?: string;
   }) {
     let filtered = [...this.events];
     if (query.severity) filtered = filtered.filter((e) => e.severity === query.severity);
     if (query.category) filtered = filtered.filter((e) => e.category === query.category);
+    if (query.actorRole) filtered = filtered.filter((e) => (e.actorRole || 'SYSTEM') === query.actorRole);
+    if (query.outcome) filtered = filtered.filter((e) => e.outcome === query.outcome);
+    if (query.from) {
+      const fromMs = new Date(query.from).getTime();
+      if (!Number.isNaN(fromMs)) {
+        filtered = filtered.filter((e) => new Date(e.timestamp).getTime() >= fromMs);
+      }
+    }
+    if (query.to) {
+      const toMs = new Date(query.to).getTime();
+      if (!Number.isNaN(toMs)) {
+        filtered = filtered.filter((e) => new Date(e.timestamp).getTime() <= toMs);
+      }
+    }
     if (query.search) {
       const q = query.search.toLowerCase();
       filtered = filtered.filter(
         (e) =>
           e.eventType.toLowerCase().includes(q) ||
           e.sourceModule.toLowerCase().includes(q) ||
-          e.eventId.toLowerCase().includes(q)
+          e.eventId.toLowerCase().includes(q) ||
+          (e.actorId && e.actorId.toLowerCase().includes(q)) ||
+          (e.resourceCategory && e.resourceCategory.toLowerCase().includes(q))
       );
     }
 

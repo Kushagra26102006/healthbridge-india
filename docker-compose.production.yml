@@ -1,0 +1,65 @@
+# HealthBridge India — Production Container Orchestration Template
+# Secrets MUST be injected via a secret manager or host environment variables — NEVER committed here.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      TRUST_PROXY_HOPS: 1
+      ENABLE_BACKGROUND_WORKER: "false"
+      MONGODB_URI: ${MONGODB_URI:?MONGODB_URI is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      COOKIE_SECRET: ${COOKIE_SECRET:?COOKIE_SECRET is required}
+      ADMIN_REGISTRATION_KEY: ${ADMIN_REGISTRATION_KEY:?ADMIN_REGISTRATION_KEY is required}
+      ABDM_ENABLED: ${ABDM_ENABLED:-false}
+      ABDM_ENVIRONMENT: ${ABDM_ENVIRONMENT:-disabled}
+      ABDM_ALLOW_PRODUCTION: ${ABDM_ALLOW_PRODUCTION:-false}
+    ports:
+      - "127.0.0.1:5001:5001"
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5002
+      TRUST_PROXY_HOPS: 1
+      ENABLE_BACKGROUND_WORKER: "true"
+      MONGODB_URI: ${MONGODB_URI:?MONGODB_URI is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      COOKIE_SECRET: ${COOKIE_SECRET:?COOKIE_SECRET is required}
+      ADMIN_REGISTRATION_KEY: ${ADMIN_REGISTRATION_KEY:?ADMIN_REGISTRATION_KEY is required}
+      ABDM_ENABLED: ${ABDM_ENABLED:-false}
+      ABDM_ENVIRONMENT: ${ABDM_ENVIRONMENT:-disabled}
+      ABDM_ALLOW_PRODUCTION: ${ABDM_ALLOW_PRODUCTION:-false}
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_APP_NAME: "HealthBridge India"
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:3000"
+    security_opt:
+      - no-new-privileges:true

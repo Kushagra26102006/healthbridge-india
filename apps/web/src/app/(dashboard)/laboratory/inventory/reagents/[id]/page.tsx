@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -38,7 +38,8 @@ export default function ReagentDetailPage() {
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedLotForStock, setSelectedLotForStock] = useState<ReagentLotDto | null>(null);
 
-  const fetchReagentData = async () => {
+  const fetchReagentData = useCallback(async () => {
+    if (!reagentId) return;
     try {
       setLoading(true);
       setError(null);
@@ -55,13 +56,11 @@ export default function ReagentDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reagentId]);
 
   useEffect(() => {
-    if (reagentId) {
-      fetchReagentData();
-    }
-  }, [reagentId]);
+    fetchReagentData();
+  }, [fetchReagentData]);
 
   const handleReceiveLot = async (dto: any) => {
     await laboratoryQualityApi.createLot(dto);
@@ -279,7 +278,8 @@ export default function ReagentDetailPage() {
               No lots recorded for this reagent. Click &ldquo;Receive New Lot&rdquo; to begin tracking batches.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
                 <tr>
                   <th className="py-3 px-4">Lot Number</th>
@@ -374,6 +374,7 @@ export default function ReagentDetailPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
@@ -386,7 +387,8 @@ export default function ReagentDetailPage() {
               No inventory movements recorded yet.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
                 <tr>
                   <th className="py-3 px-4">Transaction Ref</th>
@@ -433,6 +435,7 @@ export default function ReagentDetailPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

@@ -15,22 +15,30 @@ const startServer = async (): Promise<void> => {
   await connectDatabase();
 
   // Register Cross-Module Domain Event Handlers & start durable Outbox Worker
+  // When scaling horizontally, set ENABLE_BACKGROUND_WORKER=false on stateless API replicas
+  // and run a single dedicated worker process to prevent unintended duplicate polling.
   registerDefaultEventHandlers();
-  if (env.NODE_ENV !== 'test') {
+  if (env.NODE_ENV !== 'test' && env.ENABLE_BACKGROUND_WORKER) {
     defaultEventWorker.start();
+  } else if (env.NODE_ENV !== 'test') {
+    logger.info('Background outbox worker disabled on this replica (ENABLE_BACKGROUND_WORKER=false)');
   }
 
   const serverInstance = server.listen(env.PORT, () => {
     logger.info(`HealthBridge India API server started successfully`, {
       environment: env.NODE_ENV,
       port: env.PORT,
-      url: `http://localhost:${env.PORT}`,
-      healthCheck: `http://localhost:${env.PORT}/api/v1/health`,
+      backgroundWorkerEnabled: env.NODE_ENV !== 'test' && env.ENABLE_BACKGROUND_WORKER,
+      healthCheck: `/api/v1/health`,
+      readinessCheck: `/api/v1/health/ready`,
     });
   });
 
-  // Graceful Shutdown Handler
+  // Idempotent Graceful Shutdown Handler
+  let isShuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     logger.info(`Received ${signal}. Starting graceful shutdown...`);
     notificationStreamService.closeAll();
     await defaultEventWorker.stop(5000);
@@ -42,11 +50,12 @@ const startServer = async (): Promise<void> => {
       process.exit(0);
     });
 
-    // Force shutdown after timeout
-    setTimeout(() => {
+    // Force shutdown after timeout (unref'd so clean closes exit promptly)
+    const forceTimer = setTimeout(() => {
       logger.error('Could not close connections in time, forcefully shutting down');
       process.exit(1);
     }, 10000);
+    forceTimer.unref();
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));

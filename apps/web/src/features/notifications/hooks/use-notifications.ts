@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotificationStreamUrl, notificationApi } from '../api/notification-api';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useToast } from '@/components/ui/toast';
+import { useLiveAnnouncer } from '@/components/accessibility/LiveAnnouncer';
 import { invalidateDashboardQueriesForEvent } from '../lib/dashboard-sync';
 import {
   broadcastNotificationSync,
@@ -265,6 +267,13 @@ export function useNotificationStream(): {
   const userId = user?.id;
   const userRole = user?.role;
 
+  const { toast } = useToast();
+  const { announce } = useLiveAnnouncer();
+  const toastRef = useRef(toast);
+  const announceRef = useRef(announce);
+  toastRef.current = toast;
+  announceRef.current = announce;
+
   const [connectionState, setConnectionState] =
     useState<NotificationStreamConnectionState>('disconnected');
   const prevUserIdRef = useRef<string | undefined>(undefined);
@@ -403,6 +412,23 @@ export function useNotificationStream(): {
             timestamp: Date.now(),
           });
         }
+
+        // Polite, privacy-safe live toast + screen-reader announcement (never exposes clinical PHI)
+        const safeTitle =
+          typeof parsed?.title === 'string' && parsed.title.trim()
+            ? parsed.title.trim()
+            : 'New HealthBridge notification';
+        const safeCategory =
+          typeof parsed?.category === 'string' ? parsed.category : 'SYSTEM';
+        toastRef.current({
+          variant: safeCategory === 'SECURITY' ? 'warning' : 'info',
+          title: safeTitle,
+          description: `Category: ${safeCategory}. Open Notifications to review safely.`,
+        });
+        announceRef.current(
+          `New notification: ${safeTitle}`,
+          safeCategory === 'SECURITY' ? 'assertive' : 'polite'
+        );
       } catch {
         void queryClient.invalidateQueries({
           queryKey: NOTIFICATION_QUERY_KEYS.forUser(userId),

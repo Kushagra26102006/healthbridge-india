@@ -1,142 +1,280 @@
 'use client';
 
-import React from 'react';
-import { ShieldCheck, FileText, Pill, Lock, QrCode, CheckCircle2, Building2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { m } from 'framer-motion';
+import {
+  ShieldCheck,
+  FileText,
+  Pill,
+  Lock,
+  Calendar,
+  Building2,
+  CheckCircle2,
+  FlaskConical,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { StatusIndicator } from '@/components/ui/status-indicator';
+import { TiltCard } from '@/components/motion/TiltCard';
+import { MOTION_DURATION, MOTION_EASE } from '@/lib/motion/tokens';
+import { cn } from '@/lib/utils';
 
+type PreviewTab = 'overview' | 'records' | 'consent';
+
+/**
+ * Interactive Health Dashboard Preview for the public landing page.
+ * Strictly labeled as illustrative sample data — never displays real patient data.
+ */
 export function AbhaPreviewCard() {
-  return (
-    <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
-      {/* Decorative gradient backdrops */}
-      <div className="absolute -top-6 -left-6 w-48 h-48 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-8 -right-8 w-60 h-60 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+  const [activeTab, setActiveTab] = useState<PreviewTab>('overview');
 
-      {/* Main Glassmorphic Showcase Container */}
-      <div className="relative rounded-3xl border border-border/90 bg-card/95 backdrop-blur-xl p-5 sm:p-7 shadow-cardHover transition-all duration-300 hover:shadow-2xl space-y-5">
-        {/* Synthetic Demo Disclaimer Banner */}
-        <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/60 border border-border/70 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-            <span>Interactive Sample Preview</span>
+  return (
+    <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
+      {/* Subtle Ambient Glows */}
+      <div
+        aria-hidden="true"
+        className="absolute -top-6 -left-6 w-48 h-48 bg-secondary/15 rounded-full blur-3xl pointer-events-none"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-8 -right-8 w-56 h-56 bg-primary/15 rounded-full blur-3xl pointer-events-none"
+      />
+
+      {/* Main Layered Glass Preview Shell with Subtle Desktop 3D Tilt */}
+      <TiltCard maxTilt={3.5}>
+        <div className="glass-panel relative rounded-xl p-5 sm:p-6 shadow-lg transition-shadow duration-200 hover:shadow-dialog space-y-5">
+        {/* Top Bar: Window Chrome + Explicit Sample Data Disclosure */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border/80">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1" aria-hidden="true">
+              <span className="h-2.5 w-2.5 rounded-pill bg-border" />
+              <span className="h-2.5 w-2.5 rounded-pill bg-border" />
+              <span className="h-2.5 w-2.5 rounded-pill bg-border" />
+            </span>
+            <span className="text-xs font-semibold text-foreground">
+              Patient Health Workspace
+            </span>
           </div>
-          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-background border border-border">
-            ABDM Sandbox Architecture
-          </span>
+
+          <Badge variant="info" size="sm">
+            Illustrative Sample Data
+          </Badge>
         </div>
 
-        {/* 1. ABHA Digital Identity Card Element */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 via-slate-900 to-teal-950 p-5 text-white shadow-lg border border-teal-500/20">
-          {/* Subtle Indian tricolor accent line */}
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-orange-500 via-white to-emerald-500 opacity-80" />
+        {/* Interactive Preview Tabs */}
+        <div
+          role="tablist"
+          aria-label="Dashboard preview views"
+          className="grid grid-cols-3 gap-1 rounded-md bg-muted/80 p-1 border border-border/70"
+        >
+          {(
+            [
+              { id: 'overview', label: 'Overview' },
+              { id: 'records', label: 'Records & Rx' },
+              { id: 'consent', label: 'Consent' },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'rounded-sm px-2.5 py-1.5 text-xs font-medium transition-all duration-150 focus-ring',
+                  active
+                    ? 'bg-surface text-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-teal-300">
-                  Ayushman Bharat Digital Mission
+        {/* Tab 1: Overview */}
+        {activeTab === 'overview' && (
+          <m.div
+            key="overview"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard }}
+            className="space-y-4"
+          >
+            {/* Compact KPI Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="rounded-md border border-border bg-surface p-3 shadow-xs">
+                <p className="text-[11px] text-muted-foreground font-medium">Records</p>
+                <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">12</p>
+              </div>
+              <div className="rounded-md border border-border bg-surface p-3 shadow-xs">
+                <p className="text-[11px] text-muted-foreground font-medium">Appointments</p>
+                <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">2</p>
+              </div>
+              <div className="rounded-md border border-border bg-surface p-3 shadow-xs">
+                <p className="text-[11px] text-muted-foreground font-medium">Active Rx</p>
+                <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">3</p>
+              </div>
+              <div className="rounded-md border border-border bg-surface p-3 shadow-xs">
+                <p className="text-[11px] text-muted-foreground font-medium">Providers</p>
+                <p className="text-lg font-bold text-secondary tabular-nums mt-0.5">4</p>
+              </div>
+            </div>
+
+            {/* Upcoming Appointment Sample Card */}
+            <div className="rounded-md border border-border bg-surface p-3.5 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Calendar className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                  <span>Upcoming Consultation (Sample)</span>
+                </span>
+                <Badge variant="success" size="sm" dot>
+                  Confirmed
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <div>
+                  <p className="font-medium text-foreground">Dr. Sample Clinician • Cardiology</p>
+                  <p className="text-muted-foreground">City Care Multi-Speciality • Teleconsult</p>
+                </div>
+                <span className="font-mono text-[11px] text-muted-foreground shrink-0">
+                  10:30 AM
                 </span>
               </div>
-              <h3 className="text-base font-bold tracking-tight text-white mt-0.5">
-                ABHA Health ID
-              </h3>
             </div>
-            <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-xs text-white">
-              <QrCode className="h-6 w-6 text-teal-300" />
-            </div>
-          </div>
 
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs text-slate-300 font-medium">Aarav Sharma</p>
-              <p className="font-mono text-sm tracking-wider font-semibold text-teal-200 mt-0.5">
-                91-4523-8891-2309
+            {/* Active Consent Summary */}
+            <div className="rounded-md border border-secondary/30 bg-secondary/[0.06] dark:bg-secondary/10 p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Lock className="h-4 w-4 text-secondary shrink-0" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      Scoped Consent Active (Sample)
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Diagnostic &amp; Rx Access • Expires in 14 days
+                    </p>
+                  </div>
+                </div>
+                <StatusIndicator status="verified" label="Revocable" size="sm" />
+              </div>
+            </div>
+          </m.div>
+        )}
+
+        {/* Tab 2: Records & Prescriptions */}
+        {activeTab === 'records' && (
+          <m.div
+            key="records"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard }}
+            className="space-y-2.5"
+          >
+            <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border shadow-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <FlaskConical className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    Complete Blood Count (Sample Lab)
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    NABL-Aligned Diagnostic Center
+                  </p>
+                </div>
+              </div>
+              <Badge variant="success" size="sm">
+                Published
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border shadow-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+                  <Pill className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    Digital Prescription #RX-SAMPLE-04
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    2 Medications • Pharmacy Ready
+                  </p>
+                </div>
+              </div>
+              <Badge variant="teal" size="sm">
+                Active
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border shadow-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-muted text-foreground flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    OP Consultation Summary (Sample)
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Connected Clinic Network
+                  </p>
+                </div>
+              </div>
+              <Badge variant="neutral" size="sm">
+                Archived
+              </Badge>
+            </div>
+          </m.div>
+        )}
+
+        {/* Tab 3: Consent Status */}
+        {activeTab === 'consent' && (
+          <m.div
+            key="consent"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard }}
+            className="space-y-3"
+          >
+            <div className="rounded-md border border-border bg-surface p-3.5 shadow-xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-secondary" aria-hidden="true" />
+                  <span>Consent Artefact (Illustrative)</span>
+                </span>
+                <Badge variant="success" size="sm" dot>
+                  Granted
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Purpose: Care Management • Scope: Diagnostic Reports &amp; Prescriptions
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">aarav.sharma@abdm</p>
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/70">
+                <span className="inline-flex items-center gap-1">
+                  <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Sample Hospital HIP/HIU</span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-secondary font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Time-Delimited</span>
+                </span>
+              </div>
             </div>
-            <div className="text-right">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                <ShieldCheck className="h-3 w-3" />
-                Verified
-              </span>
-              <p className="text-[10px] text-slate-400 mt-1">DOB: 14/08/1988</p>
-            </div>
-          </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              All sample entries above illustrate the interface layout. Actual records appear only
+              after account sign-in and verified provider linking.
+            </p>
+          </m.div>
+        )}
         </div>
-
-        {/* 2. Longitudinal Health Records Teaser */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground px-1">
-            <span className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              Connected Health Records (EHR)
-            </span>
-            <span className="text-[11px] text-muted-foreground font-normal">
-              2 Linked Hospitals
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-accent/40 border border-border/80 hover:bg-accent/70 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <Building2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">AIIMS New Delhi</p>
-                  <p className="text-[11px] text-muted-foreground">Comprehensive Health Panel</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <Badge variant="outline" className="text-[10px] font-medium">
-                  12 Oct 2026
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl bg-accent/40 border border-border/80 hover:bg-accent/70 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-                  <Pill className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">Fortis Heart Institute</p>
-                  <p className="text-[11px] text-muted-foreground">Cardiology Consultation & Rx</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <Badge variant="outline" className="text-[10px] font-medium">
-                  28 Sep 2026
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Consent Management Indicator */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-500/10 via-blue-500/10 to-transparent border border-teal-500/25">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1 rounded-md bg-teal-500/20 text-teal-600 dark:text-teal-400">
-                <Lock className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Active Consent Artifact</p>
-                <p className="text-[10px] text-muted-foreground">
-                  Dr. Priya Sen • Max Super Speciality
-                </p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-700 bg-teal-100 dark:text-teal-300 dark:bg-teal-900/50 px-2 py-0.5 rounded-full">
-              <CheckCircle2 className="h-3 w-3 text-teal-600 dark:text-teal-400" />
-              Valid for 30 Days
-            </span>
-          </div>
-          <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted-foreground pt-2 border-t border-teal-500/15">
-            <span>Purpose: Diagnostic Care</span>
-            <span className="text-teal-600 dark:text-teal-400 font-medium">Patient Revocable</span>
-          </div>
-        </div>
-      </div>
+      </TiltCard>
     </div>
   );
 }

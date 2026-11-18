@@ -52,6 +52,9 @@ const FORBIDDEN_METADATA_KEYS = new Set([
   'accesstoken',
   'refreshtoken',
   'secret',
+  'privatekey',
+  'encryptionkey',
+  'keymaterial',
   'otp',
   'abhanumber',
   'aadhaar',
@@ -60,17 +63,29 @@ const FORBIDDEN_METADATA_KEYS = new Set([
   'clinicalnotes',
 ]);
 
-function sanitizeAuditMetadata(
-  raw?: Record<string, unknown>
+export function sanitizeAuditMetadata(
+  raw?: Record<string, unknown>,
+  depth = 0
 ): Record<string, unknown> | undefined {
   if (!raw) return undefined;
+  if (depth > 6) return { truncated: true };
   const clean: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(raw)) {
     if (FORBIDDEN_METADATA_KEYS.has(key.toLowerCase())) {
       clean[key] = '[REDACTED]';
       continue;
     }
-    clean[key] = value;
+    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      clean[key] = sanitizeAuditMetadata(value as Record<string, unknown>, depth + 1);
+    } else if (Array.isArray(value)) {
+      clean[key] = value.map((item) =>
+        item && typeof item === 'object' && !Array.isArray(item)
+          ? sanitizeAuditMetadata(item as Record<string, unknown>, depth + 1)
+          : item
+      );
+    } else {
+      clean[key] = value;
+    }
   }
   return clean;
 }

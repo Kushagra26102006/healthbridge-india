@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, m } from 'framer-motion';
 import {
   LayoutDashboard,
   FileText,
@@ -21,9 +22,15 @@ import {
   ShoppingBag,
   Bell,
   Fingerprint,
+  Building2,
+  History,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { modalBackdrop } from '@/lib/motion/variants';
+import { MOTION_DURATION, MOTION_EASE } from '@/lib/motion/tokens';
 import { cn } from '@/lib/utils';
 
 export interface NavItem {
@@ -31,22 +38,32 @@ export interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  section?: 'primary' | 'secondary';
 }
 
 export const PATIENT_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/patient/dashboard', icon: LayoutDashboard },
-  { label: 'Health Records', href: '/patient/records', icon: FileText },
-  { label: 'Appointments', href: '/patient/appointments', icon: Calendar },
-  { label: 'Find Doctors', href: '/patient/doctors', icon: Stethoscope },
-  { label: 'Prescriptions', href: '/patient/prescriptions', icon: Pill },
-  { label: 'Pharmacy Orders', href: '/patient/orders', icon: ShoppingBag },
-  { label: 'Lab Reports', href: '/patient/lab-reports', icon: FlaskConical },
-  { label: 'ABHA Identity', href: '/patient/abha', icon: Fingerprint },
-  { label: 'Consent Management', href: '/patient/consent', icon: ShieldCheck },
-  { label: 'Privacy & Rights', href: '/patient/privacy', icon: ShieldCheck },
-  { label: 'Notifications', href: '/patient/notifications', icon: Bell },
-  { label: 'My Profile', href: '/patient/profile', icon: User },
-  { label: 'Settings', href: '/patient/settings', icon: Settings },
+  // Core 10 Patient Navigation Items
+  { label: 'Overview', href: '/patient/dashboard', icon: LayoutDashboard, section: 'primary' },
+  { label: 'My ABHA Card', href: '/patient/abha', icon: Fingerprint, section: 'primary' },
+  { label: 'Health Records', href: '/patient/records', icon: FileText, section: 'primary' },
+  { label: 'Appointments', href: '/patient/appointments', icon: Calendar, section: 'primary' },
+  { label: 'Prescriptions', href: '/patient/prescriptions', icon: Pill, section: 'primary' },
+  { label: 'Lab Reports', href: '/patient/lab-reports', icon: FlaskConical, section: 'primary' },
+  { label: 'Consent Management', href: '/patient/consent', icon: ShieldCheck, section: 'primary' },
+  {
+    label: 'Connected Hospitals',
+    href: '/patient/abdm/linked-records',
+    icon: Building2,
+    section: 'primary',
+  },
+  { label: 'Access History', href: '/patient/data-sharing', icon: History, section: 'primary' },
+  { label: 'Profile & Settings', href: '/patient/settings', icon: Settings, section: 'primary' },
+  // Preserved Quick Shortcuts
+  { label: 'Activity Analytics', href: '/patient/analytics', icon: BarChart3, section: 'secondary' },
+  { label: 'Find Doctors', href: '/patient/doctors', icon: Stethoscope, section: 'secondary' },
+  { label: 'Pharmacy Orders', href: '/patient/orders', icon: ShoppingBag, section: 'secondary' },
+  { label: 'Notifications', href: '/patient/notifications', icon: Bell, section: 'secondary' },
+  { label: 'My Profile', href: '/patient/profile', icon: User, section: 'secondary' },
 ];
 
 export interface PatientSidebarProps {
@@ -74,141 +91,155 @@ export function PatientSidebar({
     if (href === '/patient/lab-reports' && pathname.startsWith('/patient/lab-orders')) {
       return true;
     }
+    if (href === '/patient/abdm/linked-records' && pathname.startsWith('/patient/abdm')) {
+      return true;
+    }
+    if (href === '/patient/data-sharing' && pathname.startsWith('/patient/privacy')) {
+      return true;
+    }
     return pathname.startsWith(href);
+  };
+
+  const primaryItems = PATIENT_NAV_ITEMS.filter((i) => i.section !== 'secondary');
+  const secondaryItems = PATIENT_NAV_ITEMS.filter((i) => i.section === 'secondary');
+
+  const renderNavLink = (item: NavItem) => {
+    const active = isLinkActive(item.href);
+    const Icon = item.icon;
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => {
+          if (onCloseMobile) onCloseMobile();
+        }}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 relative focus-ring',
+          active
+            ? 'bg-primary/10 text-primary font-semibold'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/75',
+          collapsed && 'justify-center px-2'
+        )}
+        title={collapsed ? item.label : undefined}
+      >
+        {active && (
+          <span
+            aria-hidden="true"
+            className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-pill bg-primary"
+          />
+        )}
+        <Icon
+          className={cn(
+            'h-[18px] w-[18px] shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
+            active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+          )}
+        />
+        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && item.badge && (
+          <Badge variant="info" size="sm" className="ml-auto">
+            {item.badge}
+          </Badge>
+        )}
+      </Link>
+    );
   };
 
   const navContent = (
     <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border select-none">
       {/* Brand Header */}
-      <div className="h-16 md:h-20 flex items-center justify-between px-4 sm:px-5 border-b border-border/80">
+      <div className="h-16 md:h-[72px] flex items-center justify-between px-4 border-b border-border/80 shrink-0">
         <Link
           href="/patient/dashboard"
-          className="flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl p-1"
+          className="flex items-center gap-2.5 group focus-ring rounded-md p-1 min-w-0"
           aria-label="HealthBridge Patient Portal"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-700 via-teal-600 to-cyan-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-teal-500/10 group-hover:shadow-glow transition-all">
-            <HeartPulse className="h-5 w-5" />
+          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand-blue via-brand-teal to-brand-cyan text-white flex items-center justify-center shrink-0 shadow-xs group-hover:shadow-glow transition-shadow">
+            <HeartPulse className="h-5 w-5" aria-hidden="true" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col leading-tight overflow-hidden transition-all duration-200">
-              <span className="font-extrabold text-base tracking-tight text-foreground truncate">
-                Health<span className="text-teal-600 dark:text-teal-400">Bridge</span>
+            <div className="flex flex-col leading-none min-w-0">
+              <span className="font-bold text-base tracking-tight text-foreground truncate">
+                Health<span className="text-secondary">Bridge</span>
               </span>
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+              <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
                 Patient Portal
               </span>
             </div>
           )}
         </Link>
 
-        {/* Mobile Close Button */}
         {mobileOpen && (
           <button
             type="button"
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+            className="lg:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus-ring"
             aria-label="Close navigation drawer"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
 
-        {/* Desktop Collapse Toggle */}
-        {onToggleCollapse && (
+        {onToggleCollapse && !mobileOpen && (
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden lg:flex items-center justify-center h-7 w-7 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="hidden lg:inline-flex items-center justify-center h-7 w-7 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring shrink-0"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            )}
           </button>
         )}
       </div>
 
       {/* Navigation Links */}
       <nav
-        className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto"
+        className="flex-1 px-3 py-4 space-y-5 overflow-y-auto"
         aria-label="Patient Dashboard Navigation"
       >
-        <div className="px-2 mb-2">
-          {!collapsed ? (
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Main Menu
-            </span>
-          ) : (
-            <div className="h-2" />
+        <div className="space-y-1">
+          {!collapsed && (
+            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Care Workspace
+            </p>
           )}
+          {primaryItems.map(renderNavLink)}
         </div>
 
-        {PATIENT_NAV_ITEMS.map((item) => {
-          const active = isLinkActive(item.href);
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => {
-                if (onCloseMobile) onCloseMobile();
-              }}
-              aria-current={active ? 'page' : undefined}
-              className={cn(
-                'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                active
-                  ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 font-semibold'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
-                collapsed && 'justify-center px-2'
-              )}
-              title={collapsed ? item.label : undefined}
-            >
-              {active && (
-                <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-teal-600 dark:bg-teal-400" />
-              )}
-              <Icon
-                className={cn(
-                  'h-5 w-5 shrink-0 transition-colors',
-                  active
-                    ? 'text-teal-600 dark:text-teal-400'
-                    : 'text-muted-foreground group-hover:text-foreground'
-                )}
-              />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-              {!collapsed && item.badge && (
-                <Badge variant="secondary" className="ml-auto text-[10px] py-0 px-1.5">
-                  {item.badge}
-                </Badge>
-              )}
-            </Link>
-          );
-        })}
+        <div className="space-y-1 pt-3 border-t border-border/70">
+          {!collapsed && (
+            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Care Services
+            </p>
+          )}
+          {secondaryItems.map(renderNavLink)}
+        </div>
       </nav>
 
       {/* User Session Footer */}
-      <div className="p-3 border-t border-border/80 space-y-2 bg-muted/30">
+      <div className="p-3 border-t border-border/80 space-y-2 bg-muted/25 shrink-0">
         {!collapsed ? (
-          <div className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border/60">
-            <div className="w-9 h-9 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-              {user?.name?.charAt(0).toUpperCase() || 'P'}
-            </div>
+          <Link
+            href="/patient/profile"
+            onClick={() => onCloseMobile?.()}
+            className="flex items-center gap-2.5 p-2 rounded-md bg-surface border border-border/70 hover:border-primary/30 transition-colors focus-ring"
+          >
+            <Avatar name={user?.name || 'Patient'} size="sm" status="online" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-foreground truncate">
+              <p className="text-xs font-semibold text-foreground truncate">
                 {user?.name || 'Patient'}
               </p>
-              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
             </div>
-            <Badge variant="outline" className="text-[9px] px-1 py-0 uppercase">
-              Patient
-            </Badge>
-          </div>
+          </Link>
         ) : (
           <div className="flex justify-center py-1">
-            <div
-              className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm"
-              title={user?.name || 'Patient'}
-            >
-              {user?.name?.charAt(0).toUpperCase() || 'P'}
-            </div>
+            <Avatar name={user?.name || 'Patient'} size="sm" status="online" />
           </div>
         )}
 
@@ -218,11 +249,11 @@ export function PatientSidebar({
           disabled={isLoading}
           aria-label="Sign out from patient account"
           className={cn(
-            'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-semibold text-error hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors focus-ring disabled:opacity-50',
             collapsed && 'justify-center px-2'
           )}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -231,37 +262,52 @@ export function PatientSidebar({
 
   return (
     <>
-      {/* 1. Desktop Fixed/Collapsible Sidebar */}
+      {/* Desktop Fixed/Collapsible Sidebar */}
       <aside
         className={cn(
-          'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-200 z-30',
-          collapsed ? 'w-20' : 'w-64 xl:w-72',
+          'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-[width] duration-200 ease-out z-30',
+          collapsed ? 'w-[76px]' : 'w-64 xl:w-72',
           className
         )}
       >
         {navContent}
       </aside>
 
-      {/* 2. Mobile Drawer & Backdrop */}
-      {mobileOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Mobile Navigation Drawer"
-          className="lg:hidden fixed inset-0 z-50 flex"
-        >
-          {/* Backdrop */}
+      {/* Mobile Animated Drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in-0 duration-200"
-            onClick={onCloseMobile}
-            aria-hidden="true"
-          />
-          {/* Drawer Panel */}
-          <div className="relative w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200 z-10">
-            {navContent}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Patient Navigation Drawer"
+            className="lg:hidden fixed inset-0 z-50 flex"
+          >
+            <m.div
+              variants={modalBackdrop}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 bg-slate-950/55 backdrop-blur-xs"
+              onClick={onCloseMobile}
+              aria-hidden="true"
+            />
+            <m.div
+              initial={{ x: '-100%' }}
+              animate={{
+                x: 0,
+                transition: { duration: MOTION_DURATION.normal, ease: MOTION_EASE.standard },
+              }}
+              exit={{
+                x: '-100%',
+                transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.exit },
+              }}
+              className="relative w-72 max-w-[85vw] h-full shadow-dialog z-10"
+            >
+              {navContent}
+            </m.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }

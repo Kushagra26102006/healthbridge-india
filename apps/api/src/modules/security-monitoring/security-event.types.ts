@@ -249,6 +249,10 @@ export const securityListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   severity: z.enum(SECURITY_SEVERITIES).optional(),
   category: z.enum(SECURITY_EVENT_CATEGORIES).optional(),
+  actorRole: z
+    .enum(['PATIENT', 'DOCTOR', 'PHARMACY', 'LABORATORY', 'ADMIN', 'SYSTEM', 'ANONYMOUS'])
+    .optional(),
+  outcome: z.enum(['SUCCESS', 'FAILURE', 'BLOCKED']).optional(),
   status: z.string().trim().max(40).optional(),
   search: z.string().trim().max(100).optional(),
   from: z.string().trim().optional(),

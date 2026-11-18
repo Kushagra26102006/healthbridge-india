@@ -13,8 +13,7 @@ import {
   Laptop,
   Bell,
   ArrowRight,
-  AlertTriangle,
-  BadgeCheck,
+  Sun,
 } from 'lucide-react';
 import {
   usePharmacyProfile,
@@ -24,7 +23,12 @@ import {
   usePharmacySessions,
 } from '@/features/pharmacy/hooks/use-pharmacy';
 import { PharmacySettingsNav } from '@/components/pharmacy/settings/PharmacySettingsNav';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusIndicator } from '@/components/ui/status-indicator';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { InteractionPreferencesControl } from '@/components/motion';
+import { HealthcareStatusBadge } from '@/components/healthcare';
 
 export default function PharmacySettingsPage() {
   const { data: profile } = usePharmacyProfile();
@@ -34,271 +38,261 @@ export default function PharmacySettingsPage() {
   const { data: sessions } = usePharmacySessions();
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sky-600 mb-1">
-          <Settings className="w-3.5 h-3.5" />
-          <span>Configuration, Operations & IAM</span>
+        <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-secondary mb-1">
+          <Settings className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Configuration, Operations &amp; Security</span>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Pharmacy Portal Settings
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Manage your establishment details, statutory licenses, operating schedules, dispensary staff, and IAM security.
+        <h1 className="text-page-heading">Pharmacy Portal Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage establishment details, statutory licenses, operating hours, dispensary staff,
+          display theme, and account security.
         </p>
       </div>
 
-      {/* Sub-Navigation */}
       <PharmacySettingsNav />
 
-      {/* Overview Cards Grid */}
+      {/* Settings Cards Grid (100% Semantic Light & Dark Mode) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* 1. General Info */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3">
-              <Building2 className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-primary/12 text-primary flex items-center justify-center mb-3">
+              <Building2 className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">General Information</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Establishment name, store branding, contact phone, dispensary email, and location.
+            <h2 className="text-card-heading">General Information</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Establishment name, store branding, contact phone, dispensary email, and address.
             </p>
-            <div className="mt-3 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              <span className="font-medium text-slate-900">{profile?.pharmacyName || 'HealthBridge Pharmacy'}</span>
-              <p className="text-[11px] text-slate-500 truncate">{profile?.email || 'N/A'}</p>
+            <div className="mt-3 text-xs bg-muted/40 p-2.5 rounded-md border border-border/70">
+              <span className="font-semibold text-foreground block truncate">
+                {profile?.pharmacyName || 'HealthBridge Pharmacy'}
+              </span>
+              <span className="text-muted-foreground truncate block">{profile?.email || 'N/A'}</span>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/general"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:text-sky-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
               <span>Manage General Info</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 2. Business & License */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-              <FileText className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-secondary/12 text-secondary flex items-center justify-center mb-3">
+              <FileText className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Business & Licensing</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              CDSCO / State Drug Controller license, GSTIN number, and statutory documents.
+            <h2 className="text-card-heading">Business &amp; Licensing</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Drug license credentials, GSTIN registration, and statutory verification documents.
             </p>
-            <div className="mt-3 flex items-center gap-2">
-              <Badge
-                className={
-                  profile?.verificationStatus === 'VERIFIED'
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                    : 'bg-amber-100 text-amber-800 border-amber-200'
-                }
-              >
-                {profile?.verificationStatus === 'VERIFIED' ? (
-                  <BadgeCheck className="w-3 h-3 mr-1" />
-                ) : (
-                  <AlertTriangle className="w-3 h-3 mr-1" />
-                )}
-                {profile?.verificationStatus || 'PENDING'}
-              </Badge>
-              <span className="text-xs font-mono text-slate-600 truncate">
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <HealthcareStatusBadge status={profile?.verificationStatus || 'PENDING'} size="sm" />
+              <span className="text-xs font-mono text-muted-foreground truncate">
                 {profile?.pharmacyLicenseNumber || 'DL-PENDING'}
               </span>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/business"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary hover:underline"
             >
               <span>View Statutory Credentials</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 3. Operating Hours */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
-              <Clock className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-indigo-500/12 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
+              <Clock className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Operating Hours</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Weekly schedule, staff break intervals, temporary closures, and timezone settings.
+            <h2 className="text-card-heading">Operating Hours</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Weekly dispensary schedule, break intervals, closures, and timezone configuration.
             </p>
-            <div className="mt-3 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  operatingHours?.isOpenNow
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-rose-100 text-rose-800'
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    operatingHours?.isOpenNow ? 'bg-emerald-600' : 'bg-rose-600'
-                  }`}
-                />
-                {operatingHours?.isOpenNow ? 'Open Now' : 'Closed'}
-              </span>
-              <span className="text-[11px] text-slate-500">
+            <div className="mt-3 flex items-center gap-2.5 flex-wrap">
+              <StatusIndicator
+                status={operatingHours?.isOpenNow ? 'online' : 'offline'}
+                label={operatingHours?.isOpenNow ? 'Open Now' : 'Closed'}
+                size="sm"
+              />
+              <span className="text-xs text-muted-foreground">
                 {operatingHours?.timezone || 'Asia/Kolkata'}
               </span>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/operating-hours"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
               <span>Configure Schedule</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 4. Services */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-3">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-cyan-500/12 text-cyan-700 dark:text-cyan-400 flex items-center justify-center mb-3">
+              <Sparkles className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Services & Capabilities</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Prescription dispensing, in-store pickup, chronic refills, and delivery parameters.
+            <h2 className="text-card-heading">Services &amp; Fulfillment</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Prescription dispensing, in-store pickup, chronic refills, and delivery policies.
             </p>
-            <div className="mt-3 text-xs text-slate-600 flex flex-wrap gap-1.5">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {services?.dispensingEnabled && (
-                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[11px]">
-                  Dispensing Active
-                </span>
+                <Badge variant="neutral" size="sm">
+                  Dispensing
+                </Badge>
               )}
               {services?.inStorePickupEnabled && (
-                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[11px]">
+                <Badge variant="neutral" size="sm">
                   Pickup Ready
-                </span>
+                </Badge>
               )}
               {services?.chronicRefillProgramEnabled && (
-                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[11px]">
+                <Badge variant="neutral" size="sm">
                   Chronic Refills
-                </span>
+                </Badge>
               )}
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/services"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
               <span>Manage Services</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 5. Staff Management */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
-              <Users className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-400 flex items-center justify-center mb-3">
+              <Users className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Staff Management</h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <h2 className="text-card-heading">Staff Management</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Dispensary staff invitations, pharmacist credentials, and role-based permissions.
             </p>
-            <div className="mt-3 text-xs text-slate-700">
-              <span className="font-semibold text-slate-900">{staffData?.total || 0}</span> staff members registered
+            <div className="mt-3 text-xs text-muted-foreground tabular-nums">
+              <strong className="text-foreground">{staffData?.total || 0}</strong> registered staff
+              members
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/staff"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
-              <span>Manage Dispensary Staff</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Manage Staff</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 6. Account Security */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-red-500/12 text-error flex items-center justify-center mb-3">
+              <ShieldCheck className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Account Security</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Change portal password, enforce strong credential policies, and safeguard IAM tokens.
+            <h2 className="text-card-heading">Account Security</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Update portal credentials, enforce password complexity, and protect session tokens.
             </p>
-            <div className="mt-3 text-xs text-slate-500">
-              Encrypted with Bcrypt + SHA-256
-            </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/security"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
-              <span>Change Password & Security</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Security Settings</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 7. Active Sessions */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mb-3">
-              <Laptop className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-secondary/12 text-secondary flex items-center justify-center mb-3">
+              <Laptop className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Active Sessions</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Review connected devices, terminate unauthorized browsers, and manage single sign-on sessions.
+            <h2 className="text-card-heading">Active Sessions</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Inspect connected pharmacy terminals and revoke unrecognized sessions.
             </p>
-            <div className="mt-3 text-xs text-slate-700">
-              <span className="font-semibold text-slate-900">{sessions?.length || 1}</span> active session(s)
+            <div className="mt-3 text-xs text-muted-foreground tabular-nums">
+              <strong className="text-foreground">{sessions?.length || 1}</strong> active session(s)
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/sessions"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
-              <span>Inspect Active Sessions</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Inspect Sessions</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        </Card>
 
-        {/* 8. Notification Preferences */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <Card className="p-5 flex flex-col justify-between hover-lift">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center mb-3">
-              <Bell className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-md bg-primary/12 text-primary flex items-center justify-center mb-3">
+              <Bell className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Notifications & Alerts</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Configure inventory alerts, prescription events, order notifications, and delivery channels.
+            <h2 className="text-card-heading">Notifications &amp; Alerts</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Configure low-stock, expiry, prescription, and order notification preferences.
             </p>
-            <div className="mt-3 text-xs text-slate-500">
-              Real-time SSE + In-App dispatch
-            </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-3.5 border-t border-border/70">
             <Link
               href="/pharmacy/settings/notifications"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-600 hover:text-cyan-700"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
               <span>Notification Preferences</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
+        </Card>
+
+        {/* Display Theme */}
+        <Card className="hover-lift">
+          <CardHeader className="pb-3 border-b border-border/70">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-md bg-amber-500/12 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <Sun className="h-4 w-4" aria-hidden="true" />
+              </div>
+              <CardTitle className="text-sm font-semibold">Workspace Theme</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Switch between Light, Dark, or System display modes across all pharmacy tools.
+            </p>
+            <div className="flex items-center justify-between p-3 rounded-md bg-muted/40 border border-border/70">
+              <span className="font-medium text-foreground">Display Mode</span>
+              <ThemeToggle />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="md:col-span-2 lg:col-span-3">
+          <InteractionPreferencesControl />
         </div>
       </div>
     </div>

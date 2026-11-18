@@ -581,6 +581,535 @@ export class AbdmFhirMapperService {
     };
   }
 
+  /**
+   * Maps an internal clinical Encounter to NRCeS ABDM FHIR R4 Encounter resource.
+   */
+  mapEncounter(input: {
+    id: string;
+    patientId: string;
+    practitionerId?: string;
+    facilityId?: string;
+    encounterType?: string;
+    status: string;
+    startTime?: string;
+    endTime?: string;
+    chiefComplaint?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const unmappedFields: string[] = [];
+    const statusMap: Record<string, string> = {
+      PLANNED: 'planned',
+      IN_PROGRESS: 'in-progress',
+      COMPLETED: 'finished',
+      CANCELLED: 'cancelled',
+    };
+    const classMap: Record<string, { code: string; display: string }> = {
+      AMBULATORY: { code: 'AMB', display: 'ambulatory' },
+      EMERGENCY: { code: 'EMER', display: 'emergency' },
+      INPATIENT: { code: 'IMP', display: 'inpatient encounter' },
+      HOME: { code: 'HH', display: 'home health' },
+      VIRTUAL: { code: 'VR', display: 'virtual' },
+    };
+    const mappedClass =
+      (input.encounterType && classMap[input.encounterType.toUpperCase()]) || {
+        code: 'AMB',
+        display: 'ambulatory',
+      };
+
+    const resource: Record<string, unknown> = {
+      resourceType: 'Encounter',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/Encounter'],
+      },
+      status: statusMap[input.status.toUpperCase()] || 'finished',
+      class: {
+        system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+        code: mappedClass.code,
+        display: mappedClass.display,
+      },
+      subject: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+      ...(input.practitionerId
+        ? {
+            participant: [
+              { individual: { reference: `Practitioner/${this.sanitizeId(input.practitionerId)}` } },
+            ],
+          }
+        : {}),
+      ...(input.facilityId
+        ? { serviceProvider: { reference: `Organization/${this.sanitizeId(input.facilityId)}` } }
+        : {}),
+      ...(input.startTime || input.endTime
+        ? {
+            period: {
+              ...(input.startTime ? { start: input.startTime } : {}),
+              ...(input.endTime ? { end: input.endTime } : {}),
+            },
+          }
+        : {}),
+      ...(input.chiefComplaint ? { reasonCode: [{ text: input.chiefComplaint }] } : {}),
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    return {
+      sourceEntityType: 'Encounter',
+      sourceEntityId: input.id,
+      targetResourceType: 'Encounter',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/Encounter',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : validation.warnings.length > 0 || unmappedFields.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: validation.warnings,
+      unmappedFields,
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
+  /**
+   * Maps an internal Appointment to NRCeS ABDM FHIR R4 Appointment resource.
+   */
+  mapAppointment(input: {
+    id: string;
+    patientId: string;
+    doctorId: string;
+    status: string;
+    start?: string;
+    end?: string;
+    reason?: string;
+    consultationType?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const unmappedFields: string[] = [];
+    if (input.consultationType) {
+      unmappedFields.push('consultationType (preserved via Appointment.description)');
+    }
+    const statusMap: Record<string, string> = {
+      REQUESTED: 'proposed',
+      CONFIRMED: 'booked',
+      COMPLETED: 'fulfilled',
+      CANCELLED: 'cancelled',
+      NO_SHOW: 'noshow',
+    };
+
+    const resource: Record<string, unknown> = {
+      resourceType: 'Appointment',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/Appointment'],
+      },
+      status: statusMap[input.status.toUpperCase()] || 'booked',
+      ...(input.start ? { start: input.start } : {}),
+      ...(input.end ? { end: input.end } : {}),
+      ...(input.reason || input.consultationType
+        ? { description: [input.reason, input.consultationType].filter(Boolean).join(' — ') }
+        : {}),
+      participant: [
+        {
+          actor: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+          status: 'accepted',
+        },
+        {
+          actor: { reference: `Practitioner/${this.sanitizeId(input.doctorId)}` },
+          status: 'accepted',
+        },
+      ],
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    return {
+      sourceEntityType: 'Appointment',
+      sourceEntityId: input.id,
+      targetResourceType: 'Appointment',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/Appointment',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : validation.warnings.length > 0 || unmappedFields.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: validation.warnings,
+      unmappedFields,
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
+  /**
+   * Maps a clinical diagnosis/condition to NRCeS ABDM FHIR R4 Condition resource.
+   */
+  mapCondition(input: {
+    id: string;
+    patientId: string;
+    encounterId?: string;
+    codeText: string;
+    icd10Code?: string;
+    snomedCode?: string;
+    clinicalStatus?: 'active' | 'recurrence' | 'relapse' | 'inactive' | 'remission' | 'resolved';
+    recordedDate?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const warnings: FhirValidationIssueDto[] = [];
+    const codings: Array<Record<string, string>> = [];
+
+    if (input.snomedCode) {
+      codings.push({
+        system: 'http://snomed.info/sct',
+        code: input.snomedCode,
+        display: input.codeText,
+      });
+    }
+    if (input.icd10Code) {
+      codings.push({
+        system: 'http://hl7.org/fhir/sid/icd-10',
+        code: input.icd10Code,
+        display: input.codeText,
+      });
+    }
+    if (codings.length === 0) {
+      warnings.push({
+        severity: 'WARNING',
+        code: 'UNSTRUCTURED_CONDITION_TEXT',
+        path: 'Condition.code',
+        message: 'Condition mapped as free text only; attach SNOMED-CT or ICD-10 code for full ABDM conformance.',
+      });
+    }
+
+    const resource: Record<string, unknown> = {
+      resourceType: 'Condition',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition'],
+      },
+      clinicalStatus: {
+        coding: [
+          {
+            system: 'http://terminology.hl7.org/CodeSystem/condition-clinical',
+            code: input.clinicalStatus || 'active',
+          },
+        ],
+      },
+      code: {
+        ...(codings.length > 0 ? { coding: codings } : {}),
+        text: input.codeText,
+      },
+      subject: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+      ...(input.encounterId
+        ? { encounter: { reference: `Encounter/${this.sanitizeId(input.encounterId)}` } }
+        : {}),
+      ...(input.recordedDate ? { recordedDate: input.recordedDate } : {}),
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    const allWarnings = [...warnings, ...validation.warnings];
+    return {
+      sourceEntityType: 'ClinicalCondition',
+      sourceEntityId: input.id,
+      targetResourceType: 'Condition',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : allWarnings.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: allWarnings,
+      unmappedFields: [],
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
+  /**
+   * Maps a patient allergy entry to NRCeS ABDM FHIR R4 AllergyIntolerance resource.
+   */
+  mapAllergyIntolerance(input: {
+    id: string;
+    patientId: string;
+    substanceName: string;
+    snomedCode?: string;
+    criticality?: 'low' | 'high' | 'unable-to-assess';
+    clinicalStatus?: 'active' | 'inactive' | 'resolved';
+    reactionDescription?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const warnings: FhirValidationIssueDto[] = [];
+    if (!input.snomedCode) {
+      warnings.push({
+        severity: 'WARNING',
+        code: 'UNSTRUCTURED_ALLERGY_TEXT',
+        path: 'AllergyIntolerance.code',
+        message: 'Allergy mapped as free text; attach SNOMED-CT substance code before live HIE-CM exchange.',
+      });
+    }
+
+    const resource: Record<string, unknown> = {
+      resourceType: 'AllergyIntolerance',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/AllergyIntolerance'],
+      },
+      clinicalStatus: {
+        coding: [
+          {
+            system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical',
+            code: input.clinicalStatus || 'active',
+          },
+        ],
+      },
+      code: {
+        ...(input.snomedCode
+          ? {
+              coding: [
+                {
+                  system: 'http://snomed.info/sct',
+                  code: input.snomedCode,
+                  display: input.substanceName,
+                },
+              ],
+            }
+          : {}),
+        text: input.substanceName,
+      },
+      patient: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+      ...(input.criticality ? { criticality: input.criticality } : {}),
+      ...(input.reactionDescription
+        ? { reaction: [{ manifestation: [{ text: input.reactionDescription }] }] }
+        : {}),
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    const allWarnings = [...warnings, ...validation.warnings];
+    return {
+      sourceEntityType: 'PatientAllergy',
+      sourceEntityId: input.id,
+      targetResourceType: 'AllergyIntolerance',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/AllergyIntolerance',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : allWarnings.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: allWarnings,
+      unmappedFields: [],
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
+  /**
+   * Maps a prescribed medication entry to NRCeS ABDM FHIR R4 MedicationRequest resource.
+   */
+  mapMedicationRequest(input: {
+    id: string;
+    patientId: string;
+    practitionerId?: string;
+    medicationName: string;
+    snomedCode?: string;
+    status: string;
+    dosageInstruction?: string;
+    authoredOn?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const statusMap: Record<string, string> = {
+      DRAFT: 'draft',
+      ACTIVE: 'active',
+      COMPLETED: 'completed',
+      DISPENSED: 'completed',
+      CANCELLED: 'cancelled',
+      DISCONTINUED: 'stopped',
+      EXPIRED: 'stopped',
+    };
+
+    const resource: Record<string, unknown> = {
+      resourceType: 'MedicationRequest',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest'],
+      },
+      status: statusMap[input.status.toUpperCase()] || 'active',
+      intent: 'order',
+      medicationCodeableConcept: {
+        ...(input.snomedCode
+          ? {
+              coding: [
+                {
+                  system: 'http://snomed.info/sct',
+                  code: input.snomedCode,
+                  display: input.medicationName,
+                },
+              ],
+            }
+          : {}),
+        text: input.medicationName,
+      },
+      subject: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+      ...(input.practitionerId
+        ? { requester: { reference: `Practitioner/${this.sanitizeId(input.practitionerId)}` } }
+        : {}),
+      ...(input.authoredOn ? { authoredOn: input.authoredOn } : {}),
+      ...(input.dosageInstruction ? { dosageInstruction: [{ text: input.dosageInstruction }] } : {}),
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    return {
+      sourceEntityType: 'Prescription',
+      sourceEntityId: input.id,
+      targetResourceType: 'MedicationRequest',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : validation.warnings.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: validation.warnings,
+      unmappedFields: [],
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
+  /**
+   * Maps a patient's active/reported medication to NRCeS ABDM FHIR R4 MedicationStatement resource.
+   */
+  mapMedicationStatement(input: {
+    id: string;
+    patientId: string;
+    medicationName: string;
+    snomedCode?: string;
+    status?: 'active' | 'completed' | 'stopped' | 'unknown';
+    effectiveDateTime?: string;
+    dosageText?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const resource: Record<string, unknown> = {
+      resourceType: 'MedicationStatement',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationStatement'],
+      },
+      status: input.status || 'active',
+      medicationCodeableConcept: {
+        ...(input.snomedCode
+          ? {
+              coding: [
+                {
+                  system: 'http://snomed.info/sct',
+                  code: input.snomedCode,
+                  display: input.medicationName,
+                },
+              ],
+            }
+          : {}),
+        text: input.medicationName,
+      },
+      subject: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+      ...(input.effectiveDateTime ? { effectiveDateTime: input.effectiveDateTime } : {}),
+      ...(input.dosageText ? { dosage: [{ text: input.dosageText }] } : {}),
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    return {
+      sourceEntityType: 'MedicationStatement',
+      sourceEntityId: input.id,
+      targetResourceType: 'MedicationStatement',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationStatement',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : validation.warnings.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: validation.warnings,
+      unmappedFields: [],
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
+  /**
+   * Maps an internal MedicalRecord metadata document to NRCeS ABDM FHIR R4 DocumentReference resource.
+   */
+  mapDocumentReference(input: {
+    id: string;
+    patientId: string;
+    title: string;
+    mimeType?: string;
+    fileName?: string;
+    fileSize?: number;
+    recordDate?: string;
+    loincCode?: string;
+    loincDisplay?: string;
+  }): FhirMappingResultDto {
+    const timestamp = new Date().toISOString();
+    const resource: Record<string, unknown> = {
+      resourceType: 'DocumentReference',
+      id: this.sanitizeId(input.id),
+      meta: {
+        profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/DocumentReference'],
+      },
+      status: 'current',
+      type: {
+        coding: [
+          {
+            system: 'http://loinc.org',
+            code: input.loincCode || '34133-9',
+            display: input.loincDisplay || 'Summary of Episode Note',
+          },
+        ],
+        text: input.title,
+      },
+      subject: { reference: `Patient/${this.sanitizeId(input.patientId)}` },
+      ...(input.recordDate ? { date: input.recordDate } : {}),
+      content: [
+        {
+          attachment: {
+            contentType: input.mimeType || 'application/pdf',
+            title: input.fileName || input.title,
+            ...(input.fileSize !== undefined ? { size: input.fileSize } : {}),
+          },
+        },
+      ],
+    };
+
+    const validation = fhirR4Validator.validateResource(resource, { strictAbdmProfile: true });
+    return {
+      sourceEntityType: 'MedicalRecord',
+      sourceEntityId: input.id,
+      targetResourceType: 'DocumentReference',
+      targetProfileUrl: 'https://nrces.in/ndhm/fhir/r4/StructureDefinition/DocumentReference',
+      mappingStatus:
+        validation.errors.length > 0
+          ? 'FAILED'
+          : validation.warnings.length > 0
+          ? 'MAPPED_WITH_WARNINGS'
+          : 'MAPPED',
+      validationErrors: validation.errors,
+      warnings: validation.warnings,
+      unmappedFields: [],
+      mappingVersion: ABDM_FHIR_MAPPING_VERSION,
+      timestamp,
+      resource: validation.errors.length === 0 ? resource : undefined,
+    };
+  }
+
   private sanitizeId(raw: string): string {
     const cleaned = String(raw || 'res')
       .replace(/[^A-Za-z0-9\-.]/g, '-')

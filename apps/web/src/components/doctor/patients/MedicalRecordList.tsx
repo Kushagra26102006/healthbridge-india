@@ -12,33 +12,55 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  ExternalLink,
+  Eye,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ErrorState } from '@/components/ui/error-state';
 import { PatientEmptyState } from './PatientEmptyState';
+import { SecureDocumentViewerModal } from '@/components/documents/SecureDocumentViewer';
 import { useDoctorPatientRecords } from '@/features/doctor/hooks/use-doctor';
-import type { PatientRecordFilterQueryDto } from '@healthbridge/shared-types';
+import { recordsApi } from '@/features/records/api/records-api';
+import {
+  DOCUMENT_CATEGORIES,
+  getRecordCategoryLabel,
+} from '@/features/records/lib/document-helpers';
+import type {
+  MedicalRecordType,
+  PatientRecordFilterQueryDto,
+} from '@healthbridge/shared-types';
 
 interface MedicalRecordListProps {
   patientId: string;
 }
 
-const RECORD_TYPES = [
-  { id: 'ALL', label: 'All Records' },
-  { id: 'OP_CONSULTATION', label: 'Consultations' },
-  { id: 'DISCHARGE_SUMMARY', label: 'Discharge Summaries' },
-  { id: 'DIAGNOSTIC_REPORT', label: 'Diagnostic Imaging' },
-  { id: 'PRESCRIPTION', label: 'Prescriptions' },
-  { id: 'LAB_REPORT', label: 'Lab Reports' },
-  { id: 'IMMUNIZATION_RECORD', label: 'Vaccination' },
+const RECORD_TYPES: Array<{ id: string; label: string }> = [
+  { id: 'ALL', label: 'All Documents' },
+  ...DOCUMENT_CATEGORIES.map((c) => ({ id: c.value, label: c.label })),
 ];
 
 export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId }) => {
   const [selectedType, setSelectedType] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{
+    id: string;
+    title: string;
+    recordType: MedicalRecordType;
+    recordDate: string;
+    createdAt: string;
+    fileName?: string;
+    mimeType?: string;
+    fileSize?: number;
+    doctorName?: string;
+    facilityName?: string;
+    verificationStatus?: 'VERIFIED' | 'PENDING' | 'SELF_SUBMITTED';
+    source: 'MANUAL_ENTRY' | 'ABDM_INGESTION' | 'EHR_SYNC';
+  } | null>(null);
   const limit = 10;
 
   const query: PatientRecordFilterQueryDto = {
@@ -63,22 +85,60 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
     }
   };
 
+  const handleAuthorizedDownload = async (recordId: string, fileName?: string) => {
+    setDownloadingId(recordId);
+    setDownloadError(null);
+    try {
+      await recordsApi.downloadRecord(recordId, fileName);
+    } catch (err: unknown) {
+      setDownloadError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to download document. Please verify active patient consent.'
+      );
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Consent-Scoped Notice */}
+      <div className="px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2 text-xs text-muted-foreground">
+        <ShieldCheck className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+        <span>
+          Displaying consent-authorized medical documents only. Every preview and download is
+          verified server-side and recorded in the audit log.
+        </span>
+      </div>
+
+      {downloadError && (
+        <div
+          role="alert"
+          className="px-4 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-xs text-error"
+        >
+          {downloadError}
+        </div>
+      )}
+
       {/* Search & Category Filter Bar */}
       <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
-            <Search className="h-4 w-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search
+              className="h-4 w-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+              aria-hidden="true"
+            />
             <input
-              type="text"
+              type="search"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
+              aria-label="Search patient medical documents"
               placeholder="Search documents by title, doctor, or facility..."
-              className="w-full bg-muted/30 text-xs rounded-xl pl-10 pr-4 py-2 border border-input text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full h-10 sm:h-9 bg-muted/30 text-base sm:text-xs rounded-xl pl-10 pr-4 border border-input text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
 
@@ -86,28 +146,29 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
             onClick={() => refetch()}
             variant="outline"
             size="sm"
-            className="text-xs gap-1.5 h-8 shrink-0"
+            className="text-xs gap-1.5 h-9 shrink-0"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
             Refresh
           </Button>
         </div>
 
         {/* Record Type Category Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-border/50">
+        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-border/50 pb-1">
           {RECORD_TYPES.map((t) => {
             const isActive = selectedType === t.id;
             return (
               <button
                 key={t.id}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => {
                   setSelectedType(t.id);
                   setPage(1);
                 }}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all focus-ring ${
                   isActive
-                    ? 'bg-teal-600 text-white shadow-xs'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
                 }`}
               >
@@ -120,17 +181,19 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
 
       {/* Document Roster */}
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-3" aria-busy="true">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-muted/40 animate-pulse border border-border/40" />
+            <div
+              key={i}
+              className="h-24 rounded-2xl bg-muted/40 animate-pulse border border-border/40"
+            />
           ))}
         </div>
       ) : isError ? (
-        <PatientEmptyState
-          title="Records Unavailable"
-          description={error?.message || 'Failed to load authorized patient records.'}
-          actionLabel="Retry"
-          onAction={() => refetch()}
+        <ErrorState
+          error={error}
+          title="Authorized Patient Records Unavailable"
+          onRetry={() => refetch()}
         />
       ) : records.length === 0 ? (
         <PatientEmptyState
@@ -139,7 +202,7 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
           description={
             searchTerm || selectedType !== 'ALL'
               ? 'No records match the current filter and search query.'
-              : 'Medical records uploaded by the patient or clinical facilities will be listed here.'
+              : 'Authorized medical records uploaded by the patient or clinical facilities will appear here.'
           }
         />
       ) : (
@@ -147,47 +210,47 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
           {records.map((rec) => (
             <Card
               key={rec.id}
-              className="border border-border/80 bg-card hover:border-teal-500/40 transition-all shadow-xs"
+              className="border border-border/80 bg-card hover:border-primary/40 transition-all shadow-xs"
             >
               <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-sm text-foreground truncate">
-                      {rec.title}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">
-                      {rec.recordType}
+                    <span className="font-bold text-sm text-foreground truncate">{rec.title}</span>
+                    <Badge variant="info" size="sm">
+                      {getRecordCategoryLabel(rec.recordType)}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="text-[10px] border-emerald-500/40 text-emerald-600 bg-emerald-50/40 gap-1 px-1.5 py-0"
+                      className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 gap-1 px-1.5 py-0"
                     >
-                      <CheckCircle2 className="h-3 w-3" />
-                      {rec.verificationStatus || 'VERIFIED'}
+                      <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                      {(rec.verificationStatus || 'VERIFIED').replace(/_/g, ' ')}
                     </Badge>
                   </div>
 
                   {rec.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {rec.description}
-                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{rec.description}</p>
                   )}
 
                   <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
+                      <Calendar className="h-3 w-3" aria-hidden="true" />
                       {formatDate(rec.recordDate)}
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      {rec.facilityName || rec.source}
-                    </span>
+                    {rec.facilityName && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3" aria-hidden="true" />
+                          {rec.facilityName}
+                        </span>
+                      </>
+                    )}
                     {rec.doctorName && (
                       <>
                         <span>•</span>
                         <span className="flex items-center gap-1 font-medium text-foreground">
-                          <User className="h-3 w-3" />
+                          <User className="h-3 w-3" aria-hidden="true" />
                           {rec.doctorName}
                         </span>
                       </>
@@ -196,31 +259,44 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                  {rec.fileUrl ? (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="text-xs gap-1.5 h-8 text-teal-600 border-teal-500/40 hover:bg-teal-50/50"
-                    >
-                      <a href={rec.fileUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View Document
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="text-xs gap-1.5 h-8"
-                    >
-                      <a href={`/api/v1/records/${rec.id}/download`} target="_blank" rel="noopener noreferrer">
-                        <Download className="h-3.5 w-3.5" />
-                        Download
-                      </a>
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    onClick={() =>
+                      setPreviewDoc({
+                        id: rec.id,
+                        title: rec.title,
+                        recordType: (rec.recordType || 'OTHER_MEDICAL_DOCUMENT') as MedicalRecordType,
+                        recordDate: rec.recordDate,
+                        createdAt: rec.recordDate,
+                        doctorName: rec.doctorName,
+                        facilityName: rec.facilityName,
+                        verificationStatus:
+                          (rec.verificationStatus as 'VERIFIED' | 'PENDING' | 'SELF_SUBMITTED') ||
+                          'VERIFIED',
+                        source:
+                          (rec.source as 'MANUAL_ENTRY' | 'ABDM_INGESTION' | 'EHR_SYNC') ||
+                          'MANUAL_ENTRY',
+                      })
+                    }
+                    className="text-xs gap-1.5 h-8"
+                  >
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Preview</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={downloadingId === rec.id}
+                    onClick={() => handleAuthorizedDownload(rec.id)}
+                    className="text-xs gap-1.5 h-8"
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>{downloadingId === rec.id ? 'Downloading...' : 'Download'}</span>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -231,7 +307,8 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
             <div className="flex items-center justify-between pt-4 border-t border-border/60 text-xs">
               <span className="text-muted-foreground">
                 Page <span className="font-bold text-foreground">{pagination.page}</span> of{' '}
-                <span className="font-bold text-foreground">{pagination.totalPages}</span> ({pagination.total} records)
+                <span className="font-bold text-foreground">{pagination.totalPages}</span> (
+                {pagination.total} records)
               </span>
 
               <div className="flex items-center gap-1.5">
@@ -242,7 +319,7 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
                   size="sm"
                   className="h-8 px-2.5 text-xs gap-1"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                   Previous
                 </Button>
                 <Button
@@ -253,13 +330,21 @@ export const MedicalRecordList: React.FC<MedicalRecordListProps> = ({ patientId 
                   className="h-8 px-2.5 text-xs gap-1"
                 >
                   Next
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
               </div>
             </div>
           )}
         </div>
       )}
+
+      {/* Consented In-App Secure Document Viewer Modal */}
+      <SecureDocumentViewerModal
+        record={previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        onDownload={(id, name) => handleAuthorizedDownload(id, name)}
+        isDownloading={Boolean(downloadingId)}
+      />
     </div>
   );
 };

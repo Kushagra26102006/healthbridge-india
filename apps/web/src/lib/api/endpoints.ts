@@ -401,4 +401,16 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/notifications/${id}`,
     DELIVERY_HISTORY: '/notifications/delivery-history',
   },
+  TELEMEDICINE: {
+    SESSION: (appointmentId: string) => `/telemedicine/appointments/${appointmentId}/session`,
+    CONSENT: (appointmentId: string) => `/telemedicine/appointments/${appointmentId}/consent`,
+    TOKEN: (appointmentId: string) => `/telemedicine/appointments/${appointmentId}/token`,
+    STATE: (appointmentId: string) => `/telemedicine/appointments/${appointmentId}/state`,
+    NOTES: (appointmentId: string) => `/telemedicine/appointments/${appointmentId}/notes`,
+    DOCTOR_UPCOMING: '/telemedicine/doctor/upcoming',
+    DOCTOR_DECISION: (appointmentId: string) =>
+      `/telemedicine/doctor/appointments/${appointmentId}/decision`,
+    SIGNALS: (consultationId: string) => `/telemedicine/sessions/${consultationId}/signals`,
+    ADMIN_TELEMETRY: '/telemedicine/admin/telemetry',
+  },
 } as const;

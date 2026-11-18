@@ -308,7 +308,7 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
       } as any);
 
       const createdDocs: any[] = [];
-      vi.spyOn(AbdmDiscoveryRequestModel, 'findOne').mockImplementation(async (q: any) => {
+      vi.spyOn(AbdmDiscoveryRequestModel, 'findOne').mockImplementation((async (q: any) => {
         if (q?.externalTransactionRef) {
           return createdDocs.find((d) => d.externalTransactionRef === q.externalTransactionRef) || null;
         }
@@ -316,7 +316,7 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
           return createdDocs.find((d) => d.participantId === q.participantId && d.status === 'DISCOVERY_PENDING') || null;
         }
         return null;
-      });
+      }) as any);
       vi.spyOn(AbdmDiscoveryRequestModel, 'create').mockImplementation(async (data: any) => {
         const doc = makeInMemoryDoc(data);
         createdDocs.push(doc);
@@ -418,17 +418,17 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
       } as any);
 
       const links: any[] = [];
-      vi.spyOn(AbdmLinkedHealthRecordModel, 'findOne').mockImplementation(async (q: any) => {
+      vi.spyOn(AbdmLinkedHealthRecordModel, 'findOne').mockImplementation((async (q: any) => {
         return links.find(
           (l) =>
             l.participantId === q.participantId &&
             l.careContextReference === q.careContextReference &&
             ['LINKING_PENDING', 'OTP_VERIFICATION_PENDING', 'LINKED'].includes(l.status)
         ) || null;
-      });
-      vi.spyOn(AbdmLinkedHealthRecordModel, 'findById').mockImplementation(async (id: any) => {
+      }) as any);
+      vi.spyOn(AbdmLinkedHealthRecordModel, 'findById').mockImplementation((async (id: any) => {
         return links.find((l) => String(l._id) === String(id)) || null;
-      });
+      }) as any);
       vi.spyOn(AbdmLinkedHealthRecordModel, 'create').mockImplementation(async (data: any) => {
         const doc = makeInMemoryDoc(data);
         links.push(doc);
@@ -526,12 +526,12 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
         transfers.push(doc);
         return doc;
       });
-      vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation(async (q: any) => {
+      vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation((async (q: any) => {
         return transfers.find((t) => t.externalTransactionId === q.externalTransactionId) || null;
-      });
-      vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation(async (id: any) => {
+      }) as any);
+      vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation((async (id: any) => {
         return transfers.find((t) => String(t._id) === String(id)) || null;
-      });
+      }) as any);
       vi.spyOn(AbdmTransferPackageModel, 'create').mockImplementation(async (d: any) =>
         makeInMemoryDoc(d)
       );
@@ -741,13 +741,13 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
         transfers.push(doc);
         return doc;
       });
-      vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation(async (q: any) => {
+      vi.spyOn(AbdmHealthInformationTransferModel, 'findOne').mockImplementation((async (q: any) => {
         return transfers.find((t) => t.externalTransactionId === q.externalTransactionId) || null;
-      });
-      vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation(async (id: any) => {
+      }) as any);
+      vi.spyOn(AbdmHealthInformationTransferModel, 'findById').mockImplementation((async (id: any) => {
         return transfers.find((t) => String(t._id) === String(id)) || null;
-      });
-      vi.spyOn(AbdmImportedRecordModel, 'findOne').mockImplementation(async (q: any) => {
+      }) as any);
+      vi.spyOn(AbdmImportedRecordModel, 'findOne').mockImplementation((async (q: any) => {
         return (
           imports.find(
             (i) =>
@@ -755,13 +755,13 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
               i.bundleSha256 === q.bundleSha256
           ) || null
         );
-      });
+      }) as any);
       vi.spyOn(AbdmImportedRecordModel, 'create').mockImplementation(async (d: any) => {
         const doc = makeInMemoryDoc(d);
         imports.push(doc);
         return doc;
       });
-      vi.spyOn(AbdmTransferAcknowledgementModel, 'findOne').mockImplementation(async (q: any) => {
+      vi.spyOn(AbdmTransferAcknowledgementModel, 'findOne').mockImplementation((async (q: any) => {
         return (
           acks.find(
             (a) =>
@@ -770,7 +770,7 @@ describe('ABDM HIP / HIU Health Information Exchange — Unit Tests (Day 7 Task 
               a.ackType === q.ackType
           ) || null
         );
-      });
+      }) as any);
       vi.spyOn(AbdmTransferAcknowledgementModel, 'create').mockImplementation(async (d: any) => {
         const doc = makeInMemoryDoc(d);
         acks.push(doc);

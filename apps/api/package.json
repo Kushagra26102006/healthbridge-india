@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit",
     "lint": "echo 'api lint passed'",
     "seed": "tsx src/database/seed.ts",
+    "db:sync-indexes": "tsx src/database/sync-indexes.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",

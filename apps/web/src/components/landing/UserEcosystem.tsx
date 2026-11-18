@@ -5,6 +5,9 @@ import { User, Stethoscope, Pill, FlaskConical, ArrowRight, Check } from 'lucide
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EditorialVisual } from '@/components/ui/visual-asset';
+import type { EditorialAssetKey } from '@/lib/assets/image-manifest';
+import { SlideIn, StaggerList, StaggerItem } from '@/components/motion';
 
 export interface UserEcosystemProps {
   onSelectRole?: (role: 'PATIENT' | 'DOCTOR' | 'PHARMACY' | 'LABORATORY') => void;
@@ -17,9 +20,11 @@ interface RoleCardData {
   description: string;
   benefits: string[];
   icon: React.ReactNode;
+  imageAsset: EditorialAssetKey;
   accentBg: string;
+  surfaceTint: string;
   ctaText: string;
-  btnVariant: 'teal' | 'default' | 'outline';
+  btnVariant: 'primary' | 'secondary' | 'outline';
 }
 
 export function UserEcosystem({ onSelectRole }: UserEcosystemProps) {
@@ -28,60 +33,68 @@ export function UserEcosystem({ onSelectRole }: UserEcosystemProps) {
       id: 'PATIENT',
       title: 'Patients',
       badge: 'Citizens & Families',
-      description: 'Manage personal health information and control consent.',
+      description: 'Manage personal health records, appointments, and consent permissions.',
       benefits: [
-        'Consolidate personal medical history in one place.',
-        'Grant and revoke provider access permissions easily.',
-        'Access digital prescriptions and test records securely.',
+        'Unified personal medical record timeline.',
+        'Grant or revoke provider consent anytime.',
+        'Track prescriptions, lab reports, and orders.',
       ],
-      icon: <User className="h-6 w-6 text-teal-600 dark:text-teal-400" />,
-      accentBg: 'bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400',
-      ctaText: 'Get Started as Patient',
-      btnVariant: 'teal',
+      icon: <User className="h-5 w-5" aria-hidden="true" />,
+      imageAsset: 'ecosystemPatientCare',
+      accentBg: 'bg-secondary/10 text-secondary',
+      surfaceTint: 'from-secondary/[0.05] via-transparent to-transparent',
+      ctaText: 'Register as Patient',
+      btnVariant: 'secondary',
     },
     {
       id: 'DOCTOR',
       title: 'Doctors',
       badge: 'Clinicians & Specialists',
-      description: 'Access authorized patient information and manage clinical workflows.',
+      description: 'Review consented patient history and manage structured clinical care.',
       benefits: [
-        'Review longitudinal medical records with patient consent.',
-        'Create structured electronic prescriptions.',
-        'Streamline clinical consultations and follow-up reviews.',
+        'Consent-verified longitudinal patient overview.',
+        'SOAP clinical encounters & digital prescriptions.',
+        'Live appointment queue & weekly scheduling.',
       ],
-      icon: <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
-      accentBg: 'bg-blue-600/10 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400',
-      ctaText: 'Join as Doctor',
-      btnVariant: 'default',
+      icon: <Stethoscope className="h-5 w-5" aria-hidden="true" />,
+      imageAsset: 'ecosystemDoctorWorkspace',
+      accentBg: 'bg-primary/10 text-primary',
+      surfaceTint: 'from-primary/[0.05] via-transparent to-transparent',
+      ctaText: 'Register as Doctor',
+      btnVariant: 'primary',
     },
     {
       id: 'PHARMACY',
       title: 'Pharmacies',
-      badge: 'Retailers & Dispensaries',
-      description: 'Support medication and prescription-related workflows.',
+      badge: 'Dispensaries & Networks',
+      description: 'Verify digital prescriptions and manage batch-tracked dispensing.',
       benefits: [
-        'Verify digital prescriptions securely before dispensation.',
-        'Maintain accurate records of fulfilled medications.',
-        'Reduce errors associated with handwritten prescriptions.',
+        'Structured e-Prescription verification queue.',
+        'Batch, expiry, and stock-ledger inventory.',
+        'Order fulfillment and pickup verification.',
       ],
-      icon: <Pill className="h-6 w-6 text-amber-600 dark:text-amber-400" />,
-      accentBg: 'bg-amber-600/10 text-amber-600 dark:bg-amber-600/20 dark:text-amber-400',
+      icon: <Pill className="h-5 w-5" aria-hidden="true" />,
+      imageAsset: 'ecosystemPharmacyDispensing',
+      accentBg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+      surfaceTint: 'from-amber-500/[0.05] via-transparent to-transparent',
       ctaText: 'Register Pharmacy',
       btnVariant: 'outline',
     },
     {
       id: 'LABORATORY',
       title: 'Diagnostic Laboratories',
-      badge: 'Pathology & Imaging Centers',
-      description: 'Support laboratory orders and diagnostic report workflows.',
+      badge: 'Pathology & Diagnostics',
+      description: 'Coordinate sample accessioning, quality control, and report publishing.',
       benefits: [
-        'Deliver diagnostic test results directly to patient accounts.',
-        'Organize laboratory orders with structured reference ranges.',
-        'Accelerate reporting workflows for referring physicians.',
+        'Barcode sample tracking & accessioning.',
+        'Structured diagnostic report review & sign-off.',
+        'QMS instrument, calibration & CAPA logs.',
       ],
-      icon: <FlaskConical className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />,
-      accentBg: 'bg-cyan-600/10 text-cyan-600 dark:bg-cyan-600/20 dark:text-cyan-400',
-      ctaText: 'Connect Diagnostic Lab',
+      icon: <FlaskConical className="h-5 w-5" aria-hidden="true" />,
+      imageAsset: 'ecosystemLaboratoryDiagnostics',
+      accentBg: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+      surfaceTint: 'from-cyan-500/[0.05] via-transparent to-transparent',
+      ctaText: 'Register Laboratory',
       btnVariant: 'outline',
     },
   ];
@@ -89,72 +102,86 @@ export function UserEcosystem({ onSelectRole }: UserEcosystemProps) {
   return (
     <section id="ecosystem" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="max-w-3xl mx-auto text-center space-y-3 mb-14 md:mb-20">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600/10 text-blue-700 dark:text-blue-300 text-xs font-semibold tracking-wide uppercase">
-            User Ecosystem
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-            Built for Every Participant in the Healthcare Journey
+        <SlideIn inView className="max-w-3xl mx-auto text-center space-y-3 mb-12 md:mb-16">
+          <Badge variant="info" size="md">
+            Healthcare Ecosystem
+          </Badge>
+          <h2 className="text-page-heading sm:text-4xl font-bold text-balance">
+            Built for Every Participant in Care Delivery
           </h2>
-          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-normal">
-            Whether you are managing your personal health or delivering clinical services,
-            HealthBridge India provides role-appropriate tools.
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+            Role-tailored workspaces designed around real healthcare workflows — connecting
+            citizens and providers on a unified platform.
           </p>
-        </div>
+        </SlideIn>
 
-        {/* 4 Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StaggerList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {roles.map((item) => (
-            <Card
-              key={item.id}
-              className="flex flex-col justify-between border-border/90 bg-card hover:shadow-cardHover hover:-translate-y-1 transition-all duration-200"
-            >
-              <CardHeader className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`w-12 h-12 rounded-2xl ${item.accentBg} flex items-center justify-center transition-transform hover:scale-105 duration-200`}
-                  >
-                    {item.icon}
-                  </div>
-                  <Badge variant="outline" className="text-[11px] font-medium">
-                    {item.badge}
-                  </Badge>
+            <StaggerItem key={item.id} className="flex">
+              <Card
+                className={`group flex flex-col justify-between w-full overflow-hidden bg-gradient-to-b ${item.surfaceTint} hover-lift`}
+              >
+                <div className="px-4 pt-4">
+                  <EditorialVisual
+                    asset={item.imageAsset}
+                    aspectClassName="aspect-[16/10]"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 300px"
+                    className="rounded-lg border-border/60 shadow-none"
+                  />
                 </div>
-
-                <div>
-                  <CardTitle className="text-xl font-bold text-foreground">{item.title}</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm text-foreground/80 font-medium leading-relaxed mt-1.5">
-                    {item.description}
-                  </CardDescription>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-border/50">
-                  {item.benefits.map((benefit, bIdx) => (
+                <CardHeader className="space-y-4 pt-4">
+                  <div className="flex items-center justify-between gap-2">
                     <div
-                      key={bIdx}
-                      className="flex items-start gap-2 text-xs text-muted-foreground"
+                      className={`w-11 h-11 rounded-md ${item.accentBg} flex items-center justify-center transition-transform duration-150 group-hover:scale-105`}
                     >
-                      <Check className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
-                      <span className="leading-tight text-foreground/80">{benefit}</span>
+                      {item.icon}
                     </div>
-                  ))}
-                </div>
-              </CardHeader>
+                    <Badge variant="outline" size="sm">
+                      {item.badge}
+                    </Badge>
+                  </div>
 
-              <CardFooter className="pt-2">
-                <Button
-                  variant={item.btnVariant}
-                  className="w-full text-xs sm:text-sm font-semibold justify-between group"
-                  onClick={() => onSelectRole?.(item.id)}
-                >
-                  <span>{item.ctaText}</span>
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </CardFooter>
-            </Card>
+                  <div>
+                    <CardTitle className="text-lg">{item.title}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm leading-relaxed mt-1">
+                      {item.description}
+                    </CardDescription>
+                  </div>
+
+                  <div className="space-y-2 pt-3 border-t border-border/70">
+                    {item.benefits.map((benefit) => (
+                      <div
+                        key={benefit}
+                        className="flex items-start gap-2 text-xs text-muted-foreground"
+                      >
+                        <Check
+                          className="h-3.5 w-3.5 text-secondary shrink-0 mt-0.5"
+                          aria-hidden="true"
+                        />
+                        <span className="leading-snug text-foreground/85">{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardHeader>
+
+                <CardFooter className="pt-2">
+                  <Button
+                    variant={item.btnVariant}
+                    size="sm"
+                    className="w-full justify-between font-semibold"
+                    onClick={() => onSelectRole?.(item.id)}
+                  >
+                    <span>{item.ctaText}</span>
+                    <ArrowRight
+                      className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </CardFooter>
+              </Card>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerList>
       </div>
     </section>
   );

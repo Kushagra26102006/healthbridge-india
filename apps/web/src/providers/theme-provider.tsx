@@ -48,8 +48,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       if (isDark) {
         root.classList.add('dark');
+        root.style.colorScheme = 'dark';
       } else {
         root.classList.remove('dark');
+        root.style.colorScheme = 'light';
       }
     };
 
@@ -75,16 +77,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, next);
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
-  }, []);
+    const next: Theme = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setThemeState(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // Ignore storage errors
+    }
+  }, [resolvedTheme]);
 
   const value = useMemo(
     () => ({

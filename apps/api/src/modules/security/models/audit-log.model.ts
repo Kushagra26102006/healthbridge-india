@@ -71,20 +71,40 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
       validate: {
         validator: function (val: Record<string, unknown> | undefined) {
           if (!val) return true;
-          // Security filter: Ensure no sensitive keys exist in metadata
-          const forbiddenKeys = [
+          const forbiddenKeys = new Set([
             'password',
-            'passwordHash',
+            'passwordhash',
             'token',
-            'accessToken',
-            'refreshToken',
+            'accesstoken',
+            'refreshtoken',
             'secret',
-          ];
-          const keys = Object.keys(val).map((k) => k.toLowerCase());
-          return !forbiddenKeys.some((f) => keys.includes(f.toLowerCase()));
+            'privatekey',
+            'encryptionkey',
+            'keymaterial',
+            'otp',
+            'abhanumber',
+            'aadhaar',
+            'filedata',
+            'diagnosis',
+            'clinicalnotes',
+          ]);
+          const inspect = (node: unknown, depth = 0): boolean => {
+            if (depth > 8 || !node || typeof node !== 'object') return true;
+            if (Array.isArray(node)) {
+              return node.every((item) => inspect(item, depth + 1));
+            }
+            for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+              if (forbiddenKeys.has(k.toLowerCase()) && v !== '[REDACTED]') {
+                return false;
+              }
+              if (!inspect(v, depth + 1)) return false;
+            }
+            return true;
+          };
+          return inspect(val);
         },
         message:
-          'Security violation: Audit metadata must never contain credentials, passwords, or tokens',
+          'Security violation: Audit metadata must never contain unredacted credentials, tokens, secrets, or clinical PHI',
       },
     },
   },

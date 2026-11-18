@@ -10,7 +10,6 @@ import {
   History,
   RotateCw,
   Calendar,
-  AlertCircle,
   Wifi,
   X,
 } from 'lucide-react';
@@ -23,9 +22,9 @@ import {
   useDeleteNotification,
 } from '@/features/notifications/hooks/use-notifications';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { NotificationCard } from './NotificationCard';
 import { NotificationCategoryTabs, NotificationTabKey } from './NotificationCategoryTabs';
-import { NotificationEmptyState } from './NotificationEmptyState';
+import { NotificationList } from './NotificationList';
+import { NotificationBadge } from './NotificationBadge';
 import type {
   NotificationCategory,
   NotificationReadStatusFilter,
@@ -117,29 +116,29 @@ export function NotificationCenter({
             <Bell className="w-3.5 h-3.5" />
             <span>Alerts &amp; Communications</span>
             <span
-              className={`ml-1 inline-flex items-center gap-1 normal-case text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+              className={`ml-1 inline-flex items-center gap-1 normal-case text-[10px] font-semibold px-2 py-0.5 rounded-pill ${
                 connectionState === 'connected'
-                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
               }`}
             >
-              <Wifi className="w-2.5 h-2.5" />
+              <Wifi className="w-2.5 h-2.5" aria-hidden="true" />
               <span>
-                {connectionState === 'connected' ? 'Real-Time Sync Active' : 'Polling Fallback Active'}
+                {connectionState === 'connected'
+                  ? 'Real-Time Sync Active'
+                  : connectionState === 'reconnecting'
+                    ? 'Reconnecting Stream…'
+                    : 'Polling Fallback Active'}
               </span>
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               {roleTitle}
             </h1>
-            {unreadCount > 0 && (
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
-                {unreadCount} unread
-              </span>
-            )}
+            {unreadCount > 0 && <NotificationBadge count={unreadCount} pulse={false} size="md" />}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{roleSubtitle}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{roleSubtitle}</p>
         </div>
 
         {/* Header Action Buttons */}
@@ -255,45 +254,16 @@ export function NotificationCenter({
         </div>
       </div>
 
-      {/* Notifications List / Skeleton / Error / Empty */}
-      <div className="space-y-2.5">
-        {isLoading ? (
-          <div className="space-y-3" aria-busy="true" aria-label="Loading notifications">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-24 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"
-              />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="p-6 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50/70 dark:bg-rose-950/30 text-center space-y-2.5">
-            <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-400 mx-auto" />
-            <p className="text-xs font-semibold text-rose-800 dark:text-rose-200">
-              Could not load your notifications right now.
-            </p>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-              <span>Retry</span>
-            </button>
-          </div>
-        ) : notifications.length === 0 ? (
-          <NotificationEmptyState isUnreadOnly={activeTab === 'UNREAD'} />
-        ) : (
-          notifications.map((notif) => (
-            <NotificationCard
-              key={notif.id}
-              notification={notif}
-              onMarkRead={(id) => markRead(id)}
-              onDelete={(id) => deleteNotification(id)}
-            />
-          ))
-        )}
-      </div>
+      {/* Notifications List / Skeleton / Error / Empty / Detail Modal */}
+      <NotificationList
+        notifications={notifications}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        isUnreadOnly={activeTab === 'UNREAD'}
+        onMarkRead={(id) => markRead(id)}
+        onDelete={(id) => deleteNotification(id)}
+      />
 
       {/* Pagination Controls */}
       {totalPages > 1 && (

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 190" width="640" height="190" fill="none">
+  <rect width="640" height="190" rx="16" fill="#F8FAFC"/>
+  <rect x="0.75" y="0.75" width="638.5" height="188.5" rx="15.25" stroke="#CBD5E1" stroke-width="1.5"/>
+
+  <!-- Step 1 -->
+  <rect x="24" y="34" width="172" height="122" rx="12" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="1.5"/>
+  <circle cx="52" cy="64" r="14" fill="#DBEAFE"/>
+  <text x="52" y="68" text-anchor="middle" fill="#1D4ED8" font-family="system-ui, sans-serif" font-size="12" font-weight="700">1</text>
+  <text x="76" y="68" fill="#0F172A" font-family="system-ui, sans-serif" font-size="12" font-weight="700">Verify Identity</text>
+  <text x="38" y="98" fill="#475569" font-family="system-ui, sans-serif" font-size="10.5">OTP-verified ABHA number</text>
+  <text x="38" y="114" fill="#475569" font-family="system-ui, sans-serif" font-size="10.5">or @abdm / @sbx address</text>
+  <rect x="38" y="128" width="112" height="16" rx="8" fill="#EFF6FF"/>
+  <text x="94" y="139" text-anchor="middle" fill="#2563EB" font-family="system-ui, sans-serif" font-size="9" font-weight="600">Encrypted At Rest</text>
+
+  <path d="M202 95 H228 M222 89 L229 95 L222 101" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Step 2 -->
+  <rect x="234" y="34" width="172" height="122" rx="12" fill="#FFFFFF" stroke="#99F6E4" stroke-width="1.5"/>
+  <circle cx="262" cy="64" r="14" fill="#CCFBF1"/>
+  <text x="262" y="68" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="12" font-weight="700">2</text>
+  <text x="286" y="68" fill="#0F172A" font-family="system-ui, sans-serif" font-size="12" font-weight="700">Approve Scope</text>
+  <text x="248" y="98" fill="#475569" font-family="system-ui, sans-serif" font-size="10.5">Choose exact record types,</text>
+  <text x="248" y="114" fill="#475569" font-family="system-ui, sans-serif" font-size="10.5">purpose &amp; expiry window</text>
+  <rect x="248" y="128" width="118" height="16" rx="8" fill="#F0FDFA"/>
+  <text x="307" y="139" text-anchor="middle" fill="#0D9488" font-family="system-ui, sans-serif" font-size="9" font-weight="600">Revocable Anytime</text>
+
+  <path d="M412 95 H438 M432 89 L439 95 L432 101" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Step 3 -->
+  <rect x="444" y="34" width="172" height="122" rx="12" fill="#FFFFFF" stroke="#BAE6FD" stroke-width="1.5"/>
+  <circle cx="472" cy="64" r="14" fill="#E0F2FE"/>
+  <text x="472" y="68" text-anchor="middle" fill="#0369A1" font-family="system-ui, sans-serif" font-size="12" font-weight="700">3</text>
+  <text x="496" y="68" fill="#0F172A" font-family="system-ui, sans-serif" font-size="12" font-weight="700">Unified Timeline</text>
+  <text x="458" y="98" fill="#475569" font-family="system-ui, sans-serif" font-size="10.5">Structured FHIR R4 records</text>
+  <text x="458" y="114" fill="#475569" font-family="system-ui, sans-serif" font-size="10.5">with full audit provenance</text>
+  <rect x="458" y="128" width="116" height="16" rx="8" fill="#F0F9FF"/>
+  <text x="516" y="139" text-anchor="middle" fill="#0284C7" font-family="system-ui, sans-serif" font-size="9" font-weight="600">Zero Auto-Sharing</text>
+</svg>
