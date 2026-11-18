@@ -25,6 +25,7 @@ import {
   patientPrivacyRoutes,
   adminPrivacyRoutes,
 } from '../modules/privacy/privacy.routes';
+import { adminDataProtectionRoutes } from '../security/data-protection/data-protection.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
 export const v1Router = Router();
@@ -59,3 +60,4 @@ v1Router.use('/events', apiLimiter, eventRoutes);
 v1Router.use('/privacy', apiLimiter, publicPrivacyRoutes);
 v1Router.use('/patient/privacy', apiLimiter, patientPrivacyRoutes);
 v1Router.use('/admin/privacy', apiLimiter, adminPrivacyRoutes);
+v1Router.use('/admin/data-protection', apiLimiter, adminDataProtectionRoutes);

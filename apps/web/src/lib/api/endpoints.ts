@@ -376,6 +376,10 @@ export const API_ENDPOINTS = {
     ADMIN_LEGAL_HOLDS: '/admin/privacy/legal-holds',
     ADMIN_RETENTION_POLICIES: '/admin/privacy/retention-policies',
   },
+  DATA_PROTECTION: {
+    ADMIN_STATUS: '/admin/data-protection/status',
+    ADMIN_ROTATE_KEY: '/admin/data-protection/rotate-key',
+  },
   NOTIFICATIONS: {
     ROOT: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

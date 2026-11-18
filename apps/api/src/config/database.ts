@@ -57,6 +57,21 @@ export const connectDatabase = async (customUri?: string): Promise<typeof mongoo
   try {
     const mongoUri = customUri || env.MONGODB_URI;
 
+    // Enforce TLS & strict certificate validation in production (never allow TLS bypass)
+    if (env.NODE_ENV === 'production') {
+      const lowered = mongoUri.toLowerCase();
+      if (
+        lowered.includes('tls=false') ||
+        lowered.includes('ssl=false') ||
+        lowered.includes('tlsallowinvalidcertificates=true') ||
+        lowered.includes('tlsallowinvalidhostnames=true')
+      ) {
+        throw new Error(
+          'Security policy violation: Production MongoDB connections must enforce TLS with valid certificates.'
+        );
+      }
+    }
+
     // Mask credentials for clean logging
     const maskedUri = mongoUri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
     logger.info(`Connecting to MongoDB at: ${maskedUri}`);

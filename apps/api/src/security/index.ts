@@ -9,3 +9,4 @@ export * from './input-security.middleware';
 export * from './csrf.middleware';
 export * from './file-security.service';
 export * from './security-audit.monitor';
+export * from './data-protection';
