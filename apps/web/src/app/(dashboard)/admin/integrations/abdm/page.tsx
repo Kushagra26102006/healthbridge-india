@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type {
   AbdmConsentAdminAnalyticsDto,
+  AbdmHipHiuAdminAnalyticsDto,
   AbdmIntegrationStatus,
   AbhaIntegrationAnalyticsDto,
 } from '@healthbridge/shared-types';
@@ -62,6 +63,7 @@ export default function AdminAbdmIntegrationStatusPage() {
   const [consentAnalytics, setConsentAnalytics] = useState<AbdmConsentAdminAnalyticsDto | null>(
     null
   );
+  const [hipHiuAnalytics, setHipHiuAnalytics] = useState<AbdmHipHiuAdminAnalyticsDto | null>(null);
   const [syncingConsent, setSyncingConsent] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,12 @@ export default function AdminAbdmIntegrationStatusPage() {
       } else {
         const cAnalytics = await abdmApi.getConsentAnalytics().catch(() => null);
         setConsentAnalytics(cAnalytics);
+      }
+      if (res.hipHiuAnalytics) {
+        setHipHiuAnalytics(res.hipHiuAnalytics);
+      } else {
+        const hAnalytics = await abdmApi.getHipHiuAnalytics().catch(() => null);
+        setHipHiuAnalytics(hAnalytics);
       }
     } catch (err: any) {
       setError(
@@ -666,6 +674,99 @@ export default function AdminAbdmIntegrationStatusPage() {
                   <p className="text-slate-600 dark:text-slate-300 mt-0.5">
                     Requests: {consentAnalytics.environmentBreakdown.production.requests} •
                     Artefacts: {consentAnalytics.environmentBreakdown.production.artefacts}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* HIP / HIU Health Information Exchange & Encryption Telemetry (Day 7 Task 04) */}
+          {hipHiuAnalytics && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Server className="h-4 w-4 text-teal-600" />
+                    ABDM HIP / HIU Data Exchange &amp; Encryption Telemetry (Aggregate Only — Zero PII)
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Discovery, care-context linking, encrypted FHIR transfers, acknowledgements, and validation counters.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-slate-500">HIP:</span>
+                  <StatusPill status={hipHiuAnalytics.hipReadiness} />
+                  <span className="text-xs text-slate-500">HIU:</span>
+                  <StatusPill status={hipHiuAnalytics.hiuReadiness} />
+                </div>
+              </div>
+
+              {/* Encryption Configuration Banner */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-amber-600" />
+                    Encryption Adapter: <span className="font-mono">{hipHiuAnalytics.encryption.providerMode}</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300">
+                    {hipHiuAnalytics.encryption.note}
+                  </p>
+                </div>
+                <Badge
+                  className={
+                    hipHiuAnalytics.encryption.liveFideliusConfigured
+                      ? 'bg-emerald-100 text-emerald-800 border-none font-mono text-[10px]'
+                      : 'bg-amber-100 text-amber-800 border-none font-mono text-[10px] shrink-0'
+                  }
+                >
+                  {hipHiuAnalytics.encryption.liveFideliusConfigured
+                    ? 'LIVE_FIDELIUS_CONFIGURED'
+                    : 'LIVE_FIDELIUS_NOT_CONFIGURED'}
+                </Badge>
+              </div>
+
+              {/* Aggregate Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-slate-500">Discovery</p>
+                  <p className="text-lg font-bold mt-0.5">{hipHiuAnalytics.discovery.total}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Done: {hipHiuAnalytics.discovery.completed} • Fail: {hipHiuAnalytics.discovery.failed}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-slate-500">Linked Records</p>
+                  <p className="text-lg font-bold mt-0.5">{hipHiuAnalytics.recordLinking.linked}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Pending: {hipHiuAnalytics.recordLinking.pending} • Unlinked: {hipHiuAnalytics.recordLinking.unlinkedLocally}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-slate-500">Transfers</p>
+                  <p className="text-lg font-bold mt-0.5">{hipHiuAnalytics.transfers.total}</p>
+                  <p className="text-[11px] text-slate-500">
+                    HIP: {hipHiuAnalytics.transfers.hipOutbound} • HIU: {hipHiuAnalytics.transfers.hiuInbound}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-slate-500">Failed Transfers</p>
+                  <p className="text-lg font-bold text-rose-600 mt-0.5">{hipHiuAnalytics.transfers.failed}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Review: {hipHiuAnalytics.transfers.requiresReview}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-slate-500">Ack Failures</p>
+                  <p className="text-lg font-bold text-amber-600 mt-0.5">{hipHiuAnalytics.acknowledgements.failed}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Total Acks: {hipHiuAnalytics.acknowledgements.total}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-slate-500">FHIR Validation Fail</p>
+                  <p className="text-lg font-bold text-rose-600 mt-0.5">{hipHiuAnalytics.fhirValidation.failed}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Quarantined: {hipHiuAnalytics.importedRecords.quarantined}
                   </p>
                 </div>
               </div>

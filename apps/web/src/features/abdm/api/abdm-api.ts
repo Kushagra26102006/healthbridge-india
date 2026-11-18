@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type {
   ApiResponse,
   AbdmConsentAdminAnalyticsDto,
+  AbdmHipHiuAdminAnalyticsDto,
   AbdmIntegrationStatusDashboardDto,
   AbhaIntegrationAnalyticsDto,
 } from '@healthbridge/shared-types';
@@ -15,6 +16,7 @@ import type {
 export interface AbdmAdminStatusWithAbhaDto extends AbdmIntegrationStatusDashboardDto {
   abhaAnalytics?: AbhaIntegrationAnalyticsDto;
   consentAnalytics?: AbdmConsentAdminAnalyticsDto;
+  hipHiuAnalytics?: AbdmHipHiuAdminAnalyticsDto;
 }
 
 export const abdmApi = {
@@ -35,6 +37,13 @@ export const abdmApi = {
   async getConsentAnalytics(): Promise<AbdmConsentAdminAnalyticsDto> {
     const res = await apiClient.get<ApiResponse<AbdmConsentAdminAnalyticsDto>>(
       API_ENDPOINTS.ABDM_INTEGRATION.CONSENT.ANALYTICS
+    );
+    return res.data.data!;
+  },
+
+  async getHipHiuAnalytics(): Promise<AbdmHipHiuAdminAnalyticsDto> {
+    const res = await apiClient.get<ApiResponse<AbdmHipHiuAdminAnalyticsDto>>(
+      API_ENDPOINTS.ABDM_INTEGRATION.HIE.ANALYTICS
     );
     return res.data.data!;
   },

@@ -10,6 +10,7 @@ import { createRateLimiter } from '../../../middleware/rate-limit';
 import { abdmController } from '../controllers/abdm.controller';
 import { abhaController } from '../controllers/abha.controller';
 import { abdmConsentController } from '../controllers/abdm-consent.controller';
+import { abdmHieController } from '../controllers/abdm-hie.controller';
 
 export const abdmRoutes = Router();
 
@@ -36,11 +37,11 @@ abdmRoutes.get('/', (_req: Request, res: Response) => {
     res,
     {
       module: 'ABDM',
-      status: 'abdm_consent_manager_foundation_ready',
-      milestone: 'Day 7 Task 03',
+      status: 'abdm_hip_hiu_exchange_foundation_ready',
+      milestone: 'Day 7 Task 04',
       liveExchangeEnabled: false,
     },
-    'ABDM, ABHA & Consent Manager integration foundation ready'
+    'ABDM, ABHA, Consent Manager & HIP/HIU integration foundation ready'
   );
 });
 
@@ -282,6 +283,150 @@ abdmRoutes.post(
   authenticate,
   authorize(['ADMIN']),
   abdmConsentController.triggerSyncSweep
+);
+
+// ============================================================================
+// DAY 7 TASK 04 — ABDM HIP / HIU DISCOVERY, RECORD LINKING & DATA EXCHANGE
+// ============================================================================
+
+// Inbound authenticated external callbacks (HMAC/secret + ±5m replay window)
+abdmRoutes.post('/webhooks/hie/discovery', abdmHieController.receiveDiscoveryCallback);
+abdmRoutes.post('/webhooks/hip/health-information/request', abdmHieController.receiveHipHealthInfoRequest);
+abdmRoutes.post('/webhooks/hiu/data-push', abdmHieController.receiveHiuDataPushCallback);
+abdmRoutes.post('/webhooks/hie/acknowledgement', abdmHieController.receiveTransferAcknowledgement);
+
+// Discovery endpoints
+abdmRoutes.post(
+  '/hie/discovery',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.initiateDiscovery
+);
+
+abdmRoutes.get(
+  '/hie/discovery',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.listDiscoveryHistory
+);
+
+abdmRoutes.get(
+  '/hie/discovery/:id',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.getDiscoveryStatus
+);
+
+// Health-record care-context linking endpoints
+abdmRoutes.post(
+  '/hie/linking',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.initiateLinking
+);
+
+abdmRoutes.post(
+  '/hie/linking/:id/confirm',
+  authenticate,
+  authorize(['PATIENT', 'ADMIN']),
+  abhaOtpLimiter,
+  abdmHieController.confirmLinking
+);
+
+abdmRoutes.post(
+  '/hie/linking/:id/unlink',
+  authenticate,
+  authorize(['PATIENT', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.unlinkRecord
+);
+
+abdmRoutes.get(
+  '/hie/linking',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.listLinkedRecords
+);
+
+abdmRoutes.get(
+  '/hie/linking/:id',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.getLinkedRecordStatus
+);
+
+// HIP transfer visibility (Admin / Laboratory / Doctor / Patient own)
+abdmRoutes.get(
+  '/hip/transfers',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'LABORATORY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.listHipTransfers
+);
+
+// HIU health information request & transfers
+abdmRoutes.post(
+  '/hiu/requests',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'LABORATORY', 'PHARMACY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.initiateHiuHealthInfoRequest
+);
+
+abdmRoutes.get(
+  '/hiu/transfers',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'LABORATORY', 'PHARMACY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.listHiuTransfers
+);
+
+// Unified transfer history & status detail
+abdmRoutes.get(
+  '/hie/transfers',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'LABORATORY', 'PHARMACY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.listAllTransfers
+);
+
+abdmRoutes.get(
+  '/hie/transfers/:id',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'LABORATORY', 'PHARMACY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.getTransferDetail
+);
+
+// Read-only imported external health records (Doctors NEVER granted edit/delete endpoints)
+abdmRoutes.get(
+  '/hie/imported-records',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.listImportedRecords
+);
+
+abdmRoutes.post(
+  '/hie/imported-records/:id/review',
+  authenticate,
+  authorize(['PATIENT', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmHieController.reviewImportedRecord
+);
+
+// Admin aggregate HIP/HIU monitoring (zero patient PII)
+abdmRoutes.get(
+  '/hie/analytics',
+  authenticate,
+  authorize(['ADMIN']),
+  abdmHieController.getAdminHipHiuAnalytics
 );
 
 export default abdmRoutes;

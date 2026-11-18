@@ -31,6 +31,9 @@ const KNOWN_TERMINOLOGY_SYSTEMS = new Set([
   'http://terminology.hl7.org/CodeSystem/consentscope',
   'http://terminology.hl7.org/CodeSystem/consentaction',
   'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+  'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+  'http://terminology.hl7.org/CodeSystem/provenance-participant-type',
+  'http://hl7.org/fhir/sid/icd-10',
   'https://nrces.in/ndhm/fhir/r4/CodeSystem/ndhm-identifier-type-code',
   'https://abdm.gov.in/hiecm/purpose',
   'https://abdm.gov.in/hiecm/hitype',
@@ -145,6 +148,24 @@ export class FhirR4Validator {
         break;
       case 'Consent':
         this.validateConsent(resource, errors, warnings);
+        break;
+      case 'Encounter':
+        this.validateEncounter(resource, errors);
+        break;
+      case 'MedicationRequest':
+        this.validateMedicationRequest(resource, errors);
+        break;
+      case 'ServiceRequest':
+        this.validateServiceRequest(resource, errors);
+        break;
+      case 'Specimen':
+        this.validateSpecimen(resource, errors);
+        break;
+      case 'DocumentReference':
+        this.validateDocumentReference(resource, errors);
+        break;
+      case 'Provenance':
+        this.validateProvenance(resource, errors);
         break;
       case 'Bundle':
         this.validateBundle(resource, strict, errors, warnings);
@@ -461,8 +482,12 @@ export class FhirR4Validator {
       }
     }
 
-    // Collect resolvable entry URLs and resourceType/id keys
+    // Collect resolvable entry URLs and resourceType/id keys + detect duplicates & Patient presence
     const availableTargets = new Set<string>();
+    const seenFullUrls = new Set<string>();
+    const seenResourceKeys = new Set<string>();
+    let hasPatientResource = false;
+
     entries.forEach((entry, idx) => {
       const fullUrl = entry.fullUrl ? String(entry.fullUrl) : '';
       if (!fullUrl) {
@@ -473,6 +498,15 @@ export class FhirR4Validator {
           message: 'Every Bundle.entry must specify a fullUrl.',
         });
       } else {
+        if (seenFullUrls.has(fullUrl)) {
+          errors.push({
+            severity: 'ERROR',
+            code: 'DUPLICATE_BUNDLE_RESOURCE',
+            path: `Bundle.entry[${idx}].fullUrl`,
+            message: `Duplicate Bundle.entry fullUrl '${fullUrl}' detected.`,
+          });
+        }
+        seenFullUrls.add(fullUrl);
         availableTargets.add(fullUrl);
         if (strict && fullUrl.startsWith('urn:uuid:') && !UUID_URN_REGEX.test(fullUrl)) {
           errors.push({
@@ -495,8 +529,22 @@ export class FhirR4Validator {
         return;
       }
 
+      if (entryRes.resourceType === 'Patient') {
+        hasPatientResource = true;
+      }
+
       if (entryRes.resourceType && entryRes.id) {
-        availableTargets.add(`${entryRes.resourceType}/${entryRes.id}`);
+        const resKey = `${entryRes.resourceType}/${entryRes.id}`;
+        if (seenResourceKeys.has(resKey)) {
+          errors.push({
+            severity: 'ERROR',
+            code: 'DUPLICATE_BUNDLE_RESOURCE',
+            path: `Bundle.entry[${idx}].resource`,
+            message: `Duplicate resource '${resKey}' detected inside Bundle.`,
+          });
+        }
+        seenResourceKeys.add(resKey);
+        availableTargets.add(resKey);
       }
 
       const subValidation = this.validateResource(entryRes, { strictAbdmProfile: strict });
@@ -507,6 +555,15 @@ export class FhirR4Validator {
         warnings.push({ ...w, path: `Bundle.entry[${idx}].resource.${w.path}` });
       }
     });
+
+    if (bundleType === 'document' && !hasPatientResource) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'BUNDLE_PATIENT_RESOURCE_MISSING',
+        path: 'Bundle.entry',
+        message: 'NRCeS ABDM Document Bundle must include a Patient resource.',
+      });
+    }
 
     // Verify internal references resolve inside Document Bundles
     if (bundleType === 'document') {
@@ -522,6 +579,111 @@ export class FhirR4Validator {
             });
           }
         }
+      });
+    }
+  }
+
+  private validateEncounter(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    const validStatuses = ['planned', 'arrived', 'triaged', 'in-progress', 'onleave', 'finished', 'cancelled'];
+    if (!validStatuses.includes(String(r.status || ''))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'ENCOUNTER_STATUS_INVALID',
+        path: 'Encounter.status',
+        message: 'Encounter.status must be a valid FHIR EncounterStatus.',
+      });
+    }
+    this.validateReference(r.subject, 'Encounter.subject', errors);
+  }
+
+  private validateMedicationRequest(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    const validStatuses = ['active', 'on-hold', 'cancelled', 'completed', 'entered-in-error', 'stopped', 'draft', 'unknown'];
+    if (!validStatuses.includes(String(r.status || ''))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'MEDICATION_REQUEST_STATUS_INVALID',
+        path: 'MedicationRequest.status',
+        message: 'MedicationRequest.status must be a valid FHIR MedicationRequestStatus.',
+      });
+    }
+    if (!r.intent) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'MEDICATION_REQUEST_INTENT_REQUIRED',
+        path: 'MedicationRequest.intent',
+        message: 'MedicationRequest.intent is required.',
+      });
+    }
+    this.validateReference(r.subject, 'MedicationRequest.subject', errors);
+  }
+
+  private validateServiceRequest(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    if (!r.status) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'SERVICE_REQUEST_STATUS_REQUIRED',
+        path: 'ServiceRequest.status',
+        message: 'ServiceRequest.status is required.',
+      });
+    }
+    if (!r.intent) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'SERVICE_REQUEST_INTENT_REQUIRED',
+        path: 'ServiceRequest.intent',
+        message: 'ServiceRequest.intent is required.',
+      });
+    }
+    this.validateReference(r.subject, 'ServiceRequest.subject', errors);
+  }
+
+  private validateSpecimen(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    this.validateReference(r.subject, 'Specimen.subject', errors);
+  }
+
+  private validateDocumentReference(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    if (!['current', 'superseded', 'entered-in-error'].includes(String(r.status || ''))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'DOCUMENT_REFERENCE_STATUS_INVALID',
+        path: 'DocumentReference.status',
+        message: 'DocumentReference.status must be current, superseded, or entered-in-error.',
+      });
+    }
+    this.validateReference(r.subject, 'DocumentReference.subject', errors);
+    if (!Array.isArray(r.content) || r.content.length === 0) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'DOCUMENT_REFERENCE_CONTENT_REQUIRED',
+        path: 'DocumentReference.content',
+        message: 'DocumentReference.content requires at least one attachment.',
+      });
+    }
+  }
+
+  private validateProvenance(r: Record<string, unknown>, errors: FhirValidationIssueDto[]): void {
+    if (!Array.isArray(r.target) || r.target.length === 0) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'PROVENANCE_TARGET_REQUIRED',
+        path: 'Provenance.target',
+        message: 'Provenance.target requires at least one reference.',
+      });
+    }
+    if (!r.recorded || !ISO_DATE_OR_DATETIME_REGEX.test(String(r.recorded))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'PROVENANCE_RECORDED_INVALID',
+        path: 'Provenance.recorded',
+        message: 'Provenance.recorded must be a valid ISO-8601 instant.',
+      });
+    }
+    if (!Array.isArray(r.agent) || r.agent.length === 0) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'PROVENANCE_AGENT_REQUIRED',
+        path: 'Provenance.agent',
+        message: 'Provenance.agent requires at least one agent entry.',
       });
     }
   }
