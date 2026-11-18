@@ -92,9 +92,9 @@ export const connectDatabase = async (customUri?: string): Promise<typeof mongoo
     logger.info(`Connecting to MongoDB at: ${maskedUri}`);
 
     const connection = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 15000,
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
+      connectTimeoutMS: 20000,
       maxPoolSize: env.DB_MAX_POOL_SIZE ?? 20,
       minPoolSize: env.DB_MIN_POOL_SIZE ?? 5,
     });
