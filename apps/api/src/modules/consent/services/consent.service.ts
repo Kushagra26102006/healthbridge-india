@@ -8,6 +8,8 @@ import {
 } from '../models/consent-artifact.model';
 import { AuditLogModel } from '../../security/models/audit-log.model';
 import { AppError } from '../../../shared/errors/app-error';
+import { consentEnforcementService } from './consent-enforcement.service';
+import { eventPublisher } from '../../events/event.publisher';
 import type {
   ConsentListItemDto,
   ConsentDetailDto,
@@ -705,6 +707,31 @@ export class ConsentService {
     } catch {
       // Mocked or non-blocking
     }
+
+    // SYNCHRONOUS IMMEDIATE ENFORCEMENT: Never wait for async worker to block revoked access
+    const requesterIdStr = request.requesterId ? request.requesterId.toString() : undefined;
+    consentEnforcementService.invalidateConsentImmediately(patientId, requesterIdStr, consentId);
+
+    // Publish CONSENT_REVOKED to durable outbox for async notifications & timeline projection
+    await eventPublisher.publishSafe({
+      idempotencyKey: `consent_revoked:${consentId}:${now.getTime()}`,
+      eventType: 'CONSENT_REVOKED',
+      sourceModule: 'CONSENT',
+      aggregateId: consentId,
+      aggregateType: 'ConsentRequest',
+      correlationId: requestId,
+      actorId: patientId,
+      actorRole: 'PATIENT',
+      payload: {
+        consentId,
+        patientId,
+        ...(requesterIdStr ? { requesterId: requesterIdStr } : {}),
+        consentScope: 'INTERNAL',
+        status: 'REVOKED',
+        revokedSynchronously: true,
+        effectiveAt: now.toISOString(),
+      },
+    });
 
     await this.recordAuditLog({
       actorId: patientId,

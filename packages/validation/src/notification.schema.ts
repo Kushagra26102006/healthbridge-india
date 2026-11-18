@@ -47,8 +47,34 @@ export const notificationEventTypeEnum = z.enum([
   'SECURITY_ALERT',
   'PROFILE_UPDATED',
   'APPOINTMENT_SCHEDULED',
+  'APPOINTMENT_BOOKED',
+  'APPOINTMENT_CONFIRMED',
+  'APPOINTMENT_RESCHEDULED',
+  'APPOINTMENT_CANCELLED',
+  'APPOINTMENT_COMPLETED',
+  'ENCOUNTER_STARTED',
+  'ENCOUNTER_FINALIZED',
+  'PRESCRIPTION_ISSUED',
+  'PRESCRIPTION_DISPENSED',
   'CONSENT_GRANTED',
+  'CONSENT_REQUEST_RECEIVED',
+  'CONSENT_APPROVED',
+  'CONSENT_REVOKED',
+  'ABHA_LINKED',
+  'EXTERNAL_RECORD_IMPORTED',
+  'LAB_ORDER_CREATED',
+  'LAB_ORDER_ACCEPTED',
+  'SAMPLE_COLLECTED',
+  'SAMPLE_REJECTED',
   'LAB_REPORT_READY',
+  'REPORT_PUBLISHED',
+  'REPORT_AMENDED',
+  'QC_INCIDENT_OPENED',
+  'INSTRUMENT_MAINTENANCE_DUE',
+  'SERVICE_FAILURE_ALERT',
+  'INTEGRATION_FAILURE_ALERT',
+  'EVENT_PROCESSING_FAILED',
+  'SYSTEM_MAINTENANCE',
   'SYSTEM_ALERT',
 ]);
 
@@ -63,6 +89,8 @@ export const deliveryStatusEnum = z.enum([
   'RETRYING',
 ]);
 
+export const notificationReadStatusEnum = z.enum(['ALL', 'UNREAD', 'READ']);
+
 export const notificationFilterSchema = z.object({
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
@@ -74,7 +102,8 @@ export const notificationFilterSchema = z.object({
     .union([z.boolean(), z.string()])
     .optional()
     .transform((val) => val === true || val === 'true'),
-  search: z.string().trim().optional(),
+  readStatus: notificationReadStatusEnum.optional(),
+  search: z.string().trim().max(100).optional(),
   startDate: z.string().datetime({ offset: true }).or(z.string()).optional(),
   endDate: z.string().datetime({ offset: true }).or(z.string()).optional(),
 });

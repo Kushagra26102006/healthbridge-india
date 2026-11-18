@@ -127,6 +127,13 @@ export type NotificationEventType =
   | 'CONSENT_APPROVED'
   | 'CONSENT_REVOKED'
   | 'EXTERNAL_RECORD_IMPORTED'
+  // Admin & Operational Notifications (Day 8 Task 04)
+  | 'SERVICE_FAILURE_ALERT'
+  | 'INTEGRATION_FAILURE_ALERT'
+  | 'EVENT_PROCESSING_FAILED'
+  | 'QC_INCIDENT_OPENED'
+  | 'INSTRUMENT_MAINTENANCE_DUE'
+  | 'SYSTEM_MAINTENANCE'
   | 'SYSTEM_ALERT';
 
 export type NotificationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -156,23 +163,37 @@ export interface NotificationDto {
   title: string;
   message: string;
   priority: NotificationPriority;
+  sourceModule?: string;
+  eventId?: string;
+  deliveryStatus?: DeliveryStatus;
   readAt?: string;
   isRead: boolean;
   linkUrl?: string;
   relatedEntity?: NotificationRelatedEntity;
   metadata?: Record<string, unknown>;
+  expiresAt?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type NotificationReadStatusFilter = 'ALL' | 'UNREAD' | 'READ';
 
 export interface NotificationFilterDto {
   page?: number;
   limit?: number;
   category?: NotificationCategory | 'ALL';
   unreadOnly?: boolean;
+  readStatus?: NotificationReadStatusFilter;
   search?: string;
   startDate?: string;
   endDate?: string;
+}
+
+export interface NotificationChannelAvailabilityDto {
+  inApp: boolean;
+  email: boolean;
+  sms: boolean;
+  realTimeTransport: 'SSE_WITH_POLLING_FALLBACK';
 }
 
 export interface NotificationChannelPreferences {
@@ -185,6 +206,7 @@ export interface UserNotificationPreferencesDto {
   userId: string;
   userRole?: string;
   channels: NotificationChannelPreferences;
+  availableChannels?: NotificationChannelAvailabilityDto;
   categoryPreferences: Record<NotificationCategory, NotificationChannelPreferences>;
   mandatoryCategories: NotificationCategory[];
   updatedAt: string;
@@ -223,9 +245,22 @@ export interface NotificationEventPayload {
   title: string;
   message: string;
   priority?: NotificationPriority;
+  sourceModule?: string;
+  eventId?: string;
   relatedEntity?: NotificationRelatedEntity;
   linkUrl?: string;
   idempotencyKey?: string;
   channels?: NotificationChannel[];
   metadata?: Record<string, unknown>;
+  expiresAt?: string;
+}
+
+export interface DashboardSyncHintDto {
+  eventId: string;
+  category: NotificationCategory;
+  eventType: NotificationEventType;
+  sourceModule?: string;
+  resourceType?: string;
+  resourceId?: string;
+  timestamp: string;
 }

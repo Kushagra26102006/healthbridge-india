@@ -18,6 +18,7 @@ import {
   PharmacyStaffModel,
 } from '../../../database/models';
 import { notificationService } from '../../notifications/services/notification.service';
+import { eventPublisher } from '../../events/event.publisher';
 import { AppError } from '../../../shared/errors/app-error';
 import { HttpStatus } from '../../../shared/constants/http-status';
 import { ErrorCode } from '../../../shared/errors/error-codes';
@@ -2617,6 +2618,29 @@ export class PharmacyService {
             referenceNumber: rx.prescriptionNumber,
           },
           linkUrl: '/patient/prescriptions',
+        });
+
+        await eventPublisher.publishSafe({
+          idempotencyKey: `dispensing_completed:${dispensingRecord._id.toString()}`,
+          eventType: 'DISPENSING_COMPLETED',
+          sourceModule: 'PHARMACY',
+          aggregateId: dispensingRecord._id.toString(),
+          aggregateType: 'DispensingRecord',
+          actorId: userId,
+          actorRole: 'PHARMACY',
+          payload: {
+            dispensingId: dispensingRecord._id.toString(),
+            prescriptionId: rx._id.toString(),
+            pharmacyId: userId,
+            patientId: patientIdStr,
+            dispensingStatus:
+              dispensingStatus === 'FULLY_DISPENSED'
+                ? 'FULLY_DISPENSED'
+                : 'PARTIALLY_DISPENSED',
+            itemsDispensedCount: recordItems.length,
+            stockDeductedAtomically: true,
+            dispensedAt: new Date().toISOString(),
+          },
         });
       }
     } catch (_e) {

@@ -26,6 +26,41 @@ export interface ConsentValidationResult {
 
 export class ConsentEnforcementService {
   /**
+   * Synchronous in-process revocation barrier keyed by revoked consent/artifact IDs.
+   * Guarantees that revoking a consent blocks stale cached or replica-lagged reads of
+   * that consent IMMEDIATELY without waiting for an async worker — while never falsely
+   * blocking a newly granted consent with a distinct consent ID.
+   */
+  private readonly revokedConsentIds = new Map<string, number>();
+
+  invalidateConsentImmediately(
+    _patientId: string,
+    _requesterId?: string,
+    consentId?: string
+  ): void {
+    if (consentId) {
+      this.revokedConsentIds.set(String(consentId), Date.now());
+    }
+  }
+
+  clearRevocationBarrier(consentId?: string): void {
+    if (consentId) {
+      this.revokedConsentIds.delete(String(consentId));
+      return;
+    }
+    this.revokedConsentIds.clear();
+  }
+
+  private isConsentIdImmediatelyRevoked(candidateIds: Array<unknown>): number | undefined {
+    for (const rawId of candidateIds) {
+      if (!rawId) continue;
+      const ts = this.revokedConsentIds.get(String(rawId));
+      if (ts !== undefined) return ts;
+    }
+    return undefined;
+  }
+
+  /**
    * Evaluates electronic consent authorization for a requester attempting to access patient health records.
    * Fails closed: if no valid, active, non-expired, category-matching consent exists, access is DENIED.
    */
@@ -103,8 +138,14 @@ export class ConsentEnforcementService {
 
     // Evaluate Request if no artifact exists yet
     if (!artifact && request) {
-      if (request.status === 'REVOKED') {
-        return { authorized: false, reason: 'Access denied: Consent has been revoked by the patient' };
+      const immediateRevokedAt = this.isConsentIdImmediatelyRevoked([request._id, request.id]);
+      if (immediateRevokedAt || request.status === 'REVOKED') {
+        return {
+          authorized: false,
+          reason: immediateRevokedAt
+            ? 'Access denied: Consent has been revoked immediately by the patient'
+            : 'Access denied: Consent has been revoked by the patient',
+        };
       }
       if (request.status === 'REJECTED' || request.status === 'DENIED') {
         return { authorized: false, reason: 'Access denied: Consent request was rejected by the patient' };
@@ -131,18 +172,30 @@ export class ConsentEnforcementService {
       return { authorized: true };
     }
 
-    // Evaluate Artifact Status
-    if (artifact.consentStatus === 'REVOKED') {
+    // Evaluate Artifact Status (check synchronous revocation barrier FIRST against stale reads)
+    const artifactImmediatelyRevokedAt = this.isConsentIdImmediatelyRevoked([
+      artifact.consentRequestId,
+      artifact._id,
+      artifact.id,
+    ]);
+    if (artifactImmediatelyRevokedAt || artifact.consentStatus === 'REVOKED') {
       await this.recordAuditLog({
         actorId: requesterId,
-        action: 'DATA_ACCESS_DENIED_REVOKED',
+        action: artifactImmediatelyRevokedAt
+          ? 'DATA_ACCESS_DENIED_REVOKED_IMMEDIATE'
+          : 'DATA_ACCESS_DENIED_REVOKED',
         resourceType: dataCategory,
         resourceId: patientId,
         requestId: requestId || 'req-blocked',
         outcome: 'BLOCKED',
         metadata: { patientId, dataCategory, consentArtifactId: artifact.id },
       });
-      return { authorized: false, reason: 'Access denied: Consent has been revoked by the patient' };
+      return {
+        authorized: false,
+        reason: artifactImmediatelyRevokedAt
+          ? 'Access denied: Consent has been revoked immediately by the patient'
+          : 'Access denied: Consent has been revoked by the patient',
+      };
     }
 
     const validityTo = artifact.validityPeriod?.to ? new Date(artifact.validityPeriod.to) : null;

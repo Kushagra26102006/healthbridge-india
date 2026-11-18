@@ -20,6 +20,7 @@ import { EncounterModel } from '../../healthcare/models/encounter.model';
 import { ConsentArtifactModel } from '../../consent/models/consent-artifact.model';
 import { LaboratoryOrderModel } from '../../healthcare/models/lab-order.model';
 import { platformEventService } from './platform-event.service';
+import { eventPublisher } from '../../events/event.publisher';
 import { AppError } from '../../../shared/errors/app-error';
 
 export class DoctorLabOrderService {
@@ -175,6 +176,28 @@ export class DoctorLabOrderService {
       linkUrl: '/patient/lab-orders',
       correlationId: params.requestId,
       stateTransition: { to: 'ORDERED' },
+    });
+
+    await eventPublisher.publishSafe({
+      idempotencyKey: `lab_order_created:${String(orderDoc._id)}`,
+      eventType: 'LAB_ORDER_CREATED',
+      sourceModule: 'LABORATORY',
+      aggregateId: String(orderDoc._id),
+      aggregateType: 'LaboratoryOrder',
+      correlationId: params.requestId,
+      actorId: doctorUserId,
+      actorRole: 'DOCTOR',
+      payload: {
+        labOrderId: String(orderDoc._id),
+        orderNumber,
+        laboratoryId: dto.laboratoryId || String(laboratoryObjectId || doctorUserId),
+        patientId: dto.patientId,
+        doctorId: doctorUserId,
+        ...(dto.encounterId ? { encounterId: dto.encounterId } : {}),
+        testCount: dto.tests.length,
+        priority: dto.priority === 'EMERGENCY' ? 'STAT' : (dto.priority || 'ROUTINE'),
+        status: 'ORDERED',
+      },
     });
 
     return orderDoc;

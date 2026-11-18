@@ -18,6 +18,8 @@ import { auditRoutes } from '../modules/audit/routes/audit.routes';
 import { notificationRoutes } from '../modules/notifications/routes/notification.routes';
 import { medicationCatalogRoutes } from '../modules/healthcare/routes/medication-catalog.routes';
 import { platformRoutes } from '../modules/platform/routes/platform.routes';
+import { searchRoutes } from '../modules/search/search.routes';
+import { eventRoutes } from '../modules/events/event.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
 export const v1Router = Router();
@@ -47,3 +49,5 @@ v1Router.use('/lab-orders', apiLimiter, labOrderRoutes);
 v1Router.use('/notifications', apiLimiter, notificationRoutes);
 v1Router.use('/audit', apiLimiter, auditRoutes);
 v1Router.use('/platform', apiLimiter, platformRoutes);
+v1Router.use('/search', apiLimiter, searchRoutes);
+v1Router.use('/events', apiLimiter, eventRoutes);

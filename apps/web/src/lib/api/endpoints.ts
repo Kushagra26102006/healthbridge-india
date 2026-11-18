@@ -349,6 +349,13 @@ export const API_ENDPOINTS = {
       `/platform/doctor/patients/${patientId}/overview`,
     ADMIN_OVERVIEW: '/platform/admin/overview',
   },
+  EVENTS: {
+    ROOT: '/events',
+    HEALTH: '/events/health',
+    DEAD_LETTER: '/events/dead-letter',
+    DETAIL: (eventId: string) => `/events/${eventId}`,
+    RETRY: (eventId: string) => `/events/${eventId}/retry`,
+  },
   NOTIFICATIONS: {
     ROOT: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

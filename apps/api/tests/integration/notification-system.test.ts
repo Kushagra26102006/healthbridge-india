@@ -792,7 +792,7 @@ describe('Pharmacy & Patient Notification Center, Preferences & Real-Time Alerts
       expect(addClientSpy).toHaveBeenCalledWith(pharmacyUserId, expect.anything());
     });
 
-    it('should authenticate SSE stream using query parameter token for EventSource', async () => {
+    it('should authenticate SSE stream securely via HTTP-only cookie and reject URL token parameter', async () => {
       const addClientSpy = vi
         .spyOn(notificationStreamService, 'addClient')
         .mockImplementation((userId: string, res: any) => {
@@ -800,8 +800,14 @@ describe('Pharmacy & Patient Notification Center, Preferences & Real-Time Alerts
           res.end();
         });
 
+      const rejected = await request(app).get(
+        `/api/v1/notifications/stream?token=${patientToken}`
+      );
+      expect(rejected.status).toBe(401);
+
       const res = await request(app)
-        .get(`/api/v1/notifications/stream?token=${patientToken}`);
+        .get('/api/v1/notifications/stream')
+        .set('Cookie', [`hb_access_token=${patientToken}`]);
 
       expect(res.status).toBe(200);
       expect(addClientSpy).toHaveBeenCalledWith(patientUserId, expect.anything());

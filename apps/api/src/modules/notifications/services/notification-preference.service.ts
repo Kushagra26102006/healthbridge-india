@@ -5,6 +5,8 @@ import {
   INotificationPreferenceDocument,
 } from '../models/notification-preference.model';
 import { AppError } from '../../../shared/errors/app-error';
+import { AuditLogModel } from '../../security/models/audit-log.model';
+import { notificationDeliveryService } from './notification-delivery.service';
 import type {
   NotificationCategory,
   NotificationChannelPreferences,
@@ -58,6 +60,7 @@ export class NotificationPreferenceService {
         userId,
         userRole,
         channels: { inApp: true, email: true, sms: true },
+        availableChannels: notificationDeliveryService.getConfiguredChannels(),
         categoryPreferences: { ...DEFAULT_CATEGORY_PREFERENCES },
         mandatoryCategories: ['SECURITY'],
         updatedAt: new Date().toISOString(),
@@ -132,6 +135,18 @@ export class NotificationPreferenceService {
     }
 
     await prefDoc.save();
+
+    await AuditLogModel.create({
+      actorId: userId,
+      actorRole: userRole,
+      action: 'NOTIFICATION_PREFERENCES_UPDATED',
+      resourceType: 'NOTIFICATION_PREFERENCES',
+      resourceId: userId,
+      timestamp: new Date(),
+      outcome: 'SUCCESS',
+      metadata: { updatedChannels: Boolean(dto.channels), updatedCategories: Object.keys(dto.categoryPreferences || {}) },
+    }).catch(() => undefined);
+
     return this.mapToDto(prefDoc);
   }
 
@@ -152,6 +167,17 @@ export class NotificationPreferenceService {
     prefDoc.mandatoryCategories = ['SECURITY'];
 
     await prefDoc.save();
+
+    await AuditLogModel.create({
+      actorId: userId,
+      actorRole: userRole || 'USER',
+      action: 'NOTIFICATION_PREFERENCES_RESET',
+      resourceType: 'NOTIFICATION_PREFERENCES',
+      resourceId: userId,
+      timestamp: new Date(),
+      outcome: 'SUCCESS',
+    }).catch(() => undefined);
+
     return this.mapToDto(prefDoc);
   }
 
@@ -173,6 +199,7 @@ export class NotificationPreferenceService {
         email: doc.channels?.email ?? true,
         sms: doc.channels?.sms ?? true,
       },
+      availableChannels: notificationDeliveryService.getConfiguredChannels(),
       categoryPreferences,
       mandatoryCategories: (doc.mandatoryCategories as NotificationCategory[]) || ['SECURITY'],
       updatedAt: doc.updatedAt ? doc.updatedAt.toISOString() : new Date().toISOString(),

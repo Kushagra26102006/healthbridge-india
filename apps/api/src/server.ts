@@ -1,6 +1,9 @@
 import { createApp } from './app';
 import { env } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
+import { notificationStreamService } from './modules/notifications/services/notification-stream.service';
+import { registerDefaultEventHandlers } from './modules/events/handlers/register-handlers';
+import { defaultEventWorker } from './modules/events/event.processor';
 import { logger } from './utils/logger';
 import http from 'http';
 
@@ -10,6 +13,12 @@ const startServer = async (): Promise<void> => {
 
   // Initialize Database Connection
   await connectDatabase();
+
+  // Register Cross-Module Domain Event Handlers & start durable Outbox Worker
+  registerDefaultEventHandlers();
+  if (env.NODE_ENV !== 'test') {
+    defaultEventWorker.start();
+  }
 
   const serverInstance = server.listen(env.PORT, () => {
     logger.info(`HealthBridge India API server started successfully`, {
@@ -23,6 +32,8 @@ const startServer = async (): Promise<void> => {
   // Graceful Shutdown Handler
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`Received ${signal}. Starting graceful shutdown...`);
+    notificationStreamService.closeAll();
+    await defaultEventWorker.stop(5000);
 
     serverInstance.close(async () => {
       logger.info('HTTP server closed');

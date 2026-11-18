@@ -1,5 +1,6 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import type {
+  DeliveryStatus,
   NotificationCategory,
   NotificationEventType,
   NotificationPriority,
@@ -15,6 +16,9 @@ export interface INotificationDocument extends Document {
   message: string;
   priority: NotificationPriority;
   type: NotificationType;
+  sourceModule?: string;
+  eventId?: string;
+  deliveryStatus: DeliveryStatus;
   relatedEntity?: {
     entityType: string;
     entityId: string;
@@ -25,6 +29,7 @@ export interface INotificationDocument extends Document {
   metadata?: Record<string, unknown>;
   readAt?: Date;
   isRead: boolean;
+  expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -79,6 +84,21 @@ const NotificationSchema = new Schema<INotificationDocument>(
       enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
       default: 'MEDIUM',
     },
+    sourceModule: {
+      type: String,
+      trim: true,
+      maxlength: 60,
+    },
+    eventId: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    deliveryStatus: {
+      type: String,
+      enum: ['PENDING', 'QUEUED', 'SENT', 'DELIVERED', 'FAILED', 'RETRYING'],
+      default: 'PENDING',
+    },
     type: {
       type: String,
       enum: [
@@ -122,6 +142,10 @@ const NotificationSchema = new Schema<INotificationDocument>(
       default: false,
       index: true,
     },
+    expiresAt: {
+      type: Date,
+      required: false,
+    },
   },
   {
     timestamps: true,
@@ -138,9 +162,12 @@ const NotificationSchema = new Schema<INotificationDocument>(
   }
 );
 
-// High-speed compound indexes for filtered user queries
+// High-speed compound indexes for filtered user queries, deduplication & retention
+NotificationSchema.index({ userId: 1, createdAt: -1 });
 NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 NotificationSchema.index({ userId: 1, category: 1, createdAt: -1 });
+NotificationSchema.index({ eventId: 1 }, { sparse: true });
+NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
 NotificationSchema.index({ createdAt: -1 });
 
 export const NotificationModel: Model<INotificationDocument> =

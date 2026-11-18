@@ -88,6 +88,24 @@ export class NotificationDeliveryService {
   }
 
   /**
+   * Honestly reports which external delivery channels have real provider credentials configured.
+   * In-app notifications are always active; Email/SMS are only marked configured when real credentials exist.
+   */
+  getConfiguredChannels(): {
+    inApp: boolean;
+    email: boolean;
+    sms: boolean;
+    realTimeTransport: 'SSE_WITH_POLLING_FALLBACK';
+  } {
+    return {
+      inApp: true,
+      email: Boolean(process.env.SMTP_HOST || process.env.AWS_SES_REGION),
+      sms: Boolean(process.env.TWILIO_ACCOUNT_SID || process.env.MSG91_AUTH_KEY),
+      realTimeTransport: 'SSE_WITH_POLLING_FALLBACK',
+    };
+  }
+
+  /**
    * Track and dispatch deliveries across enabled channels
    */
   async trackAndDispatchDeliveries(params: {

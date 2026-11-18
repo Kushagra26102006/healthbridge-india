@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setSession, setLoading, setError, clearSession } from '@/store/slices/auth-slice';
 import { authApi } from '../api/auth-api';
+import { broadcastNotificationSync } from '@/features/notifications/lib/cross-tab-sync';
 import type { RegisterRequestDto, LoginRequestDto } from '@healthbridge/shared-types';
 
 export const useAuth = () => {
@@ -80,12 +81,15 @@ export const useAuth = () => {
   const logoutMutation = useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
+      broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
       queryClient.clear();
     },
     onError: () => {
       // Clear client state even if network call fails
+      broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
+      queryClient.clear();
     },
   });
 

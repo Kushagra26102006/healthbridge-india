@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { AppointmentModel, IAppointmentDocument } from '../../healthcare/models/appointment.model';
 import { DoctorProfileModel } from '../../users/models/doctor-profile.model';
 import { AppError } from '../../../shared/errors/app-error';
+import { eventPublisher } from '../../events/event.publisher';
 import { HttpStatus } from '../../../shared/constants/http-status';
 import { ErrorCode } from '../../../shared/errors/error-codes';
 import { DEMO_DOCTORS } from '../../doctors/services/doctor.service';
@@ -450,6 +451,24 @@ export class AppointmentService {
         });
 
         await appointment.save();
+
+        await eventPublisher.publishSafe({
+          idempotencyKey: `appointment_booked:${appointment._id.toString()}`,
+          eventType: 'APPOINTMENT_BOOKED',
+          sourceModule: 'APPOINTMENTS',
+          aggregateId: appointment._id.toString(),
+          aggregateType: 'Appointment',
+          actorId: patientId,
+          actorRole: 'PATIENT',
+          payload: {
+            appointmentId: appointment._id.toString(),
+            patientId,
+            doctorId: input.doctorId,
+            ...(facilityObjectId ? { facilityId: facilityObjectId.toString() } : {}),
+            scheduledAt: scheduledDate.toISOString(),
+            status: appointment.status,
+          },
+        });
 
         const defaultDoc = DEMO_DOCTORS[0]!;
         const doctorMatch =

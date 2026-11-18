@@ -24,3 +24,5 @@ export * from './abdm.types';
 export * from './abdm-consent.types';
 export * from './abdm-hie.types';
 export * from './platform-integration.types';
+export * from './search.types';
+export * from './events.types';

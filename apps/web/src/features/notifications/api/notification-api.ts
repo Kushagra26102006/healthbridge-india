@@ -11,6 +11,17 @@ import type {
   NotificationCategory,
 } from '@healthbridge/shared-types';
 
+/**
+ * Resolves the canonical SSE stream URL without duplicating `/api/v1` and WITHOUT
+ * placing any access token in the URL query string (uses HTTP-only cookies via withCredentials).
+ */
+export function getNotificationStreamUrl(): string {
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1'
+  ).replace(/\/+$/, '');
+  return `${baseUrl}${API_ENDPOINTS.NOTIFICATIONS.STREAM}`;
+}
+
 export const notificationApi = {
   /**
    * Fetch paginated user notifications
@@ -27,7 +38,11 @@ export const notificationApi = {
     if (filter?.page) params.append('page', String(filter.page));
     if (filter?.limit) params.append('limit', String(filter.limit));
     if (filter?.category && filter.category !== 'ALL') params.append('category', filter.category);
-    if (filter?.unreadOnly !== undefined) params.append('unreadOnly', String(filter.unreadOnly));
+    if (filter?.readStatus && filter.readStatus !== 'ALL') {
+      params.append('readStatus', filter.readStatus);
+    } else if (filter?.unreadOnly !== undefined) {
+      params.append('unreadOnly', String(filter.unreadOnly));
+    }
     if (filter?.search) params.append('search', filter.search);
     if (filter?.startDate) params.append('startDate', filter.startDate);
     if (filter?.endDate) params.append('endDate', filter.endDate);
@@ -71,7 +86,7 @@ export const notificationApi = {
    */
   async markAllAsRead(category?: NotificationCategory): Promise<{ modifiedCount: number }> {
     const query = category ? `?category=${category}` : '';
-    const res = await apiClient.post<ApiResponse<{ modifiedCount: number }>>(
+    const res = await apiClient.patch<ApiResponse<{ modifiedCount: number }>>(
       `${API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ}${query}`
     );
     return res.data.data!;
@@ -98,12 +113,12 @@ export const notificationApi = {
   },
 
   /**
-   * Update notification preferences
+   * Update notification preferences via PATCH
    */
   async updatePreferences(
     dto: UpdateUserNotificationPreferencesDto
   ): Promise<UserNotificationPreferencesDto> {
-    const res = await apiClient.put<ApiResponse<UserNotificationPreferencesDto>>(
+    const res = await apiClient.patch<ApiResponse<UserNotificationPreferencesDto>>(
       API_ENDPOINTS.NOTIFICATIONS.PREFERENCES,
       dto
     );

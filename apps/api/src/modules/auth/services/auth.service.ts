@@ -14,6 +14,7 @@ import {
 import { tokenService } from './token.service';
 import { notificationService } from './notification.service';
 import { hashToken, generateRandomToken } from '../utils/crypto.util';
+import { notificationStreamService } from '../../notifications/services/notification-stream.service';
 import type {
   RegisterRequestDto,
   LoginRequestDto,
@@ -317,6 +318,7 @@ export class AuthService {
     }
 
     if (userId) {
+      notificationStreamService.disconnectUser(userId, 'LOGOUT');
       await AuditLogModel.create({
         actorId: userId,
         action: 'USER_LOGOUT',
@@ -334,6 +336,7 @@ export class AuthService {
    */
   async logoutAll(userId: string, requestId?: string): Promise<void> {
     await tokenService.revokeAllUserSessions(userId);
+    notificationStreamService.disconnectUser(userId, 'LOGOUT_ALL_SESSIONS');
 
     await AuditLogModel.create({
       actorId: userId,

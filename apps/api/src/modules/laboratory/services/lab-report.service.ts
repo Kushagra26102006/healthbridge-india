@@ -14,6 +14,7 @@ import { notificationService } from '../../notifications/services/notification.s
 import { ReportPdfService } from './report-pdf.service';
 import { FhirDiagnosticReportService } from './fhir-diagnostic-report.service';
 import { qcReleaseGateService } from './qc-release-gate.service';
+import { eventPublisher } from '../../events/event.publisher';
 import { AppError } from '../../../shared/errors/app-error';
 import type {
   LabReportDetailDto,
@@ -915,6 +916,38 @@ export class LabReportService {
     };
 
     await report.save();
+
+    const patientIdForEvent =
+      (report.patientId as any)?._id?.toString?.() || report.patientId?.toString?.();
+    const labIdForEvent =
+      (report.laboratoryId as any)?._id?.toString?.() || report.laboratoryId?.toString?.();
+    const doctorIdForEvent =
+      (report.doctorId as any)?._id?.toString?.() || report.doctorId?.toString?.();
+
+    if (patientIdForEvent && labIdForEvent) {
+      await eventPublisher.publishSafe({
+        idempotencyKey: `lab_report_${finalStatus.toLowerCase()}:${report._id.toString()}:v${versionNumber}`,
+        eventType: finalStatus === 'AMENDED' ? 'REPORT_AMENDED' : 'REPORT_PUBLISHED',
+        sourceModule: 'LABORATORY',
+        aggregateId: report._id.toString(),
+        aggregateType: 'LaboratoryReport',
+        actorId: user.id,
+        actorRole: user.role,
+        payload: {
+          reportId: report._id.toString(),
+          reportNumber: report.reportNumber,
+          ...(report.orderId ? { labOrderId: report.orderId.toString() } : {}),
+          laboratoryId: labIdForEvent,
+          patientId: patientIdForEvent,
+          ...(doctorIdForEvent ? { orderingDoctorId: doctorIdForEvent } : {}),
+          qcPassed: true,
+          status: finalStatus,
+          version: versionNumber,
+          ...(versionNumber > 1 ? { previousVersion: versionNumber - 1 } : {}),
+          publishedAt: report.publishedAt ? report.publishedAt.toISOString() : new Date().toISOString(),
+        },
+      });
+    }
 
     // Persist immutable version ledger snapshot
     await LabReportVersionModel.findOneAndUpdate(

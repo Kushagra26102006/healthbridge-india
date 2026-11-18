@@ -41,6 +41,7 @@ import {
   PrescribedMedicationDto,
 } from '@healthbridge/shared-types';
 import { AppError } from '../../../shared/errors/app-error';
+import { eventPublisher } from '../../events/event.publisher';
 import { HttpStatus } from '../../../shared/constants/http-status';
 import { ErrorCode } from '../../../shared/errors/error-codes';
 
@@ -597,6 +598,29 @@ export class DoctorPrescriptionService {
         $addToSet: { linkedPrescriptionIds: prescription._id },
       });
     }
+
+    await eventPublisher.publishSafe({
+      idempotencyKey: `prescription_issued:${prescriptionId}`,
+      eventType: 'PRESCRIPTION_ISSUED',
+      sourceModule: 'PRESCRIPTIONS',
+      aggregateId: prescriptionId,
+      aggregateType: 'Prescription',
+      correlationId: requestId,
+      actorId: userId,
+      actorRole: 'DOCTOR',
+      payload: {
+        prescriptionId,
+        prescriptionNumber: prescription.prescriptionNumber,
+        ...(prescription.encounterId ? { encounterId: prescription.encounterId.toString() } : {}),
+        patientId: prescription.patientId.toString(),
+        doctorId: userId,
+        status: prescription.status,
+        isDraft: false,
+        medicationCount: Array.isArray(prescription.medications) ? prescription.medications.length : 0,
+        pharmacyDiscoverable: true,
+        issuedAt: now.toISOString(),
+      },
+    });
 
     await this.recordAudit({
       actorId: userId,

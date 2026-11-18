@@ -4,9 +4,11 @@ import { NotificationModel, INotificationDocument } from '../models/notification
 import { notificationStreamService } from './notification-stream.service';
 import { notificationDeliveryService } from './notification-delivery.service';
 import { notificationPreferenceService } from './notification-preference.service';
+import { sanitizeNotificationText } from './notification-template.registry';
 import { UserModel } from '../../users/models/user.model';
 import { AppError } from '../../../shared/errors/app-error';
 import type {
+  DashboardSyncHintDto,
   NotificationCategory,
   NotificationChannel,
   NotificationDto,
@@ -15,6 +17,12 @@ import type {
   NotificationUnreadCountDto,
   NotificationDeliveryDto,
 } from '@healthbridge/shared-types';
+
+const DEFAULT_NOTIFICATION_RETENTION_DAYS = 90;
+
+function escapeRegexChars(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export class NotificationService {
   /**
@@ -99,7 +107,18 @@ export class NotificationService {
       ? (payload.category as any)
       : 'SYSTEM_ALERT';
 
-    // 6. Create notification document in database
+    // 6. Sanitize title & message (privacy guard) and persist notification FIRST before real-time delivery
+    const safeTitle = sanitizeNotificationText(payload.title);
+    const safeMessage = sanitizeNotificationText(payload.message);
+    const expiresAt = payload.expiresAt
+      ? new Date(payload.expiresAt)
+      : new Date(Date.now() + DEFAULT_NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const sourceModule =
+      payload.sourceModule ||
+      (typeof payload.metadata?.sourceModule === 'string'
+        ? payload.metadata.sourceModule
+        : undefined);
+
     let notification: any;
     const isMockedCreate = Boolean(
       (NotificationModel.create as any)?._isMockFunction ||
@@ -112,14 +131,18 @@ export class NotificationService {
         userRole: payload.recipientRole,
         category: payload.category,
         eventType: payload.eventType,
-        title: payload.title,
-        message: payload.message,
+        title: safeTitle,
+        message: safeMessage,
         priority: payload.priority || 'MEDIUM',
+        sourceModule,
+        eventId: payload.eventId,
+        deliveryStatus: 'PENDING',
         type: legacyType,
         relatedEntity: payload.relatedEntity,
         linkUrl: payload.linkUrl,
         idempotencyKey,
         metadata: payload.metadata,
+        expiresAt,
         isRead: false,
       });
     } else {
@@ -129,36 +152,89 @@ export class NotificationService {
         userRole: payload.recipientRole,
         category: payload.category,
         eventType: payload.eventType,
-        title: payload.title,
-        message: payload.message,
+        title: safeTitle,
+        message: safeMessage,
         priority: payload.priority || 'MEDIUM',
+        sourceModule,
+        eventId: payload.eventId,
+        deliveryStatus: 'PENDING',
         type: legacyType,
         relatedEntity: payload.relatedEntity,
         linkUrl: payload.linkUrl,
         idempotencyKey,
         metadata: payload.metadata,
+        expiresAt,
         isRead: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
     }
 
+    // 7. Track deliveries across configured channels
+    let finalDeliveryStatus: 'DELIVERED' | 'FAILED' = 'DELIVERED';
+    try {
+      const deliveryRecords = await notificationDeliveryService.trackAndDispatchDeliveries({
+        notificationId: notification._id,
+        userId: recipientObjectId,
+        channels: targetChannels,
+        title: safeTitle,
+        message: safeMessage,
+        recipientEmail,
+        recipientPhone,
+      });
+      if (
+        deliveryRecords.length > 0 &&
+        deliveryRecords.every((r) => r.status === 'FAILED')
+      ) {
+        finalDeliveryStatus = 'FAILED';
+      }
+    } catch {
+      finalDeliveryStatus = 'FAILED';
+    }
+
+    notification.deliveryStatus = finalDeliveryStatus;
+    if (mongoose.connection.readyState === 1 && typeof notification.save === 'function') {
+      await notification.save().catch(() => undefined);
+    }
+
     const dto = this.mapToDto(notification);
 
-    // 7. Track deliveries across configured channels
-    await notificationDeliveryService.trackAndDispatchDeliveries({
-      notificationId: notification._id,
-      userId: recipientObjectId,
-      channels: targetChannels,
-      title: payload.title,
-      message: payload.message,
-      recipientEmail,
-      recipientPhone,
-    });
-
-    // 8. Real-Time Push to connected SSE clients
+    // 8. Real-Time Push to connected SSE clients (minimal safe DTO + narrow dashboard sync hint)
     if (effectiveInApp) {
-      notificationStreamService.broadcastToUser(payload.recipientId, 'notification', dto);
+      notificationStreamService.broadcastToUser(
+        payload.recipientId,
+        'notification',
+        {
+          id: dto.id,
+          category: dto.category,
+          eventType: dto.eventType,
+          title: dto.title,
+          message: dto.message,
+          priority: dto.priority,
+          sourceModule: dto.sourceModule,
+          linkUrl: dto.linkUrl,
+          relatedEntity: dto.relatedEntity,
+          isRead: dto.isRead,
+          createdAt: dto.createdAt,
+        },
+        dto.id
+      );
+
+      const syncHint: DashboardSyncHintDto = {
+        eventId: dto.eventId || dto.id,
+        category: dto.category,
+        eventType: dto.eventType,
+        sourceModule: dto.sourceModule,
+        resourceType: dto.relatedEntity?.entityType,
+        resourceId: dto.relatedEntity?.entityId,
+        timestamp: new Date().toISOString(),
+      };
+      notificationStreamService.broadcastToUser(
+        payload.recipientId,
+        'dashboard_sync',
+        syncHint,
+        `sync:${dto.id}`
+      );
 
       // Also broadcast updated unread count if mocked or connected
       const isCountMocked = Boolean(
@@ -210,12 +286,14 @@ export class NotificationService {
       query.category = filter.category;
     }
 
-    if (filter.unreadOnly) {
+    if (filter.readStatus === 'UNREAD' || filter.unreadOnly) {
       query.isRead = false;
+    } else if (filter.readStatus === 'READ') {
+      query.isRead = true;
     }
 
     if (filter.search && filter.search.trim()) {
-      const reg = new RegExp(filter.search.trim(), 'i');
+      const reg = new RegExp(escapeRegexChars(filter.search.trim().slice(0, 100)), 'i');
       query.$or = [{ title: reg }, { message: reg }, { 'relatedEntity.referenceNumber': reg }];
     }
 
@@ -353,6 +431,29 @@ export class NotificationService {
   }
 
   /**
+   * GET MISSED NOTIFICATIONS SINCE LAST SSE EVENT ID (RECONNECTION RECOVERY)
+   * Strictly scoped to the authenticated userId.
+   */
+  async getMissedNotificationsSince(
+    userId: string,
+    lastEventId: string,
+    limit = 20
+  ): Promise<NotificationDto[]> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(lastEventId)) {
+      return [];
+    }
+
+    const missed = await NotificationModel.find({
+      userId: new Types.ObjectId(userId),
+      _id: { $gt: new Types.ObjectId(lastEventId) },
+    })
+      .sort({ _id: 1 })
+      .limit(Math.min(limit, 50));
+
+    return (missed || []).map((doc) => this.mapToDto(doc));
+  }
+
+  /**
    * GET DELIVERY HISTORY
    */
   async getDeliveryHistory(userId: string, limit = 50): Promise<NotificationDeliveryDto[]> {
@@ -369,6 +470,9 @@ export class NotificationService {
       title: doc.title,
       message: doc.message,
       priority: doc.priority || 'MEDIUM',
+      sourceModule: doc.sourceModule,
+      eventId: doc.eventId,
+      deliveryStatus: doc.deliveryStatus || 'DELIVERED',
       readAt: doc.readAt ? doc.readAt.toISOString() : undefined,
       isRead: Boolean(doc.isRead),
       linkUrl: doc.linkUrl,
@@ -380,6 +484,7 @@ export class NotificationService {
           }
         : undefined,
       metadata: doc.metadata,
+      expiresAt: doc.expiresAt ? doc.expiresAt.toISOString() : undefined,
       createdAt: doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString(),
       updatedAt: doc.updatedAt ? doc.updatedAt.toISOString() : new Date().toISOString(),
     };

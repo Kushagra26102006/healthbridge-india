@@ -13,6 +13,7 @@ import {
   AuditLogModel,
 } from '../../../database/models';
 import { AppError } from '../../../shared/errors/app-error';
+import { eventPublisher } from '../../events/event.publisher';
 import { HttpStatus } from '../../../shared/constants/http-status';
 import { ErrorCode } from '../../../shared/errors/error-codes';
 import type {
@@ -681,6 +682,28 @@ export class DoctorEncounterService {
         completedBy: new Types.ObjectId(userId),
       });
     }
+
+    await eventPublisher.publishSafe({
+      idempotencyKey: `encounter_finalized:${encounterId}:v${encounter.version}`,
+      eventType: 'ENCOUNTER_FINALIZED',
+      sourceModule: 'ENCOUNTERS',
+      aggregateId: encounterId,
+      aggregateType: 'Encounter',
+      correlationId: requestId,
+      actorId: userId,
+      actorRole: 'DOCTOR',
+      payload: {
+        encounterId,
+        ...(encounter.appointmentId ? { appointmentId: encounter.appointmentId.toString() } : {}),
+        patientId: encounter.patientId.toString(),
+        doctorId: userId,
+        encounterType: encounter.encounterType,
+        status: encounter.status,
+        isDraft: false,
+        finalizedAt: now.toISOString(),
+        version: encounter.version,
+      },
+    });
 
     await this.recordAudit({
       actorId: userId,
