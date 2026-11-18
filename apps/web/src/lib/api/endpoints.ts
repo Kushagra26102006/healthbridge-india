@@ -380,6 +380,16 @@ export const API_ENDPOINTS = {
     ADMIN_STATUS: '/admin/data-protection/status',
     ADMIN_ROTATE_KEY: '/admin/data-protection/rotate-key',
   },
+  SECURITY_OPS: {
+    OVERVIEW: '/admin/security/overview',
+    EVENTS: '/admin/security/events',
+    ALERTS: '/admin/security/alerts',
+    ALERT_DETAIL: (id: string) => `/admin/security/alerts/${id}`,
+    INCIDENTS: '/admin/security/incidents',
+    INCIDENT_DETAIL: (id: string) => `/admin/security/incidents/${id}`,
+    VULNERABILITIES: '/admin/security/vulnerabilities',
+    VULNERABILITY_DETAIL: (id: string) => `/admin/security/vulnerabilities/${id}`,
+  },
   NOTIFICATIONS: {
     ROOT: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

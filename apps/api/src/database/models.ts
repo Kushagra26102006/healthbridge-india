@@ -92,4 +92,5 @@ export * from '../modules/privacy/models/data-access-event.model';
 export * from '../modules/privacy/models/privacy-request.model';
 export * from '../modules/privacy/models/privacy-notice.model';
 export * from '../modules/privacy/models/legal-hold.model';
+export * from '../modules/security-monitoring/models/security-monitoring.models';
 
