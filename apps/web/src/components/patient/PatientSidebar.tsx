@@ -43,6 +43,7 @@ export const PATIENT_NAV_ITEMS: NavItem[] = [
   { label: 'Lab Reports', href: '/patient/lab-reports', icon: FlaskConical },
   { label: 'ABHA Identity', href: '/patient/abha', icon: Fingerprint },
   { label: 'Consent Management', href: '/patient/consent', icon: ShieldCheck },
+  { label: 'Privacy & Rights', href: '/patient/privacy', icon: ShieldCheck },
   { label: 'Notifications', href: '/patient/notifications', icon: Bell },
   { label: 'My Profile', href: '/patient/profile', icon: User },
   { label: 'Settings', href: '/patient/settings', icon: Settings },

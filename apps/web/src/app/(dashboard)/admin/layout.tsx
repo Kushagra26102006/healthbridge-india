@@ -12,6 +12,7 @@ const ADMIN_NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/platform-overview', label: 'Platform Overview', icon: Activity },
   { href: '/admin/platform/events', label: 'Event Monitor', icon: Activity },
+  { href: '/admin/privacy-requests', label: 'Privacy Requests', icon: ShieldCheck },
   { href: '/admin/integrations/abdm', label: 'ABDM Status', icon: ShieldCheck },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
 ];

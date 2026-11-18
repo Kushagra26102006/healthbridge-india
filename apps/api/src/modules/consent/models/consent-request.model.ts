@@ -22,7 +22,12 @@ export interface IConsentRequestDocument extends Document {
   rejectionReason?: string;
   revocationReason?: string;
   signature?: string;
-  status: ConsentStatus | 'REQUESTED' | 'GRANTED' | 'DENIED';
+  consentVersion?: number;
+  permittedOperations?: string[];
+  sourceOfConsent?: 'PATIENT_PORTAL' | 'ABDM_GATEWAY' | 'CLINICAL_WORKFLOW';
+  receiptNumber?: string;
+  transactionReference?: string;
+  status: ConsentStatus | 'DRAFT' | 'REQUESTED' | 'GRANTED' | 'DENIED' | 'WITHDRAWN';
   expiresAt: Date;
   auditId?: Types.ObjectId;
   createdAt: Date;
@@ -110,9 +115,32 @@ const ConsentRequestSchema = new Schema<IConsentRequestDocument>(
       type: String,
       trim: true,
     },
+    consentVersion: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    permittedOperations: {
+      type: [String],
+      default: ['VIEW'],
+    },
+    sourceOfConsent: {
+      type: String,
+      enum: ['PATIENT_PORTAL', 'ABDM_GATEWAY', 'CLINICAL_WORKFLOW'],
+      default: 'PATIENT_PORTAL',
+    },
+    receiptNumber: {
+      type: String,
+      trim: true,
+    },
+    transactionReference: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       enum: [
+        'DRAFT',
         'PENDING',
         'APPROVED',
         'REJECTED',
@@ -121,6 +149,7 @@ const ConsentRequestSchema = new Schema<IConsentRequestDocument>(
         'REQUESTED',
         'GRANTED',
         'DENIED',
+        'WITHDRAWN',
       ],
       default: 'PENDING',
       index: true,

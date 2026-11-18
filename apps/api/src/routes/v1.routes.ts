@@ -20,6 +20,11 @@ import { medicationCatalogRoutes } from '../modules/healthcare/routes/medication
 import { platformRoutes } from '../modules/platform/routes/platform.routes';
 import { searchRoutes } from '../modules/search/search.routes';
 import { eventRoutes } from '../modules/events/event.routes';
+import {
+  publicPrivacyRoutes,
+  patientPrivacyRoutes,
+  adminPrivacyRoutes,
+} from '../modules/privacy/privacy.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
 export const v1Router = Router();
@@ -51,3 +56,6 @@ v1Router.use('/audit', apiLimiter, auditRoutes);
 v1Router.use('/platform', apiLimiter, platformRoutes);
 v1Router.use('/search', apiLimiter, searchRoutes);
 v1Router.use('/events', apiLimiter, eventRoutes);
+v1Router.use('/privacy', apiLimiter, publicPrivacyRoutes);
+v1Router.use('/patient/privacy', apiLimiter, patientPrivacyRoutes);
+v1Router.use('/admin/privacy', apiLimiter, adminPrivacyRoutes);

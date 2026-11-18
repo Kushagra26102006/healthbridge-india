@@ -13,9 +13,14 @@ export interface IConsentArtifactDocument extends Document {
     from: Date;
     to: Date;
   };
-  consentStatus: ConsentArtifactStatus;
+  consentStatus: ConsentArtifactStatus | 'WITHDRAWN';
+  consentVersion?: number;
+  permittedOperations?: string[];
+  sourceOfConsent?: 'PATIENT_PORTAL' | 'ABDM_GATEWAY' | 'CLINICAL_WORKFLOW';
+  receiptNumber?: string;
   approvedAt: Date;
   revokedAt?: Date;
+  withdrawnAt?: Date;
   revocationReason?: string;
   signature?: string;
   createdAt: Date;
@@ -70,9 +75,27 @@ const ConsentArtifactSchema = new Schema<IConsentArtifactDocument>(
     },
     consentStatus: {
       type: String,
-      enum: ['ACTIVE', 'REVOKED', 'EXPIRED'],
+      enum: ['ACTIVE', 'REVOKED', 'EXPIRED', 'WITHDRAWN'],
       default: 'ACTIVE',
       index: true,
+    },
+    consentVersion: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    permittedOperations: {
+      type: [String],
+      default: ['VIEW'],
+    },
+    sourceOfConsent: {
+      type: String,
+      enum: ['PATIENT_PORTAL', 'ABDM_GATEWAY', 'CLINICAL_WORKFLOW'],
+      default: 'PATIENT_PORTAL',
+    },
+    receiptNumber: {
+      type: String,
+      trim: true,
     },
     approvedAt: {
       type: Date,
@@ -80,6 +103,9 @@ const ConsentArtifactSchema = new Schema<IConsentArtifactDocument>(
       required: true,
     },
     revokedAt: {
+      type: Date,
+    },
+    withdrawnAt: {
       type: Date,
     },
     revocationReason: {

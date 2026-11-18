@@ -88,4 +88,8 @@ export * from '../modules/laboratory/models/instrument-calibration.model';
 export * from '../modules/laboratory/models/instrument-maintenance.model';
 export * from '../modules/laboratory/models/reagent.model';
 export * from '../modules/laboratory/models/reagent-transaction.model';
+export * from '../modules/privacy/models/data-access-event.model';
+export * from '../modules/privacy/models/privacy-request.model';
+export * from '../modules/privacy/models/privacy-notice.model';
+export * from '../modules/privacy/models/legal-hold.model';
 
