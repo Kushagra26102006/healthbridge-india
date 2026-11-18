@@ -141,7 +141,6 @@ const EncounterSchema = new Schema<IEncounterDocument>(
     appointmentId: {
       type: Schema.Types.ObjectId,
       ref: 'Appointment',
-      index: true,
     },
     encounterType: {
       type: String,
@@ -261,6 +260,17 @@ EncounterSchema.index({ patientId: 1, startTime: -1 });
 EncounterSchema.index({ practitionerId: 1, startTime: -1 });
 EncounterSchema.index({ practitionerId: 1, status: 1 });
 EncounterSchema.index({ practitionerId: 1, isDraft: 1 });
+// Prevent multiple active/completed encounters for the same appointment
+EncounterSchema.index(
+  { appointmentId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      appointmentId: { $exists: true, $type: 'objectId' },
+      status: { $in: ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'FINALIZED'] },
+    },
+  }
+);
 
 export const EncounterModel: Model<IEncounterDocument> =
   (mongoose.models.Encounter as Model<IEncounterDocument>) ||

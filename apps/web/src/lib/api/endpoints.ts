@@ -342,6 +342,13 @@ export const API_ENDPOINTS = {
       ANALYTICS: '/abdm/hie/analytics',
     },
   },
+  PLATFORM: {
+    PATIENT_TIMELINE: '/platform/patient/timeline',
+    PATIENT_IDENTITY: '/platform/patient/identity',
+    DOCTOR_PATIENT_OVERVIEW: (patientId: string) =>
+      `/platform/doctor/patients/${patientId}/overview`,
+    ADMIN_OVERVIEW: '/platform/admin/overview',
+  },
   NOTIFICATIONS: {
     ROOT: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

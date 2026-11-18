@@ -250,6 +250,45 @@ export interface PatientDashboardSummaryDto {
     medicationsSummary: string;
     status: PrescriptionStatus;
     medicationsCount: number;
+    dispensingStatus?: string;
   }>;
   recentActivity: PatientRecentActivityDto[];
+  recentEncounters?: Array<{
+    id: string;
+    doctorName: string;
+    encounterType: string;
+    startTime: string;
+    status: string;
+    chiefComplaint?: string;
+  }>;
+  recentLabReports?: Array<{
+    id: string;
+    reportNumber: string;
+    testName: string;
+    publishedAt: string;
+    status: string;
+    isAmended: boolean;
+  }>;
+  recentDispensing?: Array<{
+    id: string;
+    dispensingNumber: string;
+    pharmacyName: string;
+    prescriptionNumber: string;
+    dispensedAt: string;
+    dispensingStatus: string;
+  }>;
+  abhaStatus?: {
+    linked: boolean;
+    verificationStatus: string;
+    abhaAddress?: string;
+    maskedAbhaNumber?: string;
+    isMocked?: boolean;
+  };
+  consentSummary?: {
+    activeInternalConsents: number;
+    pendingInternalRequests: number;
+    activeAbdmArtefacts: number;
+    pendingAbdmRequests: number;
+  };
+  unreadNotificationsCount?: number;
 }

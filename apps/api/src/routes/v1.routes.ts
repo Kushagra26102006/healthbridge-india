@@ -17,6 +17,7 @@ import { labOrderRoutes } from '../modules/laboratory/routes/lab-order.routes';
 import { auditRoutes } from '../modules/audit/routes/audit.routes';
 import { notificationRoutes } from '../modules/notifications/routes/notification.routes';
 import { medicationCatalogRoutes } from '../modules/healthcare/routes/medication-catalog.routes';
+import { platformRoutes } from '../modules/platform/routes/platform.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
 export const v1Router = Router();
@@ -45,3 +46,4 @@ v1Router.use('/lab-reports', apiLimiter, labReportRoutes);
 v1Router.use('/lab-orders', apiLimiter, labOrderRoutes);
 v1Router.use('/notifications', apiLimiter, notificationRoutes);
 v1Router.use('/audit', apiLimiter, auditRoutes);
+v1Router.use('/platform', apiLimiter, platformRoutes);

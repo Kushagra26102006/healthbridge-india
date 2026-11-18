@@ -44,8 +44,10 @@ export interface ILaboratoryOrderDocument extends Document {
   orderNumber: string;
   patientId: Types.ObjectId;
   orderedBy: Types.ObjectId;
+  encounterId?: Types.ObjectId;
   laboratoryId?: Types.ObjectId;
   facilityId?: Types.ObjectId;
+  idempotencyKey?: string;
   tests: ILabOrderItemDocument[];
   testAssignments?: ITestAssignmentDocument[];
   status: LabOrderStatus;
@@ -135,6 +137,11 @@ const LaboratoryOrderSchema = new Schema<ILaboratoryOrderDocument>(
       required: [true, 'Ordering physician ID reference is required'],
       index: true,
     },
+    encounterId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Encounter',
+      index: true,
+    },
     laboratoryId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -143,6 +150,12 @@ const LaboratoryOrderSchema = new Schema<ILaboratoryOrderDocument>(
     facilityId: {
       type: Schema.Types.ObjectId,
       ref: 'Facility',
+      index: true,
+    },
+    idempotencyKey: {
+      type: String,
+      trim: true,
+      sparse: true,
       index: true,
     },
     tests: {

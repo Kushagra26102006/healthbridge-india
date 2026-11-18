@@ -82,7 +82,7 @@ export class DoctorEncounterService {
   ): Promise<'GRANTED' | 'ENCOUNTER_BOUND'> {
     const patientObjectId = new Types.ObjectId(patientId);
 
-    // 1. If explicit appointment is referenced, verify doctor owns it
+    // 1. If explicit appointment is referenced, verify doctor owns it & prevent duplicate encounter
     if (appointmentId) {
       const apt = await AppointmentModel.findOne({
         _id: new Types.ObjectId(appointmentId),
@@ -95,6 +95,14 @@ export class DoctorEncounterService {
           'Access denied: You do not hold ownership of the referenced appointment for this patient',
           HttpStatus.FORBIDDEN,
           ErrorCode.FORBIDDEN
+        );
+      }
+
+      if ((apt as any).encounterId) {
+        throw new AppError(
+          'An active or completed clinical encounter already exists for this appointment.',
+          HttpStatus.CONFLICT,
+          ErrorCode.CONFLICT
         );
       }
       return 'ENCOUNTER_BOUND';
@@ -475,7 +483,7 @@ export class DoctorEncounterService {
       throw AppError.notFound('Patient record not found');
     }
 
-    // 2. Authorize clinical relationship (fails closed)
+    // 2. Authorize clinical relationship & enforce single encounter per appointment (fails closed)
     await this.validatePatientAccess(doctorIds, dto.patientId, dto.appointmentId);
 
     // 3. Resolve facility if not specified

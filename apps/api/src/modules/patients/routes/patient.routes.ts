@@ -8,7 +8,14 @@ import { MedicalRecordModel } from '../../healthcare/models/medical-record.model
 import { AppointmentModel } from '../../healthcare/models/appointment.model';
 import { PrescriptionModel } from '../../healthcare/models/prescription.model';
 import { LaboratoryReportModel } from '../../healthcare/models/lab-report.model';
+import { EncounterModel } from '../../healthcare/models/encounter.model';
+import { DispensingRecordModel } from '../../pharmacy/models/dispensing-record.model';
 import { ConsentArtifactModel } from '../../consent/models/consent-artifact.model';
+import { ConsentRequestModel } from '../../consent/models/consent-request.model';
+import { AbhaLinkModel } from '../../abdm/models/abha-link.model';
+import { AbdmConsentArtefactModel } from '../../abdm/models/abdm-consent-artefact.model';
+import { AbdmConsentRequestModel } from '../../abdm/models/abdm-consent-request.model';
+import { NotificationModel } from '../../notifications/models/notification.model';
 import { getDatabaseStatus } from '../../../config/database';
 import { patientProfileController } from '../controllers/patient-profile.controller';
 import { orderFulfillmentController } from '../../pharmacy/controllers/order-fulfillment.controller';
@@ -69,20 +76,44 @@ patientRoutes.get(
       // 1. Fetch patient profile with ABHA data
       const profile = await PatientProfileModel.findOne({ userId: patientId });
 
-      // 2. Fetch summary counts concurrently
+      // 2. Fetch summary counts and cross-module data concurrently (STRICT: excludes drafts & unpublished clinical reports)
       const [
         totalRecords,
         activePrescriptionsCount,
         availableLabReports,
         activeConsents,
+        pendingInternalConsentRequests,
+        activeAbdmArtefacts,
+        pendingAbdmRequests,
+        unreadNotificationsCount,
+        activeAbhaLink,
         appointmentsData,
         prescriptionsData,
         recentRecords,
+        recentEncountersRaw,
+        recentLabReportsRaw,
+        recentDispensingRaw,
       ] = await Promise.all([
         MedicalRecordModel.countDocuments({ patientId }),
-        PrescriptionModel.countDocuments({ patientId, status: 'ACTIVE' }),
-        LaboratoryReportModel.countDocuments({ patientId }),
+        PrescriptionModel.countDocuments({ patientId, isDraft: false, status: 'ACTIVE' }),
+        LaboratoryReportModel.countDocuments({
+          patientId,
+          status: { $in: ['PUBLISHED', 'AMENDED'] },
+        }),
         ConsentArtifactModel.countDocuments({ patientId, status: 'ACTIVE' }),
+        ConsentRequestModel.countDocuments({ patientId, status: 'PENDING' }),
+        AbdmConsentArtefactModel.countDocuments({
+          patientId,
+          externalStatus: 'GRANTED',
+          revocationStatus: 'NOT_REVOKED',
+          expiresAt: { $gt: new Date() },
+        }),
+        AbdmConsentRequestModel.countDocuments({
+          patientId,
+          internalStatus: { $in: ['SUBMITTED', 'AWAITING_PATIENT_ACTION'] },
+        }),
+        NotificationModel.countDocuments({ userId: patientId, isRead: false }),
+        AbhaLinkModel.findOne({ patientId, isActive: true }).lean(),
         AppointmentModel.find({
           patientId,
           status: { $in: ['REQUESTED', 'SCHEDULED', 'CONFIRMED'] },
@@ -92,12 +123,36 @@ patientRoutes.get(
           .populate('doctorId', 'name specialization')
           .populate('facilityId', 'name')
           .lean(),
-        PrescriptionModel.find({ patientId })
+        PrescriptionModel.find({
+          patientId,
+          isDraft: false,
+          status: { $ne: 'DRAFT' },
+        })
           .sort({ issuedAt: -1 })
           .limit(5)
           .populate('doctorId', 'name')
           .lean(),
         MedicalRecordModel.find({ patientId }).sort({ createdAt: -1 }).limit(5).lean(),
+        EncounterModel.find({
+          patientId,
+          isDraft: false,
+          status: { $in: ['COMPLETED', 'FINALIZED'] },
+        })
+          .sort({ startTime: -1 })
+          .limit(5)
+          .populate('practitionerId', 'name')
+          .lean(),
+        LaboratoryReportModel.find({
+          patientId,
+          status: { $in: ['PUBLISHED', 'AMENDED'] },
+        })
+          .sort({ publishedAt: -1, testDate: -1 })
+          .limit(5)
+          .lean(),
+        DispensingRecordModel.find({ patientId })
+          .sort({ dispensedAt: -1 })
+          .limit(5)
+          .lean(),
       ]);
 
       // 3. Format upcoming appointments
@@ -167,6 +222,59 @@ patientRoutes.get(
         });
       }
 
+      const recentEncounters = (recentEncountersRaw as any[]).map((enc) => ({
+        id: enc._id?.toString() || enc.id,
+        doctorName: enc.practitionerId?.name || 'Attending Clinician',
+        encounterType: enc.encounterType || 'OPD',
+        startTime: enc.startTime ? new Date(enc.startTime).toISOString() : new Date().toISOString(),
+        status: enc.status || 'COMPLETED',
+        chiefComplaint: enc.chiefComplaint,
+      }));
+
+      const recentLabReports = (recentLabReportsRaw as any[]).map((rep) => ({
+        id: rep._id?.toString() || rep.id,
+        reportNumber: rep.reportNumber,
+        testName: rep.testName,
+        publishedAt: (rep.publishedAt || rep.testDate || rep.createdAt)
+          ? new Date(rep.publishedAt || rep.testDate || rep.createdAt).toISOString()
+          : new Date().toISOString(),
+        status: rep.status,
+        isAmended: rep.status === 'AMENDED' || Boolean(rep.amendmentDetails?.isAmended),
+      }));
+
+      const recentDispensing = (recentDispensingRaw as any[]).map((d) => ({
+        id: d._id?.toString() || d.id,
+        dispensingNumber: d.dispensingNumber,
+        pharmacyName: d.pharmacyName,
+        prescriptionNumber: d.prescriptionNumber,
+        dispensedAt: d.dispensedAt ? new Date(d.dispensedAt).toISOString() : new Date().toISOString(),
+        dispensingStatus: d.dispensingStatus,
+      }));
+
+      for (const rep of recentLabReports.slice(0, 3)) {
+        recentActivity.push({
+          id: `act-lab-${rep.id}`,
+          type: 'LAB_REPORT',
+          title: rep.isAmended ? `Amended Lab Report: ${rep.testName}` : `Lab Report Published: ${rep.testName}`,
+          description: `Report ${rep.reportNumber} is available for download`,
+          timestamp: rep.publishedAt,
+          badge: rep.status,
+          actionUrl: '/patient/lab-reports',
+        });
+      }
+
+      for (const disp of recentDispensing.slice(0, 2)) {
+        recentActivity.push({
+          id: `act-disp-${disp.id}`,
+          type: 'PRESCRIPTION',
+          title: `Medication Dispensed (${disp.dispensingNumber})`,
+          description: `Fulfilled by ${disp.pharmacyName}`,
+          timestamp: disp.dispensedAt,
+          badge: disp.dispensingStatus,
+          actionUrl: '/patient/orders',
+        });
+      }
+
       // Sort activity latest first
       recentActivity.sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -179,11 +287,28 @@ patientRoutes.get(
           upcomingAppointments: upcomingAppointments.length,
           activePrescriptions: activePrescriptionsCount,
           availableLabReports,
-          activeConsents,
+          activeConsents: activeConsents + activeAbdmArtefacts,
         },
         upcomingAppointments,
         recentPrescriptions,
         recentActivity: recentActivity.slice(0, 10),
+        recentEncounters,
+        recentLabReports,
+        recentDispensing,
+        abhaStatus: {
+          linked: Boolean(activeAbhaLink && activeAbhaLink.verificationStatus === 'VERIFIED'),
+          verificationStatus: activeAbhaLink?.verificationStatus || 'NOT_LINKED',
+          abhaAddress: activeAbhaLink?.abhaAddress,
+          maskedAbhaNumber: activeAbhaLink?.abhaNumberMasked,
+          isMocked: activeAbhaLink?.isMocked,
+        },
+        consentSummary: {
+          activeInternalConsents: activeConsents,
+          pendingInternalRequests: pendingInternalConsentRequests,
+          activeAbdmArtefacts,
+          pendingAbdmRequests,
+        },
+        unreadNotificationsCount,
       };
 
       sendSuccess(res, responsePayload, 'Patient dashboard summary retrieved successfully');
