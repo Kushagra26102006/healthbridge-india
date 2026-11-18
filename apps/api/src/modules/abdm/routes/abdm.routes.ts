@@ -9,6 +9,7 @@ import { authorize } from '../../../middleware/authorize';
 import { createRateLimiter } from '../../../middleware/rate-limit';
 import { abdmController } from '../controllers/abdm.controller';
 import { abhaController } from '../controllers/abha.controller';
+import { abdmConsentController } from '../controllers/abdm-consent.controller';
 
 export const abdmRoutes = Router();
 
@@ -35,16 +36,17 @@ abdmRoutes.get('/', (_req: Request, res: Response) => {
     res,
     {
       module: 'ABDM',
-      status: 'abha_integration_foundation_ready',
-      milestone: 'Day 7 Task 02',
+      status: 'abdm_consent_manager_foundation_ready',
+      milestone: 'Day 7 Task 03',
       liveExchangeEnabled: false,
     },
-    'ABDM & ABHA integration foundation ready'
+    'ABDM, ABHA & Consent Manager integration foundation ready'
   );
 });
 
-// Dedicated inbound webhook callback endpoint (authenticated via ABDM webhook signature/secret)
+// Dedicated inbound webhook callback endpoints (authenticated via ABDM webhook signature/secret)
 abdmRoutes.post('/webhooks/callback', abdmController.receiveWebhookCallback);
+abdmRoutes.post('/webhooks/consent/:callbackType', abdmConsentController.receiveConsentCallback);
 
 // Protected Admin-Only ABDM Governance & Diagnostics Endpoints
 abdmRoutes.get(
@@ -182,6 +184,104 @@ abdmRoutes.post(
   authorize(['PATIENT']),
   abhaOtpLimiter,
   abhaController.unlinkOwnAbha
+);
+
+// ============================================================================
+// ABDM CONSENT MANAGER ENDPOINTS (Day 7 Task 03 — Strict RBAC & Ownership)
+// ============================================================================
+
+abdmRoutes.post(
+  '/consent/requests',
+  authenticate,
+  authorize(['DOCTOR', 'LABORATORY', 'PHARMACY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmConsentController.initiateRequest
+);
+
+abdmRoutes.get(
+  '/consent/requests',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.listOwnRequests
+);
+
+abdmRoutes.get(
+  '/consent/requests/:id',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.getOwnRequestDetail
+);
+
+abdmRoutes.post(
+  '/consent/requests/:id/refresh',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.refreshOwnRequestStatus
+);
+
+abdmRoutes.get(
+  '/consent/artefacts',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.listOwnArtefacts
+);
+
+abdmRoutes.get(
+  '/consent/artefacts/:id',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.getOwnArtefactDetail
+);
+
+abdmRoutes.get(
+  '/consent/artefacts/:id/fhir',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.getOwnArtefactFhirProjection
+);
+
+abdmRoutes.post(
+  '/consent/artefacts/:id/revoke',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaOtpLimiter,
+  abdmConsentController.revokeOwnArtefact
+);
+
+abdmRoutes.get(
+  '/consent/history',
+  authenticate,
+  authorize(['PATIENT']),
+  abhaGeneralLimiter,
+  abdmConsentController.getOwnHistory
+);
+
+abdmRoutes.post(
+  '/consent/validate-access',
+  authenticate,
+  authorize(['PATIENT', 'DOCTOR', 'LABORATORY', 'PHARMACY', 'ADMIN']),
+  abhaGeneralLimiter,
+  abdmConsentController.validateAccess
+);
+
+abdmRoutes.get(
+  '/consent/analytics',
+  authenticate,
+  authorize(['ADMIN']),
+  abdmConsentController.getAdminAnalytics
+);
+
+abdmRoutes.post(
+  '/consent/sync',
+  authenticate,
+  authorize(['ADMIN']),
+  abdmConsentController.triggerSyncSweep
 );
 
 export default abdmRoutes;

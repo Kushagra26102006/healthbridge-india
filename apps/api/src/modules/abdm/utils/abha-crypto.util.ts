@@ -132,6 +132,33 @@ export function decryptAbhaNumberFromStorage(
 }
 
 /**
+ * Encrypts arbitrary sensitive UTF-8 payload (e.g., consent artefact sensitive metadata)
+ * using AES-256-GCM (random 12-byte IV + 16-byte auth tag).
+ * Output format: `v1:<ivHex>:<authTagHex>:<ciphertextHex>`
+ */
+export function encryptSensitivePayloadForStorage(
+  plaintext: string,
+  source: NodeJS.ProcessEnv = process.env
+): string {
+  const key = deriveAesKey(source);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return `v1:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
+/**
+ * Decrypts a stored AES-256-GCM encrypted sensitive payload.
+ */
+export function decryptSensitivePayloadFromStorage(
+  payload: string,
+  source: NodeJS.ProcessEnv = process.env
+): string {
+  return decryptAbhaNumberFromStorage(payload, source);
+}
+
+/**
  * Computes a deterministic HMAC-SHA256 blind index of the normalized 14-digit ABHA number
  * to enforce global uniqueness across active patient links without exposing plaintext in indexes.
  */

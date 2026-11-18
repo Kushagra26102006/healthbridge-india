@@ -21,3 +21,4 @@ export * from './laboratory.types';
 export * from './laboratory-qms.types';
 export * from './laboratory-workforce.types';
 export * from './abdm.types';
+export * from './abdm-consent.types';

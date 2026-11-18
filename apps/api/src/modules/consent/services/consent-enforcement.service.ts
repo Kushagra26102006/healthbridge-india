@@ -3,6 +3,11 @@ import { ConsentArtifactModel } from '../models/consent-artifact.model';
 import { ConsentRequestModel } from '../models/consent-request.model';
 import { AuditLogModel } from '../../security/models/audit-log.model';
 import { AppError } from '../../../shared/errors/app-error';
+import type {
+  AbdmConsentAccessValidationInput,
+  AbdmConsentValidationResultDto,
+} from '@healthbridge/shared-types';
+import { abdmConsentValidationService } from '../../abdm/services/abdm-consent-validation.service';
 
 export interface ConsentValidationOptions {
   requesterId: string;
@@ -220,6 +225,33 @@ export class ConsentEnforcementService {
     if (!result.authorized) {
       throw AppError.forbidden(result.reason || 'Access denied: Consent required');
     }
+  }
+
+  /**
+   * Delegates external ABDM HIE-CM access checks to the centralized ABDM Consent Validation Service.
+   * Strictly preserves patient self-access while failing closed on external ABDM data-sharing paths
+   * when external confirmation, signature, expiry, revocation, scope, or date-range checks fail.
+   */
+  async validateExternalAbdmAccess(
+    input: AbdmConsentAccessValidationInput
+  ): Promise<AbdmConsentValidationResultDto> {
+    const result = await abdmConsentValidationService.validateAbdmConsentAccess(input);
+    if (!result.allowed) {
+      await this.recordAuditLog({
+        actorId: input.actorId,
+        action: 'ABDM_EXTERNAL_ACCESS_DENIED',
+        resourceType: input.requestedHiType,
+        resourceId: input.patientId,
+        requestId: input.externalConsentId || input.artefactId || 'abdm-access-check',
+        outcome: 'BLOCKED',
+        metadata: {
+          decision: result.decision,
+          reasonCode: result.reasonCode,
+          requestedPurposeCode: input.requestedPurposeCode,
+        },
+      });
+    }
+    return result;
   }
 
   /**

@@ -28,7 +28,13 @@ const KNOWN_TERMINOLOGY_SYSTEMS = new Set([
   'http://terminology.hl7.org/CodeSystem/v2-0074',
   'http://terminology.hl7.org/CodeSystem/observation-category',
   'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+  'http://terminology.hl7.org/CodeSystem/consentscope',
+  'http://terminology.hl7.org/CodeSystem/consentaction',
+  'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
   'https://nrces.in/ndhm/fhir/r4/CodeSystem/ndhm-identifier-type-code',
+  'https://abdm.gov.in/hiecm/purpose',
+  'https://abdm.gov.in/hiecm/hitype',
+  'https://abdm.gov.in/consent-artefact',
   'https://healthid.ndhm.gov.in',
   'https://facility.ndhm.gov.in',
   'https://doctor.ndhm.gov.in',
@@ -136,6 +142,9 @@ export class FhirR4Validator {
         break;
       case 'Composition':
         this.validateComposition(resource, errors, warnings);
+        break;
+      case 'Consent':
+        this.validateConsent(resource, errors, warnings);
         break;
       case 'Bundle':
         this.validateBundle(resource, strict, errors, warnings);
@@ -328,6 +337,77 @@ export class FhirR4Validator {
         code: 'COMPOSITION_DATE_INVALID',
         path: 'Composition.date',
         message: 'Composition.date must be a valid ISO-8601 datetime.',
+      });
+    }
+  }
+
+  private validateConsent(
+    r: Record<string, unknown>,
+    errors: FhirValidationIssueDto[],
+    warnings: FhirValidationIssueDto[]
+  ): void {
+    const validStatuses = ['draft', 'proposed', 'active', 'rejected', 'inactive', 'entered-in-error'];
+    if (!validStatuses.includes(String(r.status || ''))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'CONSENT_STATUS_INVALID',
+        path: 'Consent.status',
+        message:
+          "Consent.status is required and must be one of 'draft' | 'proposed' | 'active' | 'rejected' | 'inactive' | 'entered-in-error'.",
+      });
+    }
+
+    this.validateCodeableConcept(r.scope, 'Consent.scope', errors, warnings);
+
+    if (!Array.isArray(r.category) || r.category.length === 0) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'CONSENT_CATEGORY_REQUIRED',
+        path: 'Consent.category',
+        message: 'Consent.category requires at least one CodeableConcept entry.',
+      });
+    } else {
+      this.validateCodeableConcept(r.category[0], 'Consent.category[0]', errors, warnings);
+    }
+
+    this.validateReference(r.patient, 'Consent.patient', errors);
+
+    if (r.dateTime && !ISO_DATE_OR_DATETIME_REGEX.test(String(r.dateTime))) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'CONSENT_DATETIME_INVALID',
+        path: 'Consent.dateTime',
+        message: 'Consent.dateTime must be a valid ISO-8601 datetime.',
+      });
+    }
+
+    const period = r.period as { start?: string; end?: string } | undefined;
+    if (period) {
+      if (period.start && !ISO_DATE_OR_DATETIME_REGEX.test(String(period.start))) {
+        errors.push({
+          severity: 'ERROR',
+          code: 'CONSENT_PERIOD_START_INVALID',
+          path: 'Consent.period.start',
+          message: 'Consent.period.start must be a valid ISO-8601 datetime.',
+        });
+      }
+      if (period.end && !ISO_DATE_OR_DATETIME_REGEX.test(String(period.end))) {
+        errors.push({
+          severity: 'ERROR',
+          code: 'CONSENT_PERIOD_END_INVALID',
+          path: 'Consent.period.end',
+          message: 'Consent.period.end must be a valid ISO-8601 datetime.',
+        });
+      }
+    }
+
+    const provision = r.provision as { type?: string } | undefined;
+    if (provision && provision.type && !['permit', 'deny'].includes(provision.type)) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'CONSENT_PROVISION_TYPE_INVALID',
+        path: 'Consent.provision.type',
+        message: "Consent.provision.type must be 'permit' or 'deny'.",
       });
     }
   }

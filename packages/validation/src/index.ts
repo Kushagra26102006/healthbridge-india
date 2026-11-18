@@ -18,4 +18,5 @@ export * from './laboratory.schema';
 export * from './laboratory-qms.schema';
 export * from './laboratory-workforce.schema';
 export * from './abdm.schema';
+export * from './abdm-consent.schema';
 

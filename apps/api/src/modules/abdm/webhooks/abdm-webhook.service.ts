@@ -25,6 +25,16 @@ import { AbdmIntegrationError } from '../errors/abdm-error';
 import { redactAbdmLogPayload } from '../utils/redaction';
 import { AuditLogModel } from '../../security/models/audit-log.model';
 import { logger } from '../../../config/logger';
+import { abdmConsentLifecycleService } from '../services/abdm-consent-lifecycle.service';
+
+const CONSENT_CALLBACK_EVENT_TYPES = new Set([
+  'consent/request/on-init',
+  'consent/request/on-status',
+  'consent/hiu/notify',
+  'consent/hip/notify',
+  'consent/on-fetch',
+  'consent/revocation/notify',
+]);
 
 export interface InboundWebhookHeaders {
   signature?: string;
@@ -193,7 +203,41 @@ export class AbdmWebhookService {
       });
     }
 
-    // 5. Update outbound correlation tracker if matched
+    // 5. Dispatch verified consent lifecycle callbacks when MongoDB is connected or lifecycle is mocked
+    const consentDispatchReady =
+      mongoose.connection.readyState === 1 ||
+      Boolean((abdmConsentLifecycleService.processConsentCallback as any)?.mock);
+    if (
+      CONSENT_CALLBACK_EVENT_TYPES.has(payload.eventType) &&
+      consentDispatchReady &&
+      payload.payload
+    ) {
+      try {
+        await abdmConsentLifecycleService.processConsentCallback(
+          payload.eventType,
+          payload.payload,
+          {
+            requestId: payload.requestId,
+            correlationId,
+            timestamp: payload.timestamp,
+            respRequestId: payload.resp?.requestId,
+            error: payload.error,
+          },
+          envSource
+        );
+      } catch (consentErr: any) {
+        logger.warn(
+          `Consent callback processing failed for '${payload.eventType}'`,
+          redactAbdmLogPayload({
+            requestId: payload.requestId,
+            correlationId,
+            error: consentErr?.message,
+          }) as Record<string, unknown>
+        );
+      }
+    }
+
+    // 6. Update outbound correlation tracker if matched
     abdmCorrelationService.markCallbackReceived(
       correlationId,
       payload.error ? 'FAILED' : 'COMPLETED'

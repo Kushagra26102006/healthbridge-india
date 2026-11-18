@@ -21,10 +21,12 @@ import {
   Activity,
 } from 'lucide-react';
 import type {
+  AbdmConsentAdminAnalyticsDto,
   AbdmIntegrationStatus,
   AbhaIntegrationAnalyticsDto,
 } from '@healthbridge/shared-types';
 import { abdmApi, type AbdmAdminStatusWithAbhaDto } from '@/features/abdm/api/abdm-api';
+import { abdmConsentApi } from '@/features/abdm/api/abdm-consent-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -57,6 +59,11 @@ function StatusPill({ status }: { status: AbdmIntegrationStatus }) {
 export default function AdminAbdmIntegrationStatusPage() {
   const [data, setData] = useState<AbdmAdminStatusWithAbhaDto | null>(null);
   const [abhaAnalytics, setAbhaAnalytics] = useState<AbhaIntegrationAnalyticsDto | null>(null);
+  const [consentAnalytics, setConsentAnalytics] = useState<AbdmConsentAdminAnalyticsDto | null>(
+    null
+  );
+  const [syncingConsent, setSyncingConsent] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +79,12 @@ export default function AdminAbdmIntegrationStatusPage() {
         const analytics = await abdmApi.getAbhaAnalytics();
         setAbhaAnalytics(analytics);
       }
+      if (res.consentAnalytics) {
+        setConsentAnalytics(res.consentAnalytics);
+      } else {
+        const cAnalytics = await abdmApi.getConsentAnalytics().catch(() => null);
+        setConsentAnalytics(cAnalytics);
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -82,6 +95,22 @@ export default function AdminAbdmIntegrationStatusPage() {
       setLoading(false);
     }
   }, []);
+
+  const handleRunConsentSync = async () => {
+    try {
+      setSyncingConsent(true);
+      setSyncNotice(null);
+      const summary = await abdmConsentApi.triggerAdminSync();
+      setSyncNotice(
+        `Sync sweep (${summary.status}): ${summary.expiredRequestsMarked} expired requests, ${summary.expiredArtefactsMarked} expired artefacts, ${summary.externalStatusChecked} external checks.`
+      );
+      await loadStatus();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Consent sync sweep failed.');
+    } finally {
+      setSyncingConsent(false);
+    }
+  };
 
   useEffect(() => {
     loadStatus();
@@ -99,7 +128,7 @@ export default function AdminAbdmIntegrationStatusPage() {
               </Button>
             </Link>
             <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border-none">
-              Day 7 Tasks 01–02 — ABDM &amp; ABHA Integration
+              Day 7 Tasks 01–03 — ABDM, ABHA &amp; Consent Manager
             </Badge>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5 pt-1">
@@ -516,6 +545,128 @@ export default function AdminAbdmIntegrationStatusPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ABDM Consent Manager Integration Section (Day 7 Task 03 — Aggregate Only, Zero PII) */}
+          {consentAnalytics && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileCheck2 className="h-5 w-5 text-teal-600" />
+                    ABDM Consent Manager Integration &amp; Synchronization Telemetry
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Aggregate consent lifecycle metrics only. Zero patient-identifiable details are
+                    exposed. Mocked development, sandbox, and production records are separated below.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusPill status={consentAnalytics.consentReadiness} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRunConsentSync}
+                    disabled={syncingConsent}
+                    className="text-xs gap-1.5 h-8"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${syncingConsent ? 'animate-spin' : ''}`} />
+                    Run Expiry &amp; Status Sync
+                  </Button>
+                </div>
+              </div>
+
+              {syncNotice && (
+                <div className="rounded-lg bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/50 px-3.5 py-2 text-xs text-teal-900 dark:text-teal-200">
+                  {syncNotice}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-[11px] text-slate-500">Pending Requests</p>
+                  <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">
+                    {consentAnalytics.metrics.pendingRequests}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-[11px] text-slate-500">Approved Requests</p>
+                  <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                    {consentAnalytics.metrics.approvedRequests}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-[11px] text-slate-500">Rejected Requests</p>
+                  <p className="text-xl font-bold text-rose-700 dark:text-rose-400 mt-1">
+                    {consentAnalytics.metrics.rejectedRequests}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-[11px] text-slate-500">Expired Artefacts</p>
+                  <p className="text-xl font-bold text-slate-700 dark:text-slate-300 mt-1">
+                    {consentAnalytics.metrics.expiredArtefacts}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <p className="text-[11px] text-slate-500">Revoked Artefacts</p>
+                  <p className="text-xl font-bold text-rose-700 dark:text-rose-400 mt-1">
+                    {consentAnalytics.metrics.revokedArtefacts}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between">
+                  <span className="text-slate-500">Sync Failures</span>
+                  <span className="font-mono font-semibold text-rose-600">
+                    {consentAnalytics.metrics.syncFailures}
+                  </span>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between">
+                  <span className="text-slate-500">Callback Processing Failures</span>
+                  <span className="font-mono font-semibold text-rose-600">
+                    {consentAnalytics.metrics.callbackProcessingFailures}
+                  </span>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between">
+                  <span className="text-slate-500">Last Successful Sync</span>
+                  <span className="font-mono text-slate-900 dark:text-white">
+                    {consentAnalytics.lastSuccessfulSyncAt
+                      ? new Date(consentAnalytics.lastSuccessfulSyncAt).toLocaleString()
+                      : 'Never'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Environment Separation Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="rounded-lg bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-900/40 p-3">
+                  <p className="font-semibold text-purple-900 dark:text-purple-200">
+                    Mocked (Development)
+                  </p>
+                  <p className="text-purple-700 dark:text-purple-300 mt-0.5">
+                    Requests: {consentAnalytics.environmentBreakdown.mockedDevelopment.requests} •
+                    Artefacts: {consentAnalytics.environmentBreakdown.mockedDevelopment.artefacts}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40 p-3">
+                  <p className="font-semibold text-blue-900 dark:text-blue-200">ABDM Sandbox</p>
+                  <p className="text-blue-700 dark:text-blue-300 mt-0.5">
+                    Requests: {consentAnalytics.environmentBreakdown.sandbox.requests} • Artefacts:{' '}
+                    {consentAnalytics.environmentBreakdown.sandbox.artefacts}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    Production (Locked)
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-300 mt-0.5">
+                    Requests: {consentAnalytics.environmentBreakdown.production.requests} •
+                    Artefacts: {consentAnalytics.environmentBreakdown.production.artefacts}
+                  </p>
                 </div>
               </div>
             </div>
