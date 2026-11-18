@@ -24,7 +24,7 @@ const startServer = async (): Promise<void> => {
     logger.info('Background outbox worker disabled on this replica (ENABLE_BACKGROUND_WORKER=false)');
   }
 
-  const serverInstance = server.listen(env.PORT, () => {
+  const serverInstance = server.listen(env.PORT, '0.0.0.0', () => {
     logger.info(`HealthBridge India API server started successfully`, {
       environment: env.NODE_ENV,
       port: env.PORT,

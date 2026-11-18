@@ -56,7 +56,13 @@ export const errorHandler: ErrorRequestHandler = (
       code: e.code,
     }));
   }
-  // 3. Handle MongoDB / Mongoose Duplicate Key Error (E11000)
+  // 3. Handle CORS Origin Authorization Rejection
+  else if (err instanceof Error && err.message.startsWith('CORS blocked origin:')) {
+    statusCode = HttpStatus.FORBIDDEN;
+    code = ErrorCode.FORBIDDEN;
+    message = err.message;
+  }
+  // 4. Handle MongoDB / Mongoose Duplicate Key Error (E11000)
   else if (
     err &&
     typeof err === 'object' &&

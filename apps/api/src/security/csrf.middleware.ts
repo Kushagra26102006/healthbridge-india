@@ -12,23 +12,11 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AUTH_CONFIG } from '@healthbridge/config';
-import { env } from '../config/env';
 import { AppError } from '../shared/errors/app-error';
 import { securityAuditMonitor } from './security-audit.monitor';
+import { getAllowedOrigins, isOriginAllowed } from '../config/cors.config';
 
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
-function getAllowedOrigins(): Set<string> {
-  const origins = new Set<string>();
-  const raw = [env.CORS_ORIGIN, env.FRONTEND_URL].filter(Boolean);
-  for (const entry of raw) {
-    for (const part of String(entry).split(',')) {
-      const trimmed = part.trim().replace(/\/+$/, '');
-      if (trimmed) origins.add(trimmed);
-    }
-  }
-  return origins;
-}
 
 function extractOriginFromReferer(referer: string): string | null {
   try {
@@ -72,24 +60,9 @@ export const csrfProtectionMiddleware = (
   const originHeader = req.headers.origin ? String(req.headers.origin).replace(/\/+$/, '') : null;
   const refererHeader = req.headers.referer ? String(req.headers.referer) : null;
 
-  // 1. Reject explicit cross-site Fetch Metadata
-  if (secFetchSite === 'cross-site') {
-    void securityAuditMonitor.record({
-      actorId: req.user?.userId,
-      actorRole: req.user?.role || 'ANONYMOUS',
-      action: 'CSRF_BLOCKED',
-      resourceType: 'AUTH_SESSION',
-      resourceId: req.path,
-      requestId: req.requestId,
-      outcome: 'BLOCKED',
-      metadata: { reason: 'Sec-Fetch-Site cross-site blocked', method: req.method },
-    });
-    return next(AppError.forbidden('CSRF validation failed: cross-site request blocked.'));
-  }
-
-  // 2. Validate Origin header when present
+  // 1. Validate Origin header when present
   if (originHeader) {
-    if (!allowedOrigins.has(originHeader)) {
+    if (!isOriginAllowed(originHeader, allowedOrigins)) {
       void securityAuditMonitor.record({
         actorId: req.user?.userId,
         actorRole: req.user?.role || 'ANONYMOUS',
@@ -105,10 +78,10 @@ export const csrfProtectionMiddleware = (
     return next();
   }
 
-  // 3. Fallback to Referer header when present
+  // 2. Fallback to Referer header when present
   if (refererHeader) {
     const refererOrigin = extractOriginFromReferer(refererHeader);
-    if (!refererOrigin || !allowedOrigins.has(refererOrigin)) {
+    if (!refererOrigin || !isOriginAllowed(refererOrigin, allowedOrigins)) {
       void securityAuditMonitor.record({
         actorId: req.user?.userId,
         actorRole: req.user?.role || 'ANONYMOUS',
@@ -121,6 +94,22 @@ export const csrfProtectionMiddleware = (
       });
       return next(AppError.forbidden('CSRF validation failed: untrusted request referer.'));
     }
+    return next();
+  }
+
+  // 3. Fallback: Reject explicit cross-site Fetch Metadata when origin/referer is missing
+  if (secFetchSite === 'cross-site') {
+    void securityAuditMonitor.record({
+      actorId: req.user?.userId,
+      actorRole: req.user?.role || 'ANONYMOUS',
+      action: 'CSRF_BLOCKED',
+      resourceType: 'AUTH_SESSION',
+      resourceId: req.path,
+      requestId: req.requestId,
+      outcome: 'BLOCKED',
+      metadata: { reason: 'Sec-Fetch-Site cross-site blocked without valid origin', method: req.method },
+    });
+    return next(AppError.forbidden('CSRF validation failed: cross-site request blocked.'));
   }
 
   next();

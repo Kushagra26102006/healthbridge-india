@@ -7,7 +7,7 @@ const isProduction = env.NODE_ENV === 'production';
 export const getBaseCookieOptions = (maxAgeMs: number): CookieOptions => ({
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: isProduction ? 'none' : 'lax',
   path: '/',
   maxAge: maxAgeMs,
 });
@@ -28,7 +28,7 @@ export const clearAuthCookies = (res: Response): void => {
   const clearOptions: CookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     path: '/',
   };
   res.clearCookie(AUTH_CONFIG.accessTokenCookieName, clearOptions);

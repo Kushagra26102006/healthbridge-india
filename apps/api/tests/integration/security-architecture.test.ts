@@ -99,7 +99,7 @@ describe('HealthBridge Platform Security — HTTP Integration Tests (Day 9 Task 
           recordDate: '2026-11-18T10:00:00Z',
         });
       expect(crossOriginRes.status).toBe(403);
-      expect(crossOriginRes.body.message).toMatch(/CSRF/i);
+      expect(crossOriginRes.body.message).toMatch(/(CSRF|CORS)/i);
 
       const secFetchCrossSite = await request(app)
         .post('/api/v1/records')

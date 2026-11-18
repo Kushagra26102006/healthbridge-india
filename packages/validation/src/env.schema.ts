@@ -38,7 +38,7 @@ export const backendEnvSchema = z
         const n = parseInt(val, 10);
         return Number.isNaN(n) ? 5 : Math.min(20, Math.max(1, n));
       }),
-    CORS_ORIGIN: z.string().default('http://localhost:3000'),
+    CORS_ORIGIN: z.string().default('https://healthbridgeindia-kushagra.vercel.app'),
     FRONTEND_URL: z.string().default('http://localhost:3000').optional(),
     TRUST_PROXY_HOPS: z
       .string()

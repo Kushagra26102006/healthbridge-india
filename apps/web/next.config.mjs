@@ -42,7 +42,7 @@ const securityHeaders = [
       "font-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      `connect-src 'self' ${apiOrigin}${videoWsOrigin ? ` ${videoWsOrigin}` : ''}`,
+      `connect-src 'self' https://healthbridge-india.onrender.com ${apiOrigin}${videoWsOrigin ? ` ${videoWsOrigin}` : ''}`,
     ].join('; '),
   },
 ];

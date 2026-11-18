@@ -15,11 +15,15 @@ import {
   csrfProtectionMiddleware,
 } from './security';
 
-export const parseCorsOrigins = (rawOrigin: string): string[] =>
-  rawOrigin
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0 && origin !== '*');
+import {
+  getCorsOptions,
+  parseCorsOrigins,
+  getAllowedOrigins,
+  isOriginAllowed,
+  DEFAULT_ALLOWED_ORIGINS,
+} from './config/cors.config';
+
+export { parseCorsOrigins, getAllowedOrigins, isOriginAllowed, DEFAULT_ALLOWED_ORIGINS };
 
 export const createApp = (): Application => {
   const app: Application = express();
@@ -53,31 +57,10 @@ export const createApp = (): Application => {
     })
   );
 
-  // CORS Configuration (supports comma-separated explicit allowlist; never allows '*' with credentials)
-  const allowedOrigins = parseCorsOrigins(env.CORS_ORIGIN);
-  app.use(
-    cors({
-      origin: allowedOrigins.length <= 1 ? allowedOrigins[0] || false : allowedOrigins,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Requested-With',
-        'X-Request-Id',
-        'X-ABDM-Auth',
-        'Last-Event-ID',
-        'X-Video-Room-Token',
-      ],
-      exposedHeaders: [
-        'X-Request-Id',
-        'RateLimit-Limit',
-        'RateLimit-Remaining',
-        'RateLimit-Reset',
-        'Retry-After',
-      ],
-    })
-  );
+  // CORS Configuration (supports dynamic explicit allowlist; never allows '*' with credentials)
+  const corsOptions = getCorsOptions();
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
 
   // Request body and cookie parsers
   app.use(express.json({ limit: '10mb' }));
