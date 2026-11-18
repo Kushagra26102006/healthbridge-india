@@ -468,6 +468,17 @@ export class FhirR4Validator {
       return;
     }
 
+    const MAX_BUNDLE_ENTRIES = 150;
+    if (entries.length > MAX_BUNDLE_ENTRIES) {
+      errors.push({
+        severity: 'ERROR',
+        code: 'BUNDLE_ENTRY_LIMIT_EXCEEDED',
+        path: 'Bundle.entry',
+        message: `Bundle contains ${entries.length} entries, exceeding the safe maximum of ${MAX_BUNDLE_ENTRIES} resources per DocumentBundle.`,
+      });
+      return;
+    }
+
     // NRCeS ABDM Rule: Document Bundles MUST start with Composition at entry[0]
     if (bundleType === 'document') {
       const firstRes = entries[0]?.resource as Record<string, unknown> | undefined;

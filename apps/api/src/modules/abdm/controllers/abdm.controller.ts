@@ -68,13 +68,15 @@ export class AbdmController {
    * Inbound ABDM asynchronous callback receiver with auth, replay-window, and idempotency guards.
    */
   receiveWebhookCallback = asyncHandler(async (req: Request, res: Response) => {
-    const payload = abdmWebhookCallbackSchema.parse(req.body);
-    const ack = await abdmWebhookService.handleCallback(payload, {
+    const webhookHeaders = {
       signature: req.headers['x-abdm-signature'] as string | undefined,
       webhookSecret: req.headers['x-abdm-webhook-secret'] as string | undefined,
       requestId: req.headers['request-id'] as string | undefined,
       rawBody: JSON.stringify(req.body),
-    });
+    };
+    abdmWebhookService.verifyCallbackAuthentication(webhookHeaders);
+    const payload = abdmWebhookCallbackSchema.parse(req.body);
+    const ack = await abdmWebhookService.handleCallback(payload, webhookHeaders);
 
     sendSuccess(
       res,

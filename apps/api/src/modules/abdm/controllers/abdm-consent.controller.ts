@@ -227,6 +227,14 @@ export class AbdmConsentController {
    * Verified dedicated ABDM V3 consent callback endpoint (routes through webhook auth + replay + idempotency).
    */
   receiveConsentCallback = asyncHandler(async (req: Request, res: Response) => {
+    const webhookHeaders = {
+      signature: req.headers['x-abdm-signature'] as string | undefined,
+      webhookSecret: req.headers['x-abdm-webhook-secret'] as string | undefined,
+      requestId: req.headers['request-id'] as string | undefined,
+      rawBody: JSON.stringify(req.body),
+    };
+    abdmWebhookService.verifyCallbackAuthentication(webhookHeaders);
+
     const callbackType = String(req.params.callbackType || '');
     const mappedEventType = CALLBACK_PATH_TO_EVENT[callbackType];
     if (!mappedEventType) {
@@ -239,12 +247,7 @@ export class AbdmConsentController {
     };
     const payload = abdmWebhookCallbackSchema.parse(normalizedBody);
 
-    const ack = await abdmWebhookService.handleCallback(payload, {
-      signature: req.headers['x-abdm-signature'] as string | undefined,
-      webhookSecret: req.headers['x-abdm-webhook-secret'] as string | undefined,
-      requestId: req.headers['request-id'] as string | undefined,
-      rawBody: JSON.stringify(req.body),
-    });
+    const ack = await abdmWebhookService.handleCallback(payload, webhookHeaders);
 
     sendSuccess(
       res,

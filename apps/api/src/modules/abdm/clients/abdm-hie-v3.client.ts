@@ -271,22 +271,47 @@ export class AbdmHieV3Client {
       };
     }
 
-    // Live sandbox/production push requires verified HTTPS endpoint & live Fidelius encryption
-    const response = await fetch(payload.dataPushUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'REQUEST-ID': requestId,
-        TIMESTAMP: new Date().toISOString(),
-      },
-      body: JSON.stringify({
-        pageNumber: payload.pageNumber,
-        pageCount: payload.pageCount,
-        transactionId: payload.transactionId,
-        entries: payload.entries,
-        keyMaterial: payload.keyMaterial,
-      }),
-    });
+    // Live sandbox/production push requires verified HTTPS endpoint & bounded AbortController timeout
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), config.requestTimeoutMs);
+    let response: Response;
+    try {
+      response = await fetch(payload.dataPushUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'REQUEST-ID': requestId,
+          TIMESTAMP: new Date().toISOString(),
+        },
+        body: JSON.stringify({
+          pageNumber: payload.pageNumber,
+          pageCount: payload.pageCount,
+          transactionId: payload.transactionId,
+          entries: payload.entries,
+          keyMaterial: payload.keyMaterial,
+        }),
+        signal: controller.signal,
+      });
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        throw new AbdmIntegrationError({
+          message: `Direct HIU dataPushUrl timed out after ${config.requestTimeoutMs}ms.`,
+          abdmCode: 'ABDM_TIMEOUT',
+          statusCode: 504,
+          retryable: true,
+          correlationId,
+        });
+      }
+      throw new AbdmIntegrationError({
+        message: 'Network failure delivering encrypted health data to HIU dataPushUrl.',
+        abdmCode: 'ABDM_TRANSIENT_ERROR',
+        statusCode: 502,
+        retryable: true,
+        correlationId,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       throw new AbdmIntegrationError({

@@ -31,14 +31,21 @@ const abhaGeneralLimiter = createRateLimiter({
     `abha-gen:${req.user?.userId || req.ip || req.socket.remoteAddress || 'anon'}`,
 });
 
+const abdmWebhookLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: 'Too many inbound ABDM webhook requests. Please back off and retry.',
+  keyGenerator: (req: Request) => `abdm-webhook:${req.ip || req.socket.remoteAddress || 'anon'}`,
+});
+
 // Module discovery metadata (non-sensitive)
 abdmRoutes.get('/', (_req: Request, res: Response) => {
   sendSuccess(
     res,
     {
       module: 'ABDM',
-      status: 'abdm_hip_hiu_exchange_foundation_ready',
-      milestone: 'Day 7 Task 04',
+      status: 'abdm_day7_audit_complete_mocked_foundation',
+      milestone: 'Day 7 Task 05',
       liveExchangeEnabled: false,
     },
     'ABDM, ABHA, Consent Manager & HIP/HIU integration foundation ready'
@@ -46,8 +53,12 @@ abdmRoutes.get('/', (_req: Request, res: Response) => {
 });
 
 // Dedicated inbound webhook callback endpoints (authenticated via ABDM webhook signature/secret)
-abdmRoutes.post('/webhooks/callback', abdmController.receiveWebhookCallback);
-abdmRoutes.post('/webhooks/consent/:callbackType', abdmConsentController.receiveConsentCallback);
+abdmRoutes.post('/webhooks/callback', abdmWebhookLimiter, abdmController.receiveWebhookCallback);
+abdmRoutes.post(
+  '/webhooks/consent/:callbackType',
+  abdmWebhookLimiter,
+  abdmConsentController.receiveConsentCallback
+);
 
 // Protected Admin-Only ABDM Governance & Diagnostics Endpoints
 abdmRoutes.get(
@@ -289,11 +300,27 @@ abdmRoutes.post(
 // DAY 7 TASK 04 — ABDM HIP / HIU DISCOVERY, RECORD LINKING & DATA EXCHANGE
 // ============================================================================
 
-// Inbound authenticated external callbacks (HMAC/secret + ±5m replay window)
-abdmRoutes.post('/webhooks/hie/discovery', abdmHieController.receiveDiscoveryCallback);
-abdmRoutes.post('/webhooks/hip/health-information/request', abdmHieController.receiveHipHealthInfoRequest);
-abdmRoutes.post('/webhooks/hiu/data-push', abdmHieController.receiveHiuDataPushCallback);
-abdmRoutes.post('/webhooks/hie/acknowledgement', abdmHieController.receiveTransferAcknowledgement);
+// Inbound authenticated external callbacks (HMAC/secret + ±5m replay window + burst rate limit)
+abdmRoutes.post(
+  '/webhooks/hie/discovery',
+  abdmWebhookLimiter,
+  abdmHieController.receiveDiscoveryCallback
+);
+abdmRoutes.post(
+  '/webhooks/hip/health-information/request',
+  abdmWebhookLimiter,
+  abdmHieController.receiveHipHealthInfoRequest
+);
+abdmRoutes.post(
+  '/webhooks/hiu/data-push',
+  abdmWebhookLimiter,
+  abdmHieController.receiveHiuDataPushCallback
+);
+abdmRoutes.post(
+  '/webhooks/hie/acknowledgement',
+  abdmWebhookLimiter,
+  abdmHieController.receiveTransferAcknowledgement
+);
 
 // Discovery endpoints
 abdmRoutes.post(

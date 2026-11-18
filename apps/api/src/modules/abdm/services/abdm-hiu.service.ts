@@ -426,6 +426,14 @@ export class AbdmHiuService {
           plaintextBundle = entry.content;
         }
 
+        if (Buffer.byteLength(plaintextBundle, 'utf8') > 2 * 1024 * 1024) {
+          rejectedEntries.push({
+            careContextReference: entry.careContextReference,
+            reason: 'Decrypted FHIR bundle exceeds the safe 2 MB payload size limit.',
+          });
+          continue;
+        }
+
         let parsedBundle: Record<string, unknown>;
         try {
           parsedBundle = JSON.parse(plaintextBundle) as Record<string, unknown>;
