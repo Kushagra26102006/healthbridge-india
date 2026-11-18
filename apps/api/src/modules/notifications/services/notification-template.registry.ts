@@ -200,7 +200,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'Supplier Delivery Recorded',
     message: 'A supplier goods receipt has been recorded in procurement.',
     routesByRole: {
-      PHARMACY: '/pharmacy/procurement',
+      PHARMACY: '/pharmacy/purchases',
     },
   },
 
@@ -303,7 +303,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'Health Information Access Request',
     message: 'A health information access request requires your attention. Sign in to review.',
     routesByRole: {
-      PATIENT: '/patient/consents',
+      PATIENT: '/patient/consent',
     },
   },
   CONSENT_GRANTED: {
@@ -313,7 +313,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'Consent Status Updated',
     message: 'A health information consent status has been updated.',
     routesByRole: {
-      PATIENT: '/patient/consents',
+      PATIENT: '/patient/consent',
       DOCTOR: '/doctor/patients',
     },
   },
@@ -324,7 +324,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'Consent Access Updated',
     message: 'Health information access consent has been revoked and enforced immediately.',
     routesByRole: {
-      PATIENT: '/patient/consents',
+      PATIENT: '/patient/consent',
       DOCTOR: '/doctor/patients',
     },
   },
@@ -335,7 +335,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'ABHA Linking Status Updated',
     message: 'Your health account identity linking status has been updated. Sign in to verify.',
     routesByRole: {
-      PATIENT: '/patient/abdm',
+      PATIENT: '/patient/abha',
     },
   },
   EXTERNAL_RECORD_IMPORTED: {
@@ -345,7 +345,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'External Health Record Available',
     message: 'An authorized external health record has been added to your timeline.',
     routesByRole: {
-      PATIENT: '/patient/timeline',
+      PATIENT: '/patient/health-timeline',
       DOCTOR: '/doctor/patients',
     },
   },
@@ -358,7 +358,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'Platform Service Alert',
     message: 'An operational service alert has been detected. Inspect platform health metrics.',
     routesByRole: {
-      ADMIN: '/admin/platform-overview',
+      ADMIN: '/admin/platform/events',
     },
   },
   INTEGRATION_FAILURE_ALERT: {
@@ -378,7 +378,7 @@ const NOTIFICATION_TEMPLATES: Partial<Record<NotificationEventType, TemplateDefi
     title: 'Event Processing Alert',
     message: 'One or more background workflow events require operational review.',
     routesByRole: {
-      ADMIN: '/admin/platform-overview',
+      ADMIN: '/admin/platform/events',
     },
   },
   SECURITY_ALERT: {

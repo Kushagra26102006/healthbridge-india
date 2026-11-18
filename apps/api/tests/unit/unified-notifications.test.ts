@@ -73,7 +73,7 @@ describe('Unified Notifications & Real-Time Stream — Unit Tests (Day 8 Task 04
       expect(labTpl.priority).toBe('CRITICAL');
 
       const adminTpl = renderNotificationTemplate('EVENT_PROCESSING_FAILED', 'ADMIN');
-      expect(adminTpl.linkUrl).toBe('/admin/platform-overview');
+      expect(adminTpl.linkUrl).toBe('/admin/platform/events');
       expect(adminTpl.category).toBe('SYSTEM');
     });
 

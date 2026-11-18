@@ -991,7 +991,7 @@ export class ProcurementService {
           entityId: po._id.toString(),
           referenceNumber: po.poNumber,
         },
-        linkUrl: '/pharmacy/procurement',
+        linkUrl: '/pharmacy/purchases',
       });
     } catch {
       // Non-fatal
@@ -1046,7 +1046,7 @@ export class ProcurementService {
           entityId: po._id.toString(),
           referenceNumber: po.poNumber,
         },
-        linkUrl: '/pharmacy/procurement',
+        linkUrl: '/pharmacy/purchases',
       });
     } catch {
       // Non-fatal
@@ -1329,7 +1329,7 @@ export class ProcurementService {
           entityId: po._id.toString(),
           referenceNumber: po.poNumber,
         },
-        linkUrl: '/pharmacy/procurement',
+        linkUrl: '/pharmacy/purchases',
       });
     } catch {
       // Non-fatal

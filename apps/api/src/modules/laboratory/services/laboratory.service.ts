@@ -658,7 +658,7 @@ export class LaboratoryService {
             entityId: order._id.toString(),
             referenceNumber: order.orderNumber,
           },
-          linkUrl: '/doctor/lab-orders',
+          linkUrl: '/doctor/reports',
         }),
       ]);
     } catch {
@@ -733,7 +733,7 @@ export class LaboratoryService {
           entityId: order._id.toString(),
           referenceNumber: order.orderNumber,
         },
-        linkUrl: '/doctor/lab-orders',
+        linkUrl: '/doctor/reports',
       });
     } catch {
       // Ignore notification failures
@@ -797,7 +797,7 @@ export class LaboratoryService {
           entityId: order._id.toString(),
           referenceNumber: order.orderNumber,
         },
-        linkUrl: '/doctor/lab-orders',
+        linkUrl: '/doctor/reports',
       });
     } catch {
       // Ignore notification errors

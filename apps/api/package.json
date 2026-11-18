@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
     "test:watch": "vitest",
     "test:db": "tsx src/database/test-db.ts",
     "test:auth": "tsx src/modules/auth/tests/auth.test.ts"
