@@ -78,10 +78,14 @@ export function PrivacySection() {
             <StaggerList className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               {principles.map((item) => (
                 <StaggerItem key={item.title}>
-                  <div className="p-4 rounded-lg bg-card border border-border shadow-xs hover-lift h-full flex flex-col gap-2">
+                  <div className="p-4 rounded-lg bg-card border border-border shadow-xs hover-lift h-full flex flex-col gap-2 group transition-all duration-300 hover:shadow-md hover:border-primary/30">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-md bg-muted/80 shrink-0">{item.icon}</div>
-                      <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+                      <div className="p-2 rounded-lg bg-muted/80 shrink-0 transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-3 group-hover:bg-primary/10 group-hover:shadow-xs">
+                        {item.icon}
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                       {item.description}
@@ -98,13 +102,21 @@ export function PrivacySection() {
               aria-hidden="true"
               className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/10 to-transparent blur-2xl -z-10 pointer-events-none"
             />
-            <div className="glass-panel rounded-xl p-5 sm:p-6 shadow-lg space-y-4">
-              <EditorialVisual
-                asset="privacyConsentShield"
-                aspectClassName="aspect-[16/9]"
-                sizes="(max-width: 1024px) 100vw, 440px"
-                className="rounded-lg border-border/70 shadow-xs"
-              />
+            <div className="glass-panel rounded-xl p-5 sm:p-6 shadow-lg space-y-4 group">
+              <div className="relative overflow-hidden rounded-lg">
+                <EditorialVisual
+                  asset="privacyConsentShield"
+                  aspectClassName="aspect-[16/9]"
+                  sizes="(max-width: 1024px) 100vw, 440px"
+                  className="rounded-lg border-border/70 shadow-xs"
+                  imageClassName="transition-transform duration-700 ease-out group-hover:scale-105"
+                />
+                {/* Floating Cryptographic Shield Badge */}
+                <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/90 dark:bg-card/90 backdrop-blur-md border border-border/80 shadow-md text-[11px] font-semibold text-foreground transition-all duration-300 group-hover:scale-105">
+                  <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
+                  <span>256-Bit Cryptographic Shield</span>
+                </div>
+              </div>
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-border">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="p-2 rounded-md bg-secondary/15 text-secondary shrink-0">

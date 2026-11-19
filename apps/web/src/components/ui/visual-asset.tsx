@@ -57,7 +57,7 @@ export function EditorialVisual({
           unoptimized
           sizes={sizes}
           className={cn(
-            'h-full w-full object-cover transition-transform duration-500 ease-out motion-safe:group-hover:scale-[1.025]',
+            'h-full w-full object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.05]',
             imageClassName
           )}
         />

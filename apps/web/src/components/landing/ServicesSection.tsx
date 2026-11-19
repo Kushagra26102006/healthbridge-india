@@ -144,23 +144,44 @@ export function ServicesSection() {
         <StaggerList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {services.map((service) => (
             <StaggerItem key={service.id} className="flex">
-              <Card className="group flex flex-col justify-between w-full overflow-hidden hover-lift">
+              <Card className="group flex flex-col justify-between w-full overflow-hidden hover-lift transition-all duration-300 hover:shadow-lg hover:border-primary/30">
                 <div className="px-4 pt-4">
-                  <EditorialVisual
-                    asset={service.imageAsset}
-                    aspectClassName="aspect-[16/10]"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 380px"
-                    className="rounded-lg border-border/60 shadow-none"
-                  />
+                  <div className="relative overflow-hidden rounded-lg group/img">
+                    <EditorialVisual
+                      asset={service.imageAsset}
+                      aspectClassName="aspect-[16/10]"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 380px"
+                      className="rounded-lg border-border/60 shadow-none transition-transform duration-500 ease-out group-hover:scale-105"
+                      imageClassName="transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+
+                    {/* Floating Live Status Badge on image */}
+                    <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/90 dark:bg-card/90 backdrop-blur-md border border-border/70 shadow-sm text-[10px] font-semibold text-foreground tracking-wide transition-all duration-300 group-hover:scale-105 group-hover:shadow-md">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                      <span>{service.badge}</span>
+                    </div>
+
+                    {/* Ambient Light Shimmer Overlay on hover */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    />
+                  </div>
                 </div>
+
                 <CardHeader className="space-y-3.5 pb-4 pt-4">
                   <div className="flex items-center justify-between gap-2">
                     <div
-                      className={`w-11 h-11 rounded-md ${service.accentClass} flex items-center justify-center transition-transform duration-150 group-hover:scale-105`}
+                      className={`w-12 h-12 rounded-xl ${service.accentClass} flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-md shadow-xs border border-border/40`}
                     >
-                      {service.icon}
+                      <span className="transition-transform duration-300 group-hover:scale-110">
+                        {service.icon}
+                      </span>
                     </div>
-                    <Badge variant="outline" size="sm">
+                    <Badge variant="outline" size="sm" className="transition-colors group-hover:border-primary/40">
                       {service.badge}
                     </Badge>
                   </div>
@@ -179,10 +200,10 @@ export function ServicesSection() {
                   {service.points.map((pt) => (
                     <div
                       key={pt}
-                      className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
+                      className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground group-hover/pt:text-foreground transition-colors"
                     >
                       <CheckCircle2
-                        className="h-4 w-4 text-secondary shrink-0 mt-0.5"
+                        className="h-4 w-4 text-secondary shrink-0 mt-0.5 transition-transform duration-200 group-hover:scale-110"
                         aria-hidden="true"
                       />
                       <span className="leading-snug text-foreground/85">{pt}</span>
@@ -193,11 +214,11 @@ export function ServicesSection() {
                 <CardFooter className="pt-3 border-t border-border/70">
                   <Link
                     href={service.href}
-                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover transition-colors focus-ring rounded-sm"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover transition-colors focus-ring rounded-sm group/btn"
                   >
                     <span>Learn More</span>
                     <ArrowRight
-                      className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-1"
+                      className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1.5"
                       aria-hidden="true"
                     />
                   </Link>

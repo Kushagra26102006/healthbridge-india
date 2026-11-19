@@ -74,27 +74,40 @@ export function PlatformOverview() {
             </p>
           </div>
           <div className="lg:col-span-6">
-            <EditorialVisual
-              asset="authPortalClinic"
-              aspectClassName="aspect-[16/9]"
-              sizes="(max-width: 1024px) 100vw, 560px"
-              caption="Modern connected healthcare infrastructure designed for citizens and care teams"
-            />
+            <div className="relative group overflow-hidden rounded-xl">
+              <EditorialVisual
+                asset="authPortalClinic"
+                aspectClassName="aspect-[16/9]"
+                sizes="(max-width: 1024px) 100vw, 560px"
+                caption="Modern connected healthcare infrastructure designed for citizens and care teams"
+                imageClassName="transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              {/* Floating Verified Facility Network Badge */}
+              <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 dark:bg-card/90 backdrop-blur-md border border-border/80 shadow-md text-xs font-semibold text-foreground transition-all duration-300 group-hover:scale-105">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span>Verified Facility Network (HFR Linked)</span>
+              </div>
+            </div>
           </div>
         </SlideIn>
 
         <StaggerList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {features.map((feature) => (
             <StaggerItem key={feature.title} className="flex">
-              <Card className="group flex flex-col justify-between w-full hover-lift">
+              <Card className="group flex flex-col justify-between w-full hover-lift transition-all duration-300 hover:shadow-lg hover:border-primary/30">
                 <CardHeader className="space-y-4 pb-3">
                   <div className="flex items-center justify-between gap-2">
                     <div
-                      className={`w-11 h-11 rounded-md ${feature.accentClass} flex items-center justify-center transition-transform duration-150 group-hover:scale-105`}
+                      className={`w-12 h-12 rounded-xl ${feature.accentClass} flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-md shadow-xs border border-border/40`}
                     >
-                      {feature.icon}
+                      <span className="transition-transform duration-300 group-hover:scale-110">
+                        {feature.icon}
+                      </span>
                     </div>
-                    <Badge variant="outline" size="sm">
+                    <Badge variant="outline" size="sm" className="transition-colors group-hover:border-primary/40">
                       {feature.badge}
                     </Badge>
                   </div>
