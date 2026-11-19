@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setSession, setLoading, setError, clearSession } from '@/store/slices/auth-slice';
 import { authApi } from '../api/auth-api';
+import { tokenManager } from '@/lib/api-client';
 import { broadcastNotificationSync } from '@/features/notifications/lib/cross-tab-sync';
 import type { RegisterRequestDto, LoginRequestDto } from '@healthbridge/shared-types';
 
@@ -16,15 +17,29 @@ export const useAuth = () => {
   );
 
   /**
-   * Initializes session from HTTP-only cookie on application boot
+   * Initializes session from HTTP-only cookie on application boot or page refresh
    */
   const initSession = useCallback(async () => {
     try {
       dispatch(setLoading(true));
+
+      // On browser reload, hydrate in-memory access token via refresh token cookie
+      if (!tokenManager.hasAccessToken()) {
+        try {
+          const refreshData = await authApi.refresh();
+          if (refreshData.tokens?.accessToken) {
+            tokenManager.setAccessToken(refreshData.tokens.accessToken);
+          }
+        } catch {
+          // Normal case: user has no active session cookie
+        }
+      }
+
       const data = await authApi.getMe();
       dispatch(setSession({ user: data.user, profile: data.profile }));
     } catch {
-      // User is not authenticated; set initialized state
+      // User is not authenticated; set initialized clean state
+      tokenManager.clearAccessToken();
       dispatch(clearSession());
     }
   }, [dispatch]);
@@ -45,12 +60,16 @@ export const useAuth = () => {
       dispatch(setError(null));
     },
     onSuccess: (data) => {
+      if (data.tokens?.accessToken) {
+        tokenManager.setAccessToken(data.tokens.accessToken);
+      }
       // Wipe any prior user's cached clinical queries on account switch
       queryClient.clear();
       dispatch(setSession({ user: data.user }));
       queryClient.invalidateQueries({ queryKey: ['current-user'] });
     },
     onError: (err: Error) => {
+      tokenManager.clearAccessToken();
       dispatch(setError(err.message || 'Login failed'));
     },
   });
@@ -66,6 +85,7 @@ export const useAuth = () => {
     },
     onSuccess: (data) => {
       if (data.tokens?.accessToken) {
+        tokenManager.setAccessToken(data.tokens.accessToken);
         dispatch(setSession({ user: data.user }));
       } else {
         dispatch(setLoading(false));
@@ -73,6 +93,7 @@ export const useAuth = () => {
       queryClient.invalidateQueries({ queryKey: ['current-user'] });
     },
     onError: (err: Error) => {
+      tokenManager.clearAccessToken();
       dispatch(setError(err.message || 'Registration failed'));
     },
   });
@@ -83,12 +104,14 @@ export const useAuth = () => {
   const logoutMutation = useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
+      tokenManager.clearAccessToken();
       broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
       queryClient.clear();
     },
     onError: () => {
       // Clear client state even if network call fails
+      tokenManager.clearAccessToken();
       broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
       queryClient.clear();
@@ -101,11 +124,13 @@ export const useAuth = () => {
   const logoutAllMutation = useMutation({
     mutationFn: () => authApi.logoutAll(),
     onSuccess: () => {
+      tokenManager.clearAccessToken();
       broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
       queryClient.clear();
     },
     onError: () => {
+      tokenManager.clearAccessToken();
       broadcastNotificationSync({ type: 'LOGOUT', userId: user?.id, timestamp: Date.now() });
       dispatch(clearSession());
       queryClient.clear();

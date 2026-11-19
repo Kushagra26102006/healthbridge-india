@@ -44,8 +44,10 @@ export const NOTIFICATION_QUERY_KEYS = {
     ['notifications', userId || 'anonymous', 'delivery-history'] as const,
 };
 
+import { FetchSseClient } from '../lib/fetch-sse';
+
 // Module-level singleton guard to prevent duplicate SSE connections within the same tab
-let activeTabEventSource: EventSource | null = null;
+let activeTabEventSource: FetchSseClient | EventSource | null = null;
 let activeTabUserId: string | null = null;
 let activeTabSubscribers = 0;
 
@@ -352,11 +354,6 @@ export function useNotificationStream(): {
       return () => {};
     }
 
-    if (typeof EventSource === 'undefined') {
-      setConnectionState('polling_fallback');
-      return () => {};
-    }
-
     // Close stale stream if switching user within same tab
     if (activeTabEventSource && activeTabUserId !== userId) {
       activeTabEventSource.close();
@@ -369,7 +366,14 @@ export function useNotificationStream(): {
     if (!activeTabEventSource) {
       try {
         const sseUrl = getNotificationStreamUrl();
-        activeTabEventSource = new EventSource(sseUrl, { withCredentials: true });
+        const client = new FetchSseClient({
+          url: sseUrl,
+          onUnauthorized: () => {
+            setConnectionState('disconnected');
+          },
+        });
+        client.start();
+        activeTabEventSource = client;
         activeTabUserId = userId;
       } catch {
         setConnectionState('polling_fallback');
@@ -505,7 +509,7 @@ export function useNotificationStream(): {
     es.addEventListener('session_expired', onSessionExpired);
     es.addEventListener('error', onError);
 
-    if (es.readyState === EventSource.OPEN) {
+    if (es.readyState === 1 || (typeof EventSource !== 'undefined' && es.readyState === EventSource.OPEN)) {
       setConnectionState('connected');
     }
 

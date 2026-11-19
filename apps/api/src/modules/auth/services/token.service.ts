@@ -89,11 +89,36 @@ export class TokenService {
       throw AppError.unauthorized('Invalid refresh token');
     }
 
-    // --- REUSE DETECTION LOGIC ---
+    // --- REUSE DETECTION LOGIC WITH CONCURRENT IN-FLIGHT GRACE PERIOD ---
     if (storedToken.revokedAt) {
+      const msSinceRevocation = Date.now() - new Date(storedToken.revokedAt).getTime();
+      const CONCURRENCY_GRACE_PERIOD_MS = 30_000; // 30s grace window for parallel client requests
+
+      if (msSinceRevocation <= CONCURRENCY_GRACE_PERIOD_MS) {
+        // Find the active refresh token minted for this user during this recent rotation window
+        const activeToken = await RefreshTokenModel.findOne({
+          userId: storedToken.userId,
+          revokedAt: { $exists: false },
+          expiresAt: { $gt: new Date() },
+        }).sort({ createdAt: -1 });
+
+        if (activeToken) {
+          logger.info('Refresh token rotation: handled concurrent request within 30s grace period', {
+            userId: storedToken.userId.toString(),
+            msSinceRevocation,
+          });
+
+          return {
+            newRefreshToken: rawRefreshToken,
+            userId: storedToken.userId.toString(),
+          };
+        }
+      }
+
       logger.warn('SECURITY ALERT: Attempted reuse of previously revoked refresh token!', {
         userId: storedToken.userId.toString(),
         tokenHash: tokenHash.slice(0, 10) + '...',
+        msSinceRevocation,
       });
 
       // Revoke ALL tokens belonging to this user family to contain breach

@@ -20,7 +20,7 @@ export class AuthController {
       const result = await authService.register(req.body, deviceInfo, req.requestId);
 
       if (result.tokens.accessToken) {
-        setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+        setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken, req);
       }
 
       sendSuccess(
@@ -39,7 +39,7 @@ export class AuthController {
       const deviceInfo = this.getDeviceInfo(req);
       const result = await authService.login(req.body, deviceInfo, req.requestId);
 
-      setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+      setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken, req);
 
       sendSuccess(res, result, 'Login successful');
     } catch (error) {
@@ -50,10 +50,12 @@ export class AuthController {
   async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const refreshToken =
-        req.cookies[AUTH_CONFIG.refreshTokenCookieName] || req.body?.refreshToken;
+        req.cookies?.[AUTH_CONFIG.refreshTokenCookieName] ||
+        req.signedCookies?.[AUTH_CONFIG.refreshTokenCookieName] ||
+        req.body?.refreshToken;
 
       if (!refreshToken) {
-        clearAuthCookies(res);
+        clearAuthCookies(res, req);
         res.status(HttpStatus.UNAUTHORIZED).json({
           success: false,
           message: 'Refresh token not found',
@@ -65,11 +67,11 @@ export class AuthController {
       const deviceInfo = this.getDeviceInfo(req);
       const result = await authService.refresh(refreshToken, deviceInfo, req.requestId);
 
-      setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+      setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken, req);
 
       sendSuccess(res, result, 'Token refreshed successfully');
     } catch (error) {
-      clearAuthCookies(res);
+      clearAuthCookies(res, req);
       next(error);
     }
   }
@@ -77,15 +79,17 @@ export class AuthController {
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const refreshToken =
-        req.cookies[AUTH_CONFIG.refreshTokenCookieName] || req.body?.refreshToken;
+        req.cookies?.[AUTH_CONFIG.refreshTokenCookieName] ||
+        req.signedCookies?.[AUTH_CONFIG.refreshTokenCookieName] ||
+        req.body?.refreshToken;
       const userId = req.user?.userId;
 
       await authService.logout(refreshToken, userId, req.requestId);
-      clearAuthCookies(res);
+      clearAuthCookies(res, req);
 
       sendSuccess(res, null, 'Logged out successfully');
     } catch (error) {
-      clearAuthCookies(res);
+      clearAuthCookies(res, req);
       next(error);
     }
   }
@@ -102,7 +106,7 @@ export class AuthController {
       }
 
       await authService.logoutAll(req.user.userId, req.requestId);
-      clearAuthCookies(res);
+      clearAuthCookies(res, req);
 
       sendSuccess(res, null, 'All sessions successfully revoked across all devices');
     } catch (error) {
