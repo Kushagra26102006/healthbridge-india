@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { env } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
+import { seedDemoAccounts } from './database/seed-demo-accounts';
 import { notificationStreamService } from './modules/notifications/services/notification-stream.service';
 import { registerDefaultEventHandlers } from './modules/events/handlers/register-handlers';
 import { defaultEventWorker } from './modules/events/event.processor';
@@ -13,6 +14,18 @@ const startServer = async (): Promise<void> => {
 
   // Initialize Database Connection
   await connectDatabase();
+
+  // Auto-seed synthetic demo accounts idempotently if enabled
+  if (env.NODE_ENV !== 'test' && env.DEMO_ACCOUNTS_ENABLED !== false) {
+    try {
+      await seedDemoAccounts({ allowProduction: true });
+    } catch (seedErr) {
+      logger.warn(
+        'Synthetic demo account auto-provisioning encountered non-fatal error',
+        { err: seedErr instanceof Error ? seedErr.message : String(seedErr) }
+      );
+    }
+  }
 
   // Register Cross-Module Domain Event Handlers & start durable Outbox Worker
   // When scaling horizontally, set ENABLE_BACKGROUND_WORKER=false on stateless API replicas

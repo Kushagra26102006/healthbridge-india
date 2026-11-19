@@ -134,7 +134,32 @@ export const seedDemoAccounts = async (options?: SeedDemoAccountsOptions): Promi
     bcryptjs.hash(passwords.admin, 10),
   ]);
 
-  // 3. Idempotently upsert the 5 demo accounts
+  // 3. Resolve phone collisions with legacy users to satisfy unique index phone_1
+  const demoPhoneResolutions = [
+    { email: 'patient.demo@healthbridge.local', phone: '9876543212', fallback: '9876543226' },
+    { email: 'doctor.demo@healthbridge.local', phone: '9876543211', fallback: '9876543225' },
+    { email: 'pharmacy.demo@healthbridge.local', phone: '9876543213', fallback: '9876543227' },
+    { email: 'lab.demo@healthbridge.local', phone: '9876543214', fallback: '9876543228' },
+    { email: 'admin.demo@healthbridge.local', phone: '9876543210', fallback: '9876543229' },
+  ];
+
+  for (const resolution of demoPhoneResolutions) {
+    const conflictingUser = await UserModel.findOne({
+      email: { $ne: resolution.email },
+      phone: resolution.phone,
+    });
+    if (conflictingUser) {
+      logger.info(
+        `[Demo Seed] Reassigning conflicting phone for ${conflictingUser.email} from ${resolution.phone} to ${resolution.fallback}`
+      );
+      await UserModel.updateOne(
+        { _id: conflictingUser._id },
+        { $set: { phone: resolution.fallback } }
+      );
+    }
+  }
+
+  // 4. Idempotently upsert the 5 demo accounts
   // A. Patient
   const patientUser = await UserModel.findOneAndUpdate(
     { email: 'patient.demo@healthbridge.local' },
@@ -198,6 +223,15 @@ export const seedDemoAccounts = async (options?: SeedDemoAccountsOptions): Promi
     { upsert: true, new: true, runValidators: true }
   );
 
+  // Resolve registrationNumber collision on doctorProfiles to satisfy unique index
+  await DoctorProfileModel.updateOne(
+    {
+      userId: { $ne: doctorUser._id },
+      registrationNumber: 'NMC/2016/DL/098124',
+    },
+    { $set: { registrationNumber: 'NMC/2017/DL/098125' } }
+  );
+
   await DoctorProfileModel.findOneAndUpdate(
     { userId: doctorUser._id },
     {
@@ -258,6 +292,15 @@ export const seedDemoAccounts = async (options?: SeedDemoAccountsOptions): Promi
     { upsert: true, new: true, runValidators: true }
   );
 
+  // Resolve pharmacyLicenseNumber collision to satisfy unique index
+  await PharmacyProfileModel.updateOne(
+    {
+      userId: { $ne: pharmacyUser._id },
+      pharmacyLicenseNumber: 'DL-PHARM-2021-99881',
+    },
+    { $set: { pharmacyLicenseNumber: 'DL-PHARM-2021-99882' } }
+  );
+
   await PharmacyProfileModel.findOneAndUpdate(
     { userId: pharmacyUser._id },
     {
@@ -287,6 +330,15 @@ export const seedDemoAccounts = async (options?: SeedDemoAccountsOptions): Promi
       },
     },
     { upsert: true, new: true, runValidators: true }
+  );
+
+  // Resolve laboratoryLicenseNumber collision to satisfy unique index
+  await LaboratoryProfileModel.updateOne(
+    {
+      userId: { $ne: labUser._id },
+      laboratoryLicenseNumber: 'DL-LAB-2022-77441',
+    },
+    { $set: { laboratoryLicenseNumber: 'DL-LAB-2022-77442' } }
   );
 
   await LaboratoryProfileModel.findOneAndUpdate(

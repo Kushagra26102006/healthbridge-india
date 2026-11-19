@@ -91,7 +91,16 @@ export const connectDatabase = async (customUri?: string): Promise<typeof mongoo
     const maskedUri = mongoUri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
     logger.info(`Connecting to MongoDB at: ${maskedUri}`);
 
+    // Ensure database name defaults to 'healthbridge' if not specified or defaulting to 'test'
+    const urlWithoutQuery = mongoUri.split('?')[0] || '';
+    const pathPart = urlWithoutQuery.substring(urlWithoutQuery.lastIndexOf('/') + 1);
+    const resolvedDbName =
+      env.NODE_ENV === 'test' || (pathPart && pathPart !== '' && pathPart !== 'test')
+        ? undefined
+        : 'healthbridge';
+
     const connection = await mongoose.connect(mongoUri, {
+      dbName: resolvedDbName,
       serverSelectionTimeoutMS: 15000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 20000,
