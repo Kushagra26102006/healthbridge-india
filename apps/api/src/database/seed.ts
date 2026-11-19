@@ -312,9 +312,12 @@ const buildWeeklySchedule = (consultationFee: number, facilityId: unknown) => {
  * Populates rich, non-production synthetic healthcare data & medicines across all 5 portals.
  */
 export const seedDatabase = async (): Promise<void> => {
-  if ((process.env.NODE_ENV || '').toLowerCase() === 'production') {
+  const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+  const allowProdSeed = process.env.ALLOW_PRODUCTION_DEMO_SEED === 'true';
+
+  if (isProd && !allowProdSeed) {
     throw new Error(
-      'SECURITY_BLOCK: Synthetic database seeding is strictly forbidden when NODE_ENV=production.'
+      'SECURITY_BLOCK: Synthetic database seeding is strictly forbidden when NODE_ENV=production unless ALLOW_PRODUCTION_DEMO_SEED=true.'
     );
   }
 
@@ -327,14 +330,16 @@ export const seedDatabase = async (): Promise<void> => {
 
   const demoEmails = [
     'admin.demo@healthbridge.local',
+    'doctor.demo@healthbridge.local',
+    'patient.demo@healthbridge.local',
+    'pharmacy.demo@healthbridge.local',
+    'lab.demo@healthbridge.local',
     'dr.priya.sharma@healthbridge.local',
     'dr.arjun.mehta@healthbridge.local',
     'dr.ananya.iyer@healthbridge.local',
     'ramesh.patel@healthbridge.local',
     'meera.nair@healthbridge.local',
     'vikram.singh@healthbridge.local',
-    'pharmacy.demo@healthbridge.local',
-    'lab.demo@healthbridge.local',
   ];
 
   const demoHfrIds = ['IN-DL-HFR-00921', 'IN-KA-HFR-04112', 'IN-MH-HFR-07834'];
@@ -415,7 +420,27 @@ export const seedDatabase = async (): Promise<void> => {
       : Promise.resolve(),
   ]);
 
-  const defaultPasswordHash = await bcryptjs.hash('DemoSecure#2026', 10);
+  const demoPasswords = {
+    patient: process.env.DEMO_PATIENT_PASSWORD || 'DemoSecure#2026',
+    doctor: process.env.DEMO_DOCTOR_PASSWORD || 'DemoSecure#2026',
+    pharmacy: process.env.DEMO_PHARMACY_PASSWORD || 'DemoSecure#2026',
+    lab: process.env.DEMO_LAB_PASSWORD || 'DemoSecure#2026',
+    admin: process.env.DEMO_ADMIN_PASSWORD || 'DemoSecure#2026',
+  };
+
+  const [
+    patientPasswordHash,
+    doctorPasswordHash,
+    pharmacyPasswordHash,
+    labPasswordHash,
+    adminPasswordHash,
+  ] = await Promise.all([
+    bcryptjs.hash(demoPasswords.patient, 10),
+    bcryptjs.hash(demoPasswords.doctor, 10),
+    bcryptjs.hash(demoPasswords.pharmacy, 10),
+    bcryptjs.hash(demoPasswords.lab, 10),
+    bcryptjs.hash(demoPasswords.admin, 10),
+  ]);
 
   // =========================================================================
   // 1. FACILITIES (HFR-Style Demo Network)
@@ -470,14 +495,16 @@ export const seedDatabase = async (): Promise<void> => {
   ]);
 
   // =========================================================================
-  // 2. USERS & PROFILES (Admin, 3 Doctors, 3 Patients, Pharmacy, Laboratory)
+  // 2. USERS & PROFILES (5 Primary Demo Accounts + Multi-Facility Network)
   // =========================================================================
   logger.info('Seeding Demo Users & Role Profiles...');
+
+  // 1. Admin Demo Account
   const adminUser = await UserModel.create({
-    name: 'Super Admin User',
+    name: 'Demo Administrator',
     email: 'admin.demo@healthbridge.local',
     phone: '9876543210',
-    passwordHash: defaultPasswordHash,
+    passwordHash: adminPasswordHash,
     role: 'ADMIN',
     accountStatus: 'ACTIVE',
     emailVerified: true,
@@ -490,13 +517,24 @@ export const seedDatabase = async (): Promise<void> => {
     permissions: ['VIEW_METRICS', 'MANAGE_USERS', 'VERIFY_PROVIDERS', 'SYSTEM_AUDIT'],
   });
 
-  // Doctors
+  // 2. Doctor Demo Account (Primary) + Specialist Care Network
+  const drDemo = await UserModel.create({
+    name: 'Dr. Demo Doctor',
+    email: 'doctor.demo@healthbridge.local',
+    phone: '9876543211',
+    passwordHash: doctorPasswordHash,
+    role: 'DOCTOR',
+    accountStatus: 'ACTIVE',
+    emailVerified: true,
+    phoneVerified: true,
+  });
+
   const [drPriya, drArjun, drAnanya] = await Promise.all([
     UserModel.create({
       name: 'Dr. Priya Sharma',
       email: 'dr.priya.sharma@healthbridge.local',
-      phone: '9876543211',
-      passwordHash: defaultPasswordHash,
+      phone: '9876543225',
+      passwordHash: doctorPasswordHash,
       role: 'DOCTOR',
       accountStatus: 'ACTIVE',
       emailVerified: true,
@@ -506,7 +544,7 @@ export const seedDatabase = async (): Promise<void> => {
       name: 'Dr. Arjun Mehta',
       email: 'dr.arjun.mehta@healthbridge.local',
       phone: '9876543221',
-      passwordHash: defaultPasswordHash,
+      passwordHash: doctorPasswordHash,
       role: 'DOCTOR',
       accountStatus: 'ACTIVE',
       emailVerified: true,
@@ -516,7 +554,7 @@ export const seedDatabase = async (): Promise<void> => {
       name: 'Dr. Ananya Iyer',
       email: 'dr.ananya.iyer@healthbridge.local',
       phone: '9876543222',
-      passwordHash: defaultPasswordHash,
+      passwordHash: doctorPasswordHash,
       role: 'DOCTOR',
       accountStatus: 'ACTIVE',
       emailVerified: true,
@@ -526,11 +564,20 @@ export const seedDatabase = async (): Promise<void> => {
 
   await DoctorProfileModel.create([
     {
-      userId: drPriya._id,
+      userId: drDemo._id,
       registrationNumber: 'NMC/2016/DL/098124',
       specialization: ['Cardiology', 'Internal Medicine'],
       qualifications: ['MBBS', 'MD (General Medicine)', 'DM (Cardiology)'],
       experience: 10,
+      verificationStatus: 'VERIFIED',
+      facilityId: delhiFacility._id,
+    },
+    {
+      userId: drPriya._id,
+      registrationNumber: 'NMC/2017/DL/098125',
+      specialization: ['Cardiology'],
+      qualifications: ['MBBS', 'MD (General Medicine)'],
+      experience: 8,
       verificationStatus: 'VERIFIED',
       facilityId: delhiFacility._id,
     },
@@ -554,20 +601,32 @@ export const seedDatabase = async (): Promise<void> => {
     },
   ]);
 
-  // Doctor Schedules (enables real slot booking across all 3 doctors)
+  // Doctor Schedules (enables real slot booking across all doctors)
   await DoctorScheduleModel.create([
+    { doctorId: drDemo._id, facilityId: delhiFacility._id, ...buildWeeklySchedule(800, delhiFacility._id) },
     { doctorId: drPriya._id, facilityId: delhiFacility._id, ...buildWeeklySchedule(800, delhiFacility._id) },
     { doctorId: drArjun._id, facilityId: bengaluruFacility._id, ...buildWeeklySchedule(700, bengaluruFacility._id) },
     { doctorId: drAnanya._id, facilityId: mumbaiFacility._id, ...buildWeeklySchedule(600, mumbaiFacility._id) },
   ]);
 
-  // Patients
+  // 3. Patient Demo Account (Primary) + Longitudinal Patient Cohort
+  const patientDemo = await UserModel.create({
+    name: 'Demo Patient',
+    email: 'patient.demo@healthbridge.local',
+    phone: '9876543212',
+    passwordHash: patientPasswordHash,
+    role: 'PATIENT',
+    accountStatus: 'ACTIVE',
+    emailVerified: true,
+    phoneVerified: true,
+  });
+
   const [patientRamesh, patientMeera, patientVikram] = await Promise.all([
     UserModel.create({
       name: 'Ramesh Kumar Patel',
       email: 'ramesh.patel@healthbridge.local',
-      phone: '9876543212',
-      passwordHash: defaultPasswordHash,
+      phone: '9876543226',
+      passwordHash: patientPasswordHash,
       role: 'PATIENT',
       accountStatus: 'ACTIVE',
       emailVerified: true,
@@ -577,7 +636,7 @@ export const seedDatabase = async (): Promise<void> => {
       name: 'Meera Nair',
       email: 'meera.nair@healthbridge.local',
       phone: '9876543231',
-      passwordHash: defaultPasswordHash,
+      passwordHash: patientPasswordHash,
       role: 'PATIENT',
       accountStatus: 'ACTIVE',
       emailVerified: true,
@@ -587,7 +646,7 @@ export const seedDatabase = async (): Promise<void> => {
       name: 'Vikram Singh Chauhan',
       email: 'vikram.singh@healthbridge.local',
       phone: '9876543232',
-      passwordHash: defaultPasswordHash,
+      passwordHash: patientPasswordHash,
       role: 'PATIENT',
       accountStatus: 'ACTIVE',
       emailVerified: true,
@@ -596,6 +655,26 @@ export const seedDatabase = async (): Promise<void> => {
   ]);
 
   await PatientProfileModel.create([
+    {
+      userId: patientDemo._id,
+      dateOfBirth: new Date('1985-06-15'),
+      gender: 'MALE',
+      address: {
+        line1: 'B-402, Green Park Extension',
+        city: 'New Delhi',
+        district: 'South Delhi',
+        state: 'Delhi',
+        postalCode: '110016',
+      },
+      emergencyContact: {
+        name: 'Sunita Patel',
+        relationship: 'Spouse',
+        phone: '9876543219',
+      },
+      abhaLinkageStatus: 'LINKED',
+      abhaAddress: 'patient.demo@abdm',
+      abhaNumber: '91-1234-5678-9012',
+    },
     {
       userId: patientRamesh._id,
       dateOfBirth: new Date('1985-06-15'),
@@ -657,12 +736,12 @@ export const seedDatabase = async (): Promise<void> => {
     },
   ]);
 
-  // Pharmacy Provider
+  // 4. Pharmacy Demo Account
   const pharmacyUser = await UserModel.create({
-    name: 'Sanjivani Medicos Pharmacy',
+    name: 'Demo Pharmacy',
     email: 'pharmacy.demo@healthbridge.local',
     phone: '9876543213',
-    passwordHash: defaultPasswordHash,
+    passwordHash: pharmacyPasswordHash,
     role: 'PHARMACY',
     accountStatus: 'ACTIVE',
     emailVerified: true,
@@ -676,12 +755,12 @@ export const seedDatabase = async (): Promise<void> => {
     verificationStatus: 'VERIFIED',
   });
 
-  // Diagnostic Laboratory Provider
+  // 5. Diagnostic Laboratory Demo Account
   const labUser = await UserModel.create({
-    name: 'National Pathology Diagnostics',
+    name: 'Demo Laboratory',
     email: 'lab.demo@healthbridge.local',
     phone: '9876543214',
-    passwordHash: defaultPasswordHash,
+    passwordHash: labPasswordHash,
     role: 'LABORATORY',
     accountStatus: 'ACTIVE',
     emailVerified: true,
@@ -690,10 +769,17 @@ export const seedDatabase = async (): Promise<void> => {
 
   const labProfile = await LaboratoryProfileModel.create({
     userId: labUser._id,
+    tradingName: 'Demo Laboratory',
     laboratoryLicenseNumber: 'DL-LAB-2022-77441',
     facilityId: delhiFacility._id,
+    contactPhone: '9876543214',
+    facilityName: 'Delhi Demo Diagnostic Center',
     verificationStatus: 'VERIFIED',
   });
+
+  // Alias pointers so all rich clinical fixtures populate both primary demo accounts
+  const primaryPatient = patientDemo;
+  const primaryDoctor = drDemo;
 
   // =========================================================================
   // 3. MEDICATION CATALOG (30 Standardized Indian Clinical Medicines)
@@ -913,8 +999,8 @@ export const seedDatabase = async (): Promise<void> => {
   logger.info('Seeding Clinical Encounters, Medical Records & Prescriptions...');
   const [encCardio, encEndo, encPulmo] = await Promise.all([
     EncounterModel.create({
-      patientId: patientRamesh._id,
-      practitionerId: drPriya._id,
+      patientId: primaryPatient._id,
+      practitionerId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       encounterType: 'AMBULATORY',
       startTime: new Date(Date.now() - DAY_MS * 3),
@@ -973,7 +1059,7 @@ export const seedDatabase = async (): Promise<void> => {
 
   await MedicalRecordModel.create([
     {
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       recordType: 'OP_CONSULTATION',
       title: 'Cardiology Consultation Note — Preventive Evaluation',
       description:
@@ -981,8 +1067,8 @@ export const seedDatabase = async (): Promise<void> => {
       source: 'MANUAL_ENTRY',
       resourceReference: `urn:healthbridge:encounter:${encCardio._id}`,
       recordDate: new Date(Date.now() - DAY_MS * 3),
-      doctorName: drPriya.name,
-      doctorId: drPriya._id,
+      doctorName: primaryDoctor.name,
+      doctorId: primaryDoctor._id,
       facilityName: delhiFacility.name,
       facilityId: delhiFacility._id,
       fileName: 'cardiology-consultation-2026.pdf',
@@ -992,18 +1078,18 @@ export const seedDatabase = async (): Promise<void> => {
       sha256Checksum: pdfCardio.sha256,
       scanStatus: 'CLEAN',
       verificationStatus: 'VERIFIED',
-      createdBy: drPriya._id,
+      createdBy: primaryDoctor._id,
     },
     {
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       recordType: 'DIAGNOSTIC_REPORT',
       title: 'Lipid Profile Extended & HbA1c Pathology Report',
       description:
         'National Pathology Diagnostics report: Total Cholesterol 185 mg/dL, HDL 48 mg/dL, LDL 112 mg/dL (mildly elevated), HbA1c 5.6%.',
       source: 'EHR_SYNC',
       recordDate: new Date(Date.now() - DAY_MS * 1),
-      doctorName: drPriya.name,
-      doctorId: drPriya._id,
+      doctorName: primaryDoctor.name,
+      doctorId: primaryDoctor._id,
       facilityName: 'National Pathology Diagnostics',
       facilityId: delhiFacility._id,
       fileName: 'lipid-hba1c-report-2026.pdf',
@@ -1016,15 +1102,15 @@ export const seedDatabase = async (): Promise<void> => {
       createdBy: labUser._id,
     },
     {
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       recordType: 'PRESCRIPTION',
       title: 'Cardiovascular Maintenance Digital Prescription (RX-2026-0001)',
       description:
         'Active 30-day prescription containing Atorva 10mg, Telma 40mg, and Ecosprin 75mg with low-sodium dietary guidance.',
       source: 'MANUAL_ENTRY',
       recordDate: new Date(Date.now() - DAY_MS * 3),
-      doctorName: drPriya.name,
-      doctorId: drPriya._id,
+      doctorName: primaryDoctor.name,
+      doctorId: primaryDoctor._id,
       facilityName: delhiFacility.name,
       facilityId: delhiFacility._id,
       fileName: 'rx-2026-0001-cardiology.pdf',
@@ -1034,18 +1120,18 @@ export const seedDatabase = async (): Promise<void> => {
       sha256Checksum: pdfRx.sha256,
       scanStatus: 'CLEAN',
       verificationStatus: 'VERIFIED',
-      createdBy: drPriya._id,
+      createdBy: primaryDoctor._id,
     },
     {
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       recordType: 'IMMUNIZATION_RECORD',
       title: 'Annual Quadrivalent Influenza Immunization Record',
       description:
         'Seasonal quadrivalent inactivated influenza vaccine (0.5 mL IM, left deltoid). Zero adverse reaction observed during 15-minute post-vaccination monitoring.',
       source: 'ABDM_INGESTION',
       recordDate: new Date(Date.now() - DAY_MS * 45),
-      doctorName: drPriya.name,
-      doctorId: drPriya._id,
+      doctorName: primaryDoctor.name,
+      doctorId: primaryDoctor._id,
       facilityName: delhiFacility.name,
       facilityId: delhiFacility._id,
       fileName: 'influenza-immunization-2026.pdf',
@@ -1055,7 +1141,7 @@ export const seedDatabase = async (): Promise<void> => {
       sha256Checksum: pdfImmun.sha256,
       scanStatus: 'CLEAN',
       verificationStatus: 'VERIFIED',
-      createdBy: drPriya._id,
+      createdBy: primaryDoctor._id,
     },
     {
       patientId: patientMeera._id,
@@ -1085,8 +1171,8 @@ export const seedDatabase = async (): Promise<void> => {
   const [rxCardio, rxAcute, rxEndo] = await Promise.all([
     PrescriptionModel.create({
       prescriptionNumber: 'RX-2026-0001',
-      patientId: patientRamesh._id,
-      doctorId: drPriya._id,
+      patientId: primaryPatient._id,
+      doctorId: primaryDoctor._id,
       encounterId: encCardio._id,
       facilityId: delhiFacility._id,
       diagnosis: 'Essential Hypertension (Stage 1) & Borderline Dyslipidemia',
@@ -1137,7 +1223,7 @@ export const seedDatabase = async (): Promise<void> => {
       instructions: 'Maintain low-sodium diet (<5g salt/day) and 30 minutes of brisk walking 5 days/week.',
       followUpInstructions: 'Return in 4 weeks with fasting lipid profile and home BP log.',
       issuedAt: new Date(Date.now() - DAY_MS * 3),
-      issuedBy: drPriya._id,
+      issuedBy: primaryDoctor._id,
       validUntil: new Date(Date.now() + DAY_MS * 27),
       status: 'ACTIVE',
       isDraft: false,
@@ -1147,7 +1233,7 @@ export const seedDatabase = async (): Promise<void> => {
     }),
     PrescriptionModel.create({
       prescriptionNumber: 'RX-2026-0002',
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       doctorId: drAnanya._id,
       facilityId: delhiFacility._id,
       diagnosis: 'Seasonal Viral Pharyngitis & Acid Reflux',
@@ -1305,13 +1391,13 @@ export const seedDatabase = async (): Promise<void> => {
       orderNumber: 'RX-ORD-DEMO-1001',
       pharmacyId: pharmacyUser._id,
       pharmacyName: pharmacyUser.name,
-      patientId: patientRamesh._id,
-      patientName: patientRamesh.name,
-      patientPhone: patientRamesh.phone,
+      patientId: primaryPatient._id,
+      patientName: primaryPatient.name,
+      patientPhone: primaryPatient.phone,
       prescriptionId: rxCardio._id,
       prescriptionNumber: rxCardio.prescriptionNumber,
-      doctorId: drPriya._id,
-      doctorName: drPriya.name,
+      doctorId: primaryDoctor._id,
+      doctorName: primaryDoctor.name,
       facilityId: delhiFacility._id,
       facilityName: delhiFacility.name,
       items: [
@@ -1362,8 +1448,8 @@ export const seedDatabase = async (): Promise<void> => {
       statusHistory: [
         {
           newStatus: 'PENDING',
-          actorId: patientRamesh._id,
-          actorName: patientRamesh.name,
+          actorId: primaryPatient._id,
+          actorName: primaryPatient.name,
           actorRole: 'PATIENT',
           reason: 'Order placed against digital prescription RX-2026-0001',
           timestamp: new Date(Date.now() - 3_600_000 * 4),
@@ -1374,9 +1460,9 @@ export const seedDatabase = async (): Promise<void> => {
       orderNumber: 'RX-ORD-DEMO-1002',
       pharmacyId: pharmacyUser._id,
       pharmacyName: pharmacyUser.name,
-      patientId: patientRamesh._id,
-      patientName: patientRamesh.name,
-      patientPhone: patientRamesh.phone,
+      patientId: primaryPatient._id,
+      patientName: primaryPatient.name,
+      patientPhone: primaryPatient.phone,
       prescriptionId: rxAcute._id,
       prescriptionNumber: rxAcute.prescriptionNumber,
       doctorId: drAnanya._id,
@@ -1436,8 +1522,8 @@ export const seedDatabase = async (): Promise<void> => {
       statusHistory: [
         {
           newStatus: 'PENDING',
-          actorId: patientRamesh._id,
-          actorName: patientRamesh.name,
+          actorId: primaryPatient._id,
+          actorName: primaryPatient.name,
           actorRole: 'PATIENT',
           timestamp: new Date(Date.now() - DAY_MS),
         },
@@ -1543,8 +1629,8 @@ export const seedDatabase = async (): Promise<void> => {
 
   await AppointmentModel.create([
     {
-      patientId: patientRamesh._id,
-      doctorId: drPriya._id,
+      patientId: primaryPatient._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       scheduledAt: new Date(Date.now() + DAY_MS * 5),
       startTime: '10:30',
@@ -1553,11 +1639,11 @@ export const seedDatabase = async (): Promise<void> => {
       reason: 'Follow-up Cardiology Evaluation & Lipid Profile Review',
       notes: 'Bring home BP log and recent lipid panel printout.',
       status: 'CONFIRMED',
-      confirmedBy: drPriya._id,
+      confirmedBy: primaryDoctor._id,
     },
     {
-      patientId: patientRamesh._id,
-      doctorId: drPriya._id,
+      patientId: primaryPatient._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       scheduledAt: new Date(Date.now() + 3_600_000 * 2),
       startTime: '17:00',
@@ -1566,11 +1652,11 @@ export const seedDatabase = async (): Promise<void> => {
       reason: 'Encrypted Video Follow-Up — Blood Pressure & Lipid Review',
       notes: 'Keep recent digital BP readings ready for video review.',
       status: 'CONFIRMED',
-      confirmedBy: drPriya._id,
+      confirmedBy: primaryDoctor._id,
     },
     {
       patientId: patientMeera._id,
-      doctorId: drPriya._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       scheduledAt: new Date(Date.now() + DAY_MS * 1 + 3_600_000 * 6),
       startTime: '15:30',
@@ -1580,7 +1666,7 @@ export const seedDatabase = async (): Promise<void> => {
       status: 'REQUESTED',
     },
     {
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       doctorId: drAnanya._id,
       facilityId: mumbaiFacility._id,
       scheduledAt: new Date(Date.now() + DAY_MS * 2),
@@ -1593,7 +1679,7 @@ export const seedDatabase = async (): Promise<void> => {
     },
     {
       patientId: patientMeera._id,
-      doctorId: drPriya._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       scheduledAt: todaySlot,
       startTime: '11:00',
@@ -1606,7 +1692,7 @@ export const seedDatabase = async (): Promise<void> => {
     },
     {
       patientId: patientVikram._id,
-      doctorId: drPriya._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       scheduledAt: new Date(Date.now() + DAY_MS * 1),
       startTime: '09:30',
@@ -1616,8 +1702,8 @@ export const seedDatabase = async (): Promise<void> => {
       status: 'SCHEDULED',
     },
     {
-      patientId: patientRamesh._id,
-      doctorId: drPriya._id,
+      patientId: primaryPatient._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       scheduledAt: new Date(Date.now() - DAY_MS * 3),
       startTime: '10:00',
@@ -1626,7 +1712,7 @@ export const seedDatabase = async (): Promise<void> => {
       reason: 'Baseline Cardiovascular Checkup',
       status: 'COMPLETED',
       completedAt: new Date(Date.now() - DAY_MS * 3 + 1_800_000),
-      completedBy: drPriya._id,
+      completedBy: primaryDoctor._id,
       encounterId: encCardio._id,
     },
   ]);
@@ -1745,8 +1831,8 @@ export const seedDatabase = async (): Promise<void> => {
   const [labOrderCompleted, labOrderInProgress] = await Promise.all([
     LaboratoryOrderModel.create({
       orderNumber: 'LAB-ORD-DEMO-2001',
-      patientId: patientRamesh._id,
-      orderedBy: drPriya._id,
+      patientId: primaryPatient._id,
+      orderedBy: primaryDoctor._id,
       encounterId: encCardio._id,
       laboratoryId: labUser._id,
       facilityId: delhiFacility._id,
@@ -1781,8 +1867,8 @@ export const seedDatabase = async (): Promise<void> => {
     }),
     LaboratoryOrderModel.create({
       orderNumber: 'LAB-ORD-DEMO-2003',
-      patientId: patientRamesh._id,
-      orderedBy: drPriya._id,
+      patientId: primaryPatient._id,
+      orderedBy: primaryDoctor._id,
       laboratoryId: labUser._id,
       facilityId: delhiFacility._id,
       tests: [
@@ -1801,10 +1887,10 @@ export const seedDatabase = async (): Promise<void> => {
   const [reportCardio, reportEndo] = await Promise.all([
     LaboratoryReportModel.create({
       reportNumber: 'LAB-RPT-DEMO-3001',
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       laboratoryId: labUser._id,
       orderId: labOrderCompleted._id,
-      doctorId: drPriya._id,
+      doctorId: primaryDoctor._id,
       facilityId: delhiFacility._id,
       testName: 'Lipid Profile Extended & HbA1c',
       category: 'BIOCHEMISTRY',
@@ -1945,8 +2031,8 @@ export const seedDatabase = async (): Promise<void> => {
   logger.info('Seeding ABDM Consent Requests & Artifacts...');
   const [grantedConsentReq] = await Promise.all([
     ConsentRequestModel.create({
-      patientId: patientRamesh._id,
-      requesterId: drPriya._id,
+      patientId: primaryPatient._id,
+      requesterId: primaryDoctor._id,
       requesterName: 'Dr. Priya Sharma (AIIMS Cardiology)',
       requesterRole: 'DOCTOR',
       organization: delhiFacility.name,
@@ -1964,7 +2050,7 @@ export const seedDatabase = async (): Promise<void> => {
       expiresAt: new Date(Date.now() + DAY_MS * 30),
     }),
     ConsentRequestModel.create({
-      patientId: patientRamesh._id,
+      patientId: primaryPatient._id,
       requesterId: drArjun._id,
       requesterName: 'Dr. Arjun Mehta (Apollo Spectra Endocrinology)',
       requesterRole: 'DOCTOR',
@@ -1985,8 +2071,8 @@ export const seedDatabase = async (): Promise<void> => {
 
   await ConsentArtifactModel.create({
     consentRequestId: grantedConsentReq._id,
-    patientId: patientRamesh._id,
-    requesterId: drPriya._id,
+    patientId: primaryPatient._id,
+    requesterId: primaryDoctor._id,
     requesterName: 'Dr. Priya Sharma (AIIMS Cardiology)',
     purpose: 'CAREMGT',
     permittedDataTypes: ['OP_CONSULTATION', 'DIAGNOSTIC_REPORT', 'PRESCRIPTION'],
@@ -2005,7 +2091,7 @@ export const seedDatabase = async (): Promise<void> => {
   logger.info('Seeding Multi-Role Portal Notifications...');
   await NotificationModel.create([
     {
-      userId: patientRamesh._id,
+      userId: primaryPatient._id,
       userRole: 'PATIENT',
       category: 'LAB',
       eventType: 'LAB_REPORT_PUBLISHED',
@@ -2018,7 +2104,7 @@ export const seedDatabase = async (): Promise<void> => {
       isRead: false,
     },
     {
-      userId: patientRamesh._id,
+      userId: primaryPatient._id,
       userRole: 'PATIENT',
       category: 'CONSENT',
       eventType: 'CONSENT_REQUESTED',
@@ -2031,7 +2117,7 @@ export const seedDatabase = async (): Promise<void> => {
       isRead: false,
     },
     {
-      userId: patientRamesh._id,
+      userId: primaryPatient._id,
       userRole: 'PATIENT',
       category: 'ORDER',
       eventType: 'ORDER_READY_FOR_PICKUP',
@@ -2044,7 +2130,7 @@ export const seedDatabase = async (): Promise<void> => {
       isRead: false,
     },
     {
-      userId: drPriya._id,
+      userId: primaryDoctor._id,
       userRole: 'DOCTOR',
       category: 'APPOINTMENT',
       eventType: 'PATIENT_CHECKED_IN',

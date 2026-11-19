@@ -41,14 +41,19 @@ export const createRateLimiter = (options: RateLimitOptions) => {
     options.keyGenerator ||
     ((req: Request): string => {
       return (
-        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
         req.ip ||
+        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
         req.socket.remoteAddress ||
         'anonymous'
       );
     });
 
   return (req: Request, res: Response, next: NextFunction): void => {
+    // Never rate-limit preflight OPTIONS
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     if (options.skip && options.skip(req)) {
       return next();
     }
@@ -104,11 +109,22 @@ export const apiLimiter = createRateLimiter({
   message: 'API rate limit exceeded. Please throttle your requests.',
 });
 
-// 3. Authentication General Limiter: 30 requests per 15 minutes
+// 3. Authentication General Limiter: 120 requests per 15 minutes (configurable)
 export const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 120,
   message: 'Too many authentication requests from this IP. Please try again in 15 minutes.',
+  skip: (req: Request) => {
+    // If request identifier matches a demo account when demo mode is active, prevent premature lockout
+    const isDemoMode = process.env.DEMO_ACCOUNTS_ENABLED !== 'false';
+    if (isDemoMode) {
+      const id = (req.body?.identifier || req.body?.email || '').toString().toLowerCase();
+      if (id.endsWith('@healthbridge.local')) {
+        return true;
+      }
+    }
+    return false;
+  },
 });
 
 // 4. Login Attempt Limiter: 5 attempts per 15 minutes

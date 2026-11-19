@@ -123,6 +123,30 @@ export const backendEnvSchema = z
       .default('false')
       .transform((v) => v === 'true'),
     VIDEO_ICE_SERVERS_JSON: z.string().optional(),
+    // --- Synthetic Demo Accounts Configuration ---
+    DEMO_ACCOUNTS_ENABLED: z
+      .enum(['true', 'false'])
+      .optional()
+      .default('true')
+      .transform((v) => v === 'true'),
+    DEMO_PATIENT_PASSWORD: z.string().optional(),
+    DEMO_DOCTOR_PASSWORD: z.string().optional(),
+    DEMO_PHARMACY_PASSWORD: z.string().optional(),
+    DEMO_LAB_PASSWORD: z.string().optional(),
+    DEMO_ADMIN_PASSWORD: z.string().optional(),
+    ALLOW_PRODUCTION_DEMO_SEED: z
+      .enum(['true', 'false'])
+      .optional()
+      .default('false')
+      .transform((v) => v === 'true'),
+    AUTH_RATE_LIMIT_MAX: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    LOGIN_RATE_LIMIT_MAX: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') {

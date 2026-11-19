@@ -29,6 +29,7 @@ import { adminDataProtectionRoutes } from '../security/data-protection/data-prot
 import { adminSecurityMonitoringRoutes } from '../modules/security-monitoring/security-monitoring.routes';
 import { assistantRoutes } from '../modules/assistant/routes/assistant.routes';
 import { telemedicineRoutes } from '../modules/telemedicine/routes/telemedicine.routes';
+import { demoRoutes } from '../modules/demo/demo.routes';
 import { apiLimiter, authLimiter } from '../middleware/rate-limit';
 
 export const v1Router = Router();
@@ -67,3 +68,4 @@ v1Router.use('/admin/data-protection', apiLimiter, adminDataProtectionRoutes);
 v1Router.use('/admin/security', apiLimiter, adminSecurityMonitoringRoutes);
 v1Router.use('/assistant', apiLimiter, assistantRoutes);
 v1Router.use('/telemedicine', apiLimiter, telemedicineRoutes);
+v1Router.use('/demo', apiLimiter, demoRoutes);

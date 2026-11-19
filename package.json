@@ -21,6 +21,7 @@
     "verify:integration": "pnpm --filter @healthbridge/api exec tsx ../../scripts/verify-integration.ts",
     "test:e2e": "pnpm --filter @healthbridge/api exec tsx ../../scripts/e2e-foundation-test.ts",
     "seed": "pnpm --filter @healthbridge/api seed",
+    "seed:demo": "pnpm --filter @healthbridge/api seed:demo",
     "db:sync-indexes": "pnpm --filter @healthbridge/api db:sync-indexes",
     "smoke:prod": "node scripts/production-smoke-test.mjs",
     "test:db": "pnpm --filter @healthbridge/api test:db",

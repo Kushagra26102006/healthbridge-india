@@ -12,6 +12,7 @@ interface RateLimiterOptions {
   max: number;
   message?: string;
   keyGenerator?: (req: Request) => string;
+  skip?: (req: Request) => boolean;
 }
 
 /**
@@ -32,8 +33,17 @@ export const createRateLimiter = (options: RateLimiterOptions) => {
   }, 60000).unref();
 
   return (req: Request, res: Response, next: NextFunction): void => {
+    // Never rate-limit preflight OPTIONS
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     // Bypass rate limiting in test environment
     if (process.env.NODE_ENV === 'test') {
+      return next();
+    }
+
+    if (options.skip && options.skip(req)) {
       return next();
     }
 
@@ -81,13 +91,25 @@ export const authGeneralLimiter = createRateLimiter({
 
 export const loginRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 failed attempts allowed in window
+  max:
+    Number(process.env.LOGIN_RATE_LIMIT_MAX) ||
+    (process.env.DEMO_ACCOUNTS_ENABLED !== 'false' ? 30 : 10),
   message:
     'Too many login attempts. Account temporarily locked for 15 minutes to prevent brute-force attacks.',
   keyGenerator: (req: Request) => {
     const identifier = req.body?.identifier || '';
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     return `${ip}:${identifier.toLowerCase()}`;
+  },
+  skip: (req: Request) => {
+    const isDemoMode = process.env.DEMO_ACCOUNTS_ENABLED !== 'false';
+    if (isDemoMode) {
+      const id = (req.body?.identifier || req.body?.email || '').toString().toLowerCase();
+      if (id.endsWith('@healthbridge.local')) {
+        return true;
+      }
+    }
+    return false;
   },
 });
 

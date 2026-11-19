@@ -37,20 +37,23 @@ const DEMO_ACCOUNTS: ReadonlyArray<{
   email: string;
   icon: React.ComponentType<{ className?: string }>;
   showcasePortal?: PortalShowcaseKey;
+  testId: string;
 }> = [
   {
     role: 'PATIENT',
     label: 'Patient',
-    email: 'ramesh.patel@healthbridge.local',
+    email: 'patient.demo@healthbridge.local',
     icon: HeartPulse,
     showcasePortal: 'PATIENT',
+    testId: 'demo-quickfill-patient',
   },
   {
     role: 'DOCTOR',
     label: 'Doctor',
-    email: 'dr.priya.sharma@healthbridge.local',
+    email: 'doctor.demo@healthbridge.local',
     icon: Stethoscope,
     showcasePortal: 'DOCTOR',
+    testId: 'demo-quickfill-doctor',
   },
   {
     role: 'PHARMACY',
@@ -58,6 +61,7 @@ const DEMO_ACCOUNTS: ReadonlyArray<{
     email: 'pharmacy.demo@healthbridge.local',
     icon: Pill,
     showcasePortal: 'PHARMACY',
+    testId: 'demo-quickfill-pharmacy',
   },
   {
     role: 'LABORATORY',
@@ -65,12 +69,14 @@ const DEMO_ACCOUNTS: ReadonlyArray<{
     email: 'lab.demo@healthbridge.local',
     icon: FlaskConical,
     showcasePortal: 'LABORATORY',
+    testId: 'demo-quickfill-lab',
   },
   {
     role: 'ADMIN',
     label: 'Admin',
     email: 'admin.demo@healthbridge.local',
     icon: ShieldCheck,
+    testId: 'demo-quickfill-admin',
   },
 ];
 
@@ -171,7 +177,7 @@ export function LoginForm({
             <Input
               id="login-identifier"
               type="text"
-              placeholder="e.g. ramesh.patel@healthbridge.local or 9876543212"
+              placeholder="e.g. patient.demo@healthbridge.local or 9876543212"
               value={identifier}
               onChange={(e) => {
                 setIdentifier(e.target.value);
@@ -179,6 +185,7 @@ export function LoginForm({
               }}
               disabled={isLoading}
               className="pl-9"
+              data-testid="login-identifier-input"
               required
             />
           </div>
@@ -204,6 +211,7 @@ export function LoginForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
+            data-testid="login-password-input"
             required
           />
         </div>
@@ -228,6 +236,7 @@ export function LoginForm({
           size="lg"
           className="w-full shadow-sm"
           disabled={isLoading}
+          data-testid="login-submit-btn"
         >
           {isLoading ? (
             <>
@@ -249,7 +258,7 @@ export function LoginForm({
           </span>
           <span className="text-[10px] font-normal text-muted-foreground">All 5 Portals</span>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
           {DEMO_ACCOUNTS.map((account) => {
             const Icon = account.icon;
             const isActive = selectedDemoRole === account.role;
@@ -257,19 +266,32 @@ export function LoginForm({
               <button
                 key={account.role}
                 type="button"
+                data-testid={account.testId}
                 onClick={() => handleQuickFill(account)}
-                className={`flex flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold rounded-xl border transition-all duration-150 ${
+                title={`Quick-fill credentials for ${account.label} (${account.email})`}
+                className={`flex flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] sm:text-[11px] font-semibold rounded-xl border transition-all duration-150 ${
                   isActive
-                    ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                    ? 'bg-teal-600 text-white border-teal-600 shadow-sm ring-2 ring-teal-500/20'
                     : 'bg-card border-border hover:border-teal-500/50 hover:bg-accent text-foreground'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{account.label}</span>
+                <span className="truncate">{account.label}</span>
               </button>
             );
           })}
         </div>
+        {selectedDemoRole && (
+          <div
+            data-testid="demo-account-indicator"
+            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-[11px] text-teal-700 dark:text-teal-300"
+          >
+            <span className="truncate">
+              Loaded: <strong>{DEMO_ACCOUNTS.find((a) => a.role === selectedDemoRole)?.label}</strong> Demo ({identifier})
+            </span>
+            <span className="text-[10px] opacity-80 shrink-0 ml-1">Click Sign In</span>
+          </div>
+        )}
       </div>
 
       {/* Link to Registration */}

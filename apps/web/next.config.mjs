@@ -57,6 +57,15 @@ const nextConfig = {
     imageSizes: [64, 128, 256, 384, 512],
   },
   transpilePackages: ['@healthbridge/shared-types', '@healthbridge/validation', '@healthbridge/config'],
+  async redirects() {
+    return [
+      {
+        source: '/lab/:path*',
+        destination: '/laboratory/:path*',
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {
