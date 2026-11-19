@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ShieldCheck } from 'lucide-react';
 import { LoginForm } from './LoginForm';
 import { RegistrationForm } from './RegistrationForm';
@@ -14,6 +14,16 @@ export interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, view, defaultRole, onClose, onSwitchView }: AuthModalProps) {
+  const [activeRole, setActiveRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (view === 'REGISTER') {
+      setActiveRole(defaultRole || 'PATIENT');
+    } else {
+      setActiveRole(null);
+    }
+  }, [view, defaultRole, isOpen]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -71,16 +81,29 @@ export function AuthModal({ isOpen, view, defaultRole, onClose, onSwitchView }: 
               HealthBridge India • Secure Gateway
             </span>
           </div>
-          {defaultRole && (
-            <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-              {defaultRole}
+          {view === 'LOGIN' ? (
+            <span
+              data-testid="modal-active-role-badge"
+              className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary transition-all duration-200"
+            >
+              {activeRole || 'PORTAL SIGN-IN'}
             </span>
+          ) : (
+            (activeRole || defaultRole) && (
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                {activeRole || defaultRole}
+              </span>
+            )
           )}
         </div>
 
         {/* Active Form */}
         {view === 'LOGIN' ? (
-          <LoginForm onSuccess={onClose} onSwitchToRegister={() => onSwitchView('REGISTER')} />
+          <LoginForm
+            onSuccess={onClose}
+            onSwitchToRegister={() => onSwitchView('REGISTER')}
+            onRoleSelect={(role) => setActiveRole(role)}
+          />
         ) : (
           <RegistrationForm
             initialRole={defaultRole}

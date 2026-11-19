@@ -32,6 +32,7 @@ vi.mock('@/features/auth/hooks/use-auth', () => ({
 }));
 
 import { LoginForm } from '@/components/auth/LoginForm';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 describe('Login Form Demo Quick-Fill & Role Verification Suite', () => {
   it('renders all 5 synthetic demo account quick-fill buttons in the UI', () => {
@@ -123,5 +124,20 @@ describe('Login Form Demo Quick-Fill & Role Verification Suite', () => {
     expect(roleDashboardMap['PHARMACY']).toBe('/pharmacy/dashboard');
     expect(roleDashboardMap['LABORATORY']).toBe('/laboratory/dashboard');
     expect(roleDashboardMap['ADMIN']).toBe('/admin/dashboard');
+  });
+
+  it('renders AuthModal with unified portal sign-in badge default and supports role badge updates', () => {
+    const html = renderToStaticMarkup(
+      <AuthModal
+        isOpen={true}
+        view="LOGIN"
+        defaultRole="PATIENT"
+        onClose={vi.fn()}
+        onSwitchView={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('PORTAL SIGN-IN');
+    expect(html).toContain('HealthBridge India • Secure Gateway');
   });
 });

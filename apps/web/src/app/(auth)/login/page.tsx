@@ -14,7 +14,13 @@ export default function LoginPage() {
       activePortal={activePortal}
       onPortalChange={setActivePortal}
     >
-      <LoginForm onRoleSelect={setActivePortal} />
+      <LoginForm
+        onRoleSelect={(role) => {
+          if (role !== 'ADMIN') {
+            setActivePortal(role);
+          }
+        }}
+      />
     </AuthLayout>
   );
 }

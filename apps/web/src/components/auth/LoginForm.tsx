@@ -27,7 +27,7 @@ export type QuickFillRole = 'PATIENT' | 'DOCTOR' | 'PHARMACY' | 'LABORATORY' | '
 export interface LoginFormProps {
   onSuccess?: () => void;
   onSwitchToRegister?: () => void;
-  onRoleSelect?: (portal: PortalShowcaseKey) => void;
+  onRoleSelect?: (portal: QuickFillRole) => void;
   redirectTo?: string;
 }
 
@@ -143,9 +143,7 @@ export function LoginForm({
     setPassword('DemoSecure#2026');
     setSelectedDemoRole(account.role);
     setLocalError(null);
-    if (account.showcasePortal) {
-      onRoleSelect?.(account.showcasePortal);
-    }
+    onRoleSelect?.(account.role);
   };
 
   return (
@@ -186,6 +184,7 @@ export function LoginForm({
               disabled={isLoading}
               className="pl-9"
               data-testid="login-identifier-input"
+              autoComplete="username"
               required
             />
           </div>
@@ -212,6 +211,7 @@ export function LoginForm({
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
             data-testid="login-password-input"
+            autoComplete="current-password"
             required
           />
         </div>
